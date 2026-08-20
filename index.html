@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <title>Inventário QR</title>
+  <style>
+    :root{
+      --bg:#f3f4f6;--panel:#ffffff;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;
+      --nav:#111827;--nav2:#1f2937;--accent:#2563eb;--accent2:#1d4ed8;
+      --ok:#15803d;--okbg:#dcfce7;--warn:#b45309;--warnbg:#fef3c7;--bad:#b91c1c;--badbg:#fee2e2;
+      --info:#0369a1;--infobg:#e0f2fe;--shadow:0 10px 30px rgba(17,24,39,.08);--radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .hidden{display:none!important}
+    .app{min-height:100vh}
+    .topbar{background:var(--nav);color:white;min-height:64px;display:flex;align-items:center;gap:12px;padding:10px 18px;position:sticky;top:0;z-index:20;box-shadow:0 3px 16px rgba(0,0,0,.16)}
+    .brand{font-weight:800;letter-spacing:.2px;display:flex;align-items:center;gap:10px;min-width:0}
+    .brand-badge{width:36px;height:36px;border-radius:10px;background:#fff;color:#111827;display:grid;place-items:center;font-weight:900}
+    .brand-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .top-spacer{flex:1}
+    .mode-badge,.user-badge{font-size:12px;border-radius:999px;padding:6px 10px;background:#374151;color:#f9fafb;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .mode-badge.local{background:#7c2d12}
+    .icon-btn{border:0;background:#374151;color:white;border-radius:10px;width:42px;height:42px;font-size:18px}
+    .layout{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:calc(100vh - 64px)}
+    .sidebar{background:#fff;border-right:1px solid var(--line);padding:16px 12px;position:sticky;top:64px;height:calc(100vh - 64px)}
+    .navbtn{width:100%;border:0;background:transparent;text-align:left;border-radius:12px;padding:12px 14px;margin:3px 0;color:#374151;font-weight:700;display:flex;gap:10px;align-items:center}
+    .navbtn:hover,.navbtn.active{background:#eff6ff;color:#1d4ed8}
+    .navbtn.admin-only{display:none}
+    body.is-admin .navbtn.admin-only{display:flex}
+    .main{padding:22px;min-width:0}
+    .page{display:none;max-width:1280px;margin:0 auto}
+    .page.active{display:block}
+    h1{font-size:28px;margin:0 0 5px}
+    h2{font-size:19px;margin:0}
+    .subtitle{color:var(--muted);margin:0 0 20px}
+    .grid{display:grid;gap:16px}
+    .grid.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;min-width:0}
+    .kpi-label{font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+    .kpi-value{font-size:30px;font-weight:900;margin-top:5px}
+    .kpi-foot{font-size:12px;color:var(--muted);margin-top:3px}
+    .section-head{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap}
+    .btn{min-height:44px;border:0;border-radius:12px;padding:10px 16px;font-weight:800;background:#e5e7eb;color:#111827}
+    .btn.primary{background:var(--accent);color:white}
+    .btn.primary:hover{background:var(--accent2)}
+    .btn.danger{background:#dc2626;color:white}
+    .btn.ghost{background:white;border:1px solid var(--line)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .field{display:flex;flex-direction:column;gap:6px;margin-bottom:13px}
+    .field label{font-size:13px;font-weight:800;color:#374151}
+    input,select{width:100%;min-height:46px;border:1px solid #d1d5db;border-radius:12px;padding:10px 12px;background:white;color:var(--ink);font-size:16px;outline:none}
+    input:focus,select:focus{border-color:#60a5fa;box-shadow:0 0 0 3px #dbeafe}
+    .login-shell{min-height:100vh;display:grid;place-items:center;padding:20px;background:linear-gradient(135deg,#111827,#1e3a8a)}
+    .login-card{width:min(460px,100%);background:white;border-radius:24px;padding:26px;box-shadow:0 30px 80px rgba(0,0,0,.3)}
+    .login-logo{width:58px;height:58px;background:#111827;color:white;border-radius:16px;display:grid;place-items:center;font-size:27px;font-weight:900;margin-bottom:18px}
+    .login-card h1{font-size:27px}
+    .login-help{font-size:13px;color:var(--muted);line-height:1.45}
+    .demo-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+    .notice{border-radius:14px;padding:12px 14px;margin:12px 0;font-size:14px;line-height:1.4;border:1px solid transparent}
+    .notice.info{background:var(--infobg);color:#075985;border-color:#bae6fd}
+    .notice.warn{background:var(--warnbg);color:#92400e;border-color:#fde68a}
+    .notice.bad{background:var(--badbg);color:#991b1b;border-color:#fecaca}
+    .notice.ok{background:var(--okbg);color:#166534;border-color:#bbf7d0}
+    .inventory-strip{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+    .pill{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:7px 11px;font-weight:800;font-size:12px;background:#f3f4f6;color:#374151}
+    .pill.open{background:#dcfce7;color:#166534}
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px}
+    table{width:100%;border-collapse:collapse;min-width:760px;background:white}
+    th,td{padding:11px 12px;border-bottom:1px solid var(--line);font-size:13px;text-align:left;vertical-align:top}
+    th{background:#f9fafb;color:#4b5563;font-size:11px;text-transform:uppercase;letter-spacing:.45px;position:sticky;top:0}
+    .progress{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden}
+    .progress>span{display:block;height:100%;background:#2563eb;border-radius:999px;width:0}
+    .scanner-shell{max-width:720px;margin:0 auto}
+    .location-card{background:#111827;color:white;border-radius:18px;padding:14px;margin-bottom:14px}
+    .location-card label{font-size:12px;font-weight:800;color:#d1d5db;display:block;margin-bottom:7px;text-transform:uppercase}
+    .location-card select{background:white;color:#111827;font-weight:800;border:0}
+    .scan-panel{background:white;border-radius:22px;border:1px solid var(--line);box-shadow:var(--shadow);overflow:hidden}
+    .scanner-head{padding:16px 16px 10px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .scanner-state{font-size:12px;font-weight:900;color:#6b7280;text-transform:uppercase}
+    #reader{width:100%;background:#0b1020;min-height:0}
+    #reader video{border-radius:0!important}
+    .scan-actions{padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid var(--line)}
+    .scan-main{min-height:56px;font-size:17px}
+    .manual-box{padding:0 14px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+    .result-card{margin-top:14px;border-radius:20px;border:2px solid var(--line);padding:17px;background:white;box-shadow:var(--shadow)}
+    .result-card.ok{border-color:#22c55e;background:#f0fdf4}
+    .result-card.bad{border-color:#ef4444;background:#fef2f2}
+    .result-card.warn{border-color:#f59e0b;background:#fffbeb}
+    .result-top{display:flex;gap:12px;align-items:flex-start}
+    .status-icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:24px;background:#f3f4f6;flex:0 0 auto}
+    .result-title{font-size:19px;font-weight:900;margin:0}
+    .result-message{color:#4b5563;font-size:13px;margin:3px 0 0}
+    .nf-progress{margin-top:14px;padding-top:14px;border-top:1px solid rgba(0,0,0,.08)}
+    .nf-progress-row{display:flex;align-items:end;justify-content:space-between;gap:12px}
+    .nf-progress strong{font-size:25px}
+    .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 14px;margin-top:14px}
+    .detail{min-width:0}
+    .detail span{display:block;font-size:10px;text-transform:uppercase;color:#6b7280;font-weight:900;letter-spacing:.4px}
+    .detail b{display:block;font-size:13px;margin-top:2px;overflow-wrap:anywhere}
+    .recent{margin-top:16px}
+    .recent-list{display:flex;flex-direction:column;gap:8px}
+    .recent-item{background:white;border:1px solid var(--line);border-radius:13px;padding:11px 12px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
+    .recent-dot{width:11px;height:11px;border-radius:999px;background:#9ca3af}
+    .recent-dot.ok{background:#22c55e}.recent-dot.warn{background:#f59e0b}.recent-dot.bad{background:#ef4444}
+    .recent-main{min-width:0}.recent-main b{font-size:13px}.recent-main small{display:block;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .recent-time{font-size:11px;color:var(--muted)}
+    .upload-zone{border:2px dashed #cbd5e1;border-radius:16px;padding:22px;text-align:center;background:#f8fafc}
+    .upload-zone input{border:0;background:transparent;padding:8px;min-height:0}
+    .import-preview{margin-top:14px}
+    .import-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+    .mini{background:#f9fafb;border:1px solid var(--line);border-radius:13px;padding:12px}
+    .mini span{font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase}.mini b{display:block;font-size:21px;margin-top:4px}
+    .report-toolbar{display:grid;grid-template-columns:minmax(210px,1.35fr) repeat(4,minmax(150px,1fr));gap:10px;align-items:end}
+    .report-toolbar .field{margin:0}.report-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .report-status{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900;white-space:nowrap}
+    .report-status.complete{background:var(--okbg);color:#166534}.report-status.partial{background:var(--warnbg);color:#92400e}.report-status.pending{background:#f3f4f6;color:#4b5563}.report-status.offreport{background:var(--badbg);color:#991b1b}
+    .report-kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important}.report-kpi .kpi-value{font-size:25px}
+    .report-table table{min-width:1250px}.report-table tbody tr:hover{background:#f8fafc}.report-table .nf-cell{font-weight:900;white-space:nowrap}
+    .report-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;flex-wrap:wrap}.report-pagination-actions{display:flex;gap:8px;align-items:center}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.62);z-index:80;display:grid;place-items:center;padding:18px}.modal-card{width:min(1120px,100%);max-height:88vh;overflow:auto;background:white;border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.35);padding:18px}.modal-head{position:sticky;top:-18px;background:white;z-index:2;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:4px 0 12px;border-bottom:1px solid var(--line);margin-bottom:14px}.modal-close{width:42px;height:42px;border:0;border-radius:11px;background:#f3f4f6;font-size:22px}.volume-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:9px}.volume-card{border:1px solid var(--line);border-radius:13px;padding:11px;background:#fff}.volume-card.ok{border-color:#86efac;background:#f0fdf4}.volume-card.bad{border-color:#fca5a5;background:#fef2f2}.volume-card.pending{background:#f8fafc}.volume-card strong{display:block;margin-bottom:4px}.volume-card small{display:block;color:var(--muted);line-height:1.45}
+    .report-fresh{font-size:12px;color:var(--warn);font-weight:800}.report-fresh.hidden{display:none!important}
+    .toast-wrap{position:fixed;right:16px;bottom:16px;z-index:50;display:flex;flex-direction:column;gap:8px;max-width:min(420px,calc(100vw - 32px))}
+    .toast{background:#111827;color:white;border-radius:13px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:13px}
+    .toast.bad{background:#991b1b}.toast.ok{background:#166534}.toast.warn{background:#92400e}
+    .empty{padding:30px;text-align:center;color:var(--muted)}
+    .connection{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+    .connection-dot{width:8px;height:8px;border-radius:50%;background:#22c55e}.connection-dot.off{background:#ef4444}
+    @media(max-width:900px){
+      .layout{grid-template-columns:1fr}.sidebar{display:none}.main{padding:14px}.grid.kpis{grid-template-columns:repeat(2,1fr)}.grid.two{grid-template-columns:1fr}
+      .topbar{padding:9px 12px}.brand-title{font-size:14px}.mode-badge{display:none}.user-badge{max-width:120px}.mobile-nav{display:grid!important}.report-toolbar{grid-template-columns:1fr 1fr}.report-kpis{grid-template-columns:repeat(3,1fr)!important}
+      h1{font-size:23px}.card{padding:14px;border-radius:16px}
+    }
+    .mobile-nav{display:none;position:sticky;bottom:0;z-index:19;background:white;border-top:1px solid var(--line);grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom)}
+    .mobile-nav .admin-only{display:none}body.is-admin .mobile-nav .admin-only{display:block}
+    .mobile-nav button{border:0;background:white;min-height:58px;font-size:10px;font-weight:800;color:#6b7280;padding:5px}
+    .mobile-nav button span{display:block;font-size:20px;margin-bottom:2px}.mobile-nav button.active{color:#1d4ed8;background:#eff6ff}
+    @media(max-width:520px){
+      .main{padding:10px}.grid.kpis{grid-template-columns:1fr 1fr;gap:9px}.kpi-value{font-size:24px}.kpi-label{font-size:10px}
+      .scan-actions{grid-template-columns:1fr}.manual-box{grid-template-columns:1fr}.detail-grid{grid-template-columns:1fr 1fr}.result-card{padding:14px}.login-card{padding:20px}.demo-actions{grid-template-columns:1fr}
+      .import-stats{grid-template-columns:1fr}.topbar .brand-badge{width:32px;height:32px}.topbar{min-height:58px}.layout{min-height:calc(100vh - 58px)}.report-toolbar{grid-template-columns:1fr}.report-kpis{grid-template-columns:1fr 1fr!important}.report-actions .btn{flex:1 1 100%}
+    }
+  </style>
+</head>
+<body>
+  <div id="loginView" class="login-shell">
+    <div class="login-card">
+      <div class="login-logo">QR</div>
+      <h1>Inventário QR</h1>
+      <p class="subtitle">Conferência de volumes por etiqueta e localização.</p>
+      <div id="loginModeNotice" class="notice info"></div>
+      <form id="loginForm">
+        <div class="field"><label for="email">Usuário / e-mail</label><input id="email" autocomplete="username" placeholder="conferente01@empresa.local"></div>
+        <div class="field"><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+        <button class="btn primary" style="width:100%" type="submit">Entrar</button>
+      </form>
+      <div id="demoLogin" class="hidden">
+        <div class="field"><label for="demoName">Nome do conferente</label><input id="demoName" value="Conferente Teste"></div>
+        <div class="demo-actions"><button id="demoChecker" class="btn primary" type="button">Entrar como conferente</button><button id="demoAdmin" class="btn" type="button">Entrar como admin</button></div>
+      </div>
+      <p class="login-help">Para operação com vários celulares, configure o Supabase em <b>app-config.js</b>. Sem backend, o modo demonstração funciona apenas neste aparelho.</p>
+    </div>
+  </div>
+
+  <div id="appView" class="app hidden">
+    <header class="topbar">
+      <div class="brand"><div class="brand-badge">QR</div><div class="brand-title">Inventário QR</div></div>
+      <div class="top-spacer"></div>
+      <div id="modeBadge" class="mode-badge"></div>
+      <div id="userBadge" class="user-badge"></div>
+      <button id="logoutBtn" class="icon-btn" title="Sair">↪</button>
+    </header>
+    <div class="layout">
+      <aside class="sidebar">
+        <button class="navbtn active" data-page="scanner">📷 Conferência</button>
+        <button class="navbtn" data-page="dashboard">📊 Painel</button>
+        <button class="navbtn admin-only" data-page="report">📋 Relatório do inventário</button>
+        <button class="navbtn admin-only" data-page="admin">📥 Carregar relatório</button>
+        <button class="navbtn admin-only" data-page="settings">⚙️ Administração</button>
+      </aside>
+      <main class="main">
+        <section id="page-scanner" class="page active">
+          <div class="scanner-shell">
+            <div class="inventory-strip">
+              <span id="scannerInventoryName" class="pill">Nenhum inventário</span>
+              <span id="scannerInventoryStatus" class="pill">-</span>
+              <span class="connection"><span id="connectionDot" class="connection-dot"></span><span id="connectionText">Online</span></span>
+            </div>
+            <div class="location-card">
+              <label for="locationSelect">Local da conferência</label>
+              <select id="locationSelect"><option value="">Selecione o local antes de bipar</option></select>
+            </div>
+            <div class="scan-panel">
+              <div class="scanner-head"><div><h2>Leitor de QR Code</h2><div id="scannerState" class="scanner-state">Câmera parada</div></div><span class="pill">QR</span></div>
+              <div id="reader" class="hidden"></div>
+              <div class="scan-actions">
+                <button id="startScanBtn" class="btn primary scan-main" type="button">📷 Abrir câmera</button>
+                <button id="stopScanBtn" class="btn scan-main" type="button" disabled>■ Fechar câmera</button>
+              </div>
+              <div class="manual-box">
+                <input id="manualCode" placeholder="Cole/digite um QR para testar">
+                <button id="manualSubmit" class="btn" type="button">Conferir</button>
+              </div>
+            </div>
+            <div id="scanResult" class="result-card hidden" aria-live="polite"></div>
+            <div class="recent">
+              <div class="section-head"><h2>Últimas leituras</h2><span id="myScanCount" class="pill">0 leituras</span></div>
+              <div id="recentList" class="recent-list"><div class="empty card">Nenhuma leitura nesta sessão.</div></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="page-dashboard" class="page">
+          <div class="section-head"><div><h1>Painel do inventário</h1><p class="subtitle">Acompanhamento geral de notas e volumes.</p></div><button id="refreshDashboard" class="btn" type="button">Atualizar</button></div>
+          <div class="grid kpis">
+            <div class="card"><div class="kpi-label">Volumes esperados</div><div id="kExpectedVolumes" class="kpi-value">0</div><div class="kpi-foot">Base carregada</div></div>
+            <div class="card"><div class="kpi-label">Volumes OK</div><div id="kOkVolumes" class="kpi-value">0</div><div class="kpi-foot">Leituras válidas</div></div>
+            <div class="card"><div class="kpi-label">NFs completas</div><div id="kCompleteNotes" class="kpi-value">0</div><div class="kpi-foot">Todos os volumes encontrados</div></div>
+            <div class="card"><div class="kpi-label">Divergências</div><div id="kDivergences" class="kpi-value">0</div><div id="kDuplicates" class="kpi-foot">0 duplicidades</div></div>
+          </div>
+          <div class="card" style="margin-top:16px">
+            <div class="section-head"><h2>Progresso geral</h2><b id="dashboardPercent">0%</b></div>
+            <div class="progress"><span id="dashboardProgress"></span></div>
+            <div class="grid kpis" style="margin-top:16px">
+              <div class="mini"><span>NFs esperadas</span><b id="kExpectedNotes">0</b></div>
+              <div class="mini"><span>Em andamento</span><b id="kPartialNotes">0</b></div>
+              <div class="mini"><span>Não iniciadas</span><b id="kNotStartedNotes">0</b></div>
+              <div class="mini"><span>Concluídas</span><b id="kCompleteNotes2">0</b></div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:16px">
+            <div class="section-head"><h2>Inventário ativo</h2><span id="dashboardInventoryStatus" class="pill">-</span></div>
+            <div id="dashboardInventoryInfo" class="empty">Nenhum inventário ativo.</div>
+          </div>
+        </section>
+
+        <section id="page-report" class="page">
+          <div class="section-head">
+            <div><h1>Relatório do inventário</h1><p class="subtitle">Status por NF e volume, divergências, faltantes, locais e conferentes.</p></div>
+            <div class="report-actions"><span id="reportFreshness" class="report-fresh hidden">Novas leituras disponíveis</span><button id="refreshReportBtn" class="btn" type="button">Atualizar relatório</button><button id="exportFilteredBtn" class="btn ghost" type="button">Exportar filtrado</button><button id="exportFullBtn" class="btn primary" type="button">Exportar Excel completo</button></div>
+          </div>
+          <div class="card" style="margin-bottom:16px">
+            <div class="report-toolbar">
+              <div class="field"><label for="reportInventorySelect">Inventário</label><select id="reportInventorySelect"><option value="">Selecione...</option></select></div>
+              <div class="field"><label for="reportSearch">Pesquisar</label><input id="reportSearch" placeholder="NF, OEF, fornecedor, cliente..."></div>
+              <div class="field"><label for="reportStatusFilter">Status da NF</label><select id="reportStatusFilter"><option value="all">Todos</option><option value="complete">Conferida</option><option value="partial">Parcial</option><option value="not_started">Não conferida</option><option value="off_report">Fora do relatório</option></select></div>
+              <div class="field"><label for="reportDivergenceFilter">Divergência</label><select id="reportDivergenceFilter"><option value="all">Todas</option><option value="none">Sem divergência</option><option value="any">Com qualquer divergência</option><option value="divergent_not_in_report">Não consta no relatório</option><option value="divergent_total_mismatch">Total diferente</option><option value="divergent_volume_out_of_range">Volume fora da faixa</option><option value="duplicate">Duplicidade</option></select></div>
+              <div class="field"><label for="reportLocationFilter">Local</label><select id="reportLocationFilter"><option value="all">Todos os locais</option></select></div>
+            </div>
+          </div>
+          <div class="grid kpis report-kpis">
+            <div class="card report-kpi"><div class="kpi-label">NFs da base</div><div id="rExpectedNotes" class="kpi-value">0</div><div class="kpi-foot">Relatório carregado</div></div>
+            <div class="card report-kpi"><div class="kpi-label">Conferidas</div><div id="rCompleteNotes" class="kpi-value">0</div><div class="kpi-foot">100% dos volumes</div></div>
+            <div class="card report-kpi"><div class="kpi-label">Parciais</div><div id="rPartialNotes" class="kpi-value">0</div><div class="kpi-foot">Parte dos volumes</div></div>
+            <div class="card report-kpi"><div class="kpi-label">Não conferidas</div><div id="rNotStartedNotes" class="kpi-value">0</div><div class="kpi-foot">Nenhum volume OK</div></div>
+            <div class="card report-kpi"><div class="kpi-label">Fora do relatório</div><div id="rOffReport" class="kpi-value">0</div><div class="kpi-foot">NFs/combinações encontradas</div></div>
+            <div class="card report-kpi"><div class="kpi-label">Duplicidades</div><div id="rDuplicates" class="kpi-value">0</div><div class="kpi-foot">Tentativas repetidas</div></div>
+          </div>
+          <div class="card" style="margin-top:16px">
+            <div class="section-head"><div><h2>Detalhamento por nota</h2><p id="reportCount" class="subtitle" style="margin:3px 0 0">Nenhum registro carregado.</p></div></div>
+            <div class="table-wrap report-table"><table><thead><tr><th>Status</th><th>NF</th><th>Série</th><th>OEF / Coleta</th><th>Fornecedor</th><th>Cliente</th><th>Destino</th><th>Esperados</th><th>OK</th><th>Faltantes</th><th>Divergências</th><th>Local(is)</th><th>Conferente(s)</th><th>Detalhes</th></tr></thead><tbody id="reportBody"><tr><td colspan="14" class="empty">Selecione um inventário.</td></tr></tbody></table></div>
+            <div class="report-pagination"><span id="reportPageInfo" class="login-help">Página 0 de 0</span><div class="report-pagination-actions"><button id="reportPrevBtn" class="btn" type="button">Anterior</button><button id="reportNextBtn" class="btn" type="button">Próxima</button></div></div>
+          </div>
+        </section>
+
+        <section id="page-admin" class="page">
+          <h1>Carregar relatório</h1><p class="subtitle">Crie o inventário a partir do relatório Excel.</p>
+          <div class="grid two">
+            <div class="card">
+              <div class="field"><label for="inventoryName">Nome do inventário</label><input id="inventoryName" placeholder="Ex.: Inventário 20/08/2026"></div>
+              <div class="upload-zone">
+                <b>Relatório Excel (.xlsx)</b><p class="login-help">A aba Export será utilizada quando existir.</p><input id="reportFile" type="file" accept=".xlsx,.xls">
+              </div>
+              <div id="importNotice" class="notice info">Selecione o relatório para validar a estrutura.</div>
+              <button id="createInventoryBtn" class="btn primary" style="width:100%" disabled type="button">Criar inventário e enviar base</button>
+            </div>
+            <div class="card">
+              <div class="section-head"><h2>Prévia da importação</h2><span id="importSheet" class="pill">-</span></div>
+              <div class="import-stats">
+                <div class="mini"><span>Notas</span><b id="importNotes">0</b></div>
+                <div class="mini"><span>Volumes</span><b id="importVolumes">0</b></div>
+                <div class="mini"><span>Duplicidades de chave</span><b id="importDuplicates">0</b></div>
+              </div>
+              <div id="sampleMatch" class="notice info">O sistema validará NF, série, CNPJ, coleta/OEF e volumes.</div>
+            </div>
+          </div>
+          <div class="card import-preview">
+            <div class="section-head"><h2>Primeiros registros</h2><span id="importFileName" class="pill">Nenhum arquivo</span></div>
+            <div class="table-wrap"><table><thead><tr><th>NF</th><th>Série</th><th>CNPJ</th><th>OEF/Coleta</th><th>Volumes</th><th>Fornecedor</th><th>Destino</th></tr></thead><tbody id="previewBody"><tr><td colspan="7" class="empty">Sem prévia.</td></tr></tbody></table></div>
+          </div>
+        </section>
+
+        <section id="page-settings" class="page">
+          <h1>Administração</h1><p class="subtitle">Informações do ambiente e inventário.</p>
+          <div class="grid two">
+            <div class="card"><h2>Backend</h2><div id="backendInfo" class="notice info"></div><p class="login-help">A publishable/anon key pode estar no navegador quando as tabelas usam RLS. Nunca use a service_role key no front-end.</p></div>
+            <div class="card"><h2>Inventário ativo</h2><div id="adminInventoryInfo" style="margin-top:12px"></div><button id="closeInventoryBtn" class="btn danger hidden" type="button">Encerrar inventário</button></div>
+          </div>
+          <div class="card" style="margin-top:16px"><h2>Locais cadastrados</h2><div id="locationsList" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"></div></div>
+        </section>
+      </main>
+    </div>
+    <nav class="mobile-nav">
+      <button class="active" data-page="scanner"><span>📷</span>Conferir</button>
+      <button data-page="dashboard"><span>📊</span>Painel</button>
+      <button class="admin-only" data-page="report"><span>📋</span>Relatório</button>
+      <button class="admin-only" data-page="admin"><span>📥</span>Base</button>
+      <button class="admin-only" data-page="settings"><span>⚙️</span>Admin</button>
+    </nav>
+  </div>
+  <div id="reportModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="reportModalTitle">
+    <div class="modal-card"><div class="modal-head"><div><h2 id="reportModalTitle">Detalhes da NF</h2><p id="reportModalSubtitle" class="subtitle" style="margin:3px 0 0"></p></div><button id="reportModalClose" class="modal-close" type="button" aria-label="Fechar">×</button></div><div id="reportModalContent"></div></div>
+  </div>
+  <div id="toastWrap" class="toast-wrap"></div>
+
+  <script src="app-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+  (()=>{
+    'use strict';
+    const cfg=window.APP_CONFIG||{};
+    const configured=Boolean(cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase);
+    const db=configured ? window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true}}) : null;
+    const state={user:null,profile:null,inventory:null,locations:[],importItems:[],importMeta:null,recent:[],scanner:null,scannerRunning:false,realtimeChannel:null,demoItems:[],demoScans:[],demoAttempts:[],reportInventories:[],reportInventoryId:null,reportRows:[],reportFiltered:[],reportItems:[],reportScans:[],reportAttempts:[],reportProfiles:new Map(),reportPage:1,reportPageSize:100,reportDirty:false};
+    const $=s=>document.querySelector(s); const $$=s=>[...document.querySelectorAll(s)];
+    const digits=v=>String(v??'').replace(/\D/g,'');
+    const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const fmtNum=n=>Number(n||0).toLocaleString('pt-BR');
+    const nowTime=()=>new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const fmtDateTime=v=>v?new Date(v).toLocaleString('pt-BR'):'-';
+    const safeInt=v=>{const n=parseInt(String(v??'').replace(',','.'),10);return Number.isFinite(n)?n:0};
+    function toast(msg,type=''){const el=document.createElement('div');el.className='toast '+type;el.textContent=msg;$('#toastWrap').appendChild(el);setTimeout(()=>el.remove(),3800)}
+    function setConnection(){const on=navigator.onLine;$('#connectionDot').classList.toggle('off',!on);$('#connectionText').textContent=on?'Online':'Sem conexão'}
+    addEventListener('online',setConnection);addEventListener('offline',setConnection);setConnection();
+
+    function parseQr(raw){
+      const source=String(raw||'').trim();
+      if(!source) throw new Error('Código vazio.');
+      const lead=(source.match(/^\s*(\d+)/)||[])[1]||'';
+      if(lead.length<40 || lead.length>48) throw new Error('Formato não reconhecido: prefixo numérico inválido.');
+      const fixedTail=39, noteLen=lead.length-fixedTail;
+      if(noteLen<1||noteLen>9) throw new Error('Tamanho do número da NF inválido.');
+      let p=0;
+      const noteRaw=lead.slice(p,p+=noteLen), series=lead.slice(p,p+=3), cnpj=lead.slice(p,p+=14), collection=lead.slice(p,p+=12), item=lead.slice(p,p+=4), volumeTxt=lead.slice(p,p+=3), totalTxt=lead.slice(p,p+=3);
+      const notePadded=noteRaw.padStart(9,'0'), collectionPadded=collection.padStart(12,'0');
+      const volume=safeInt(volumeTxt), total=safeInt(totalTxt);
+      if(volume<1||total<1) throw new Error('Volume/total inválido no QR.');
+      const tag=name=>{const m=source.match(new RegExp('<'+name+'>([\\s\\S]*?)<\\/'+name+'>','i'));return m?m[1].trim():''};
+      const xmlPedido=tag('Pedido'), xmlChave=digits(tag('ChaveNF')), xmlNumero=digits(tag('NumeroDoc')), xmlEtiquetas=tag('Etiquetas');
+      const warnings=[];
+      if(xmlNumero && xmlNumero.padStart(9,'0')!==notePadded) warnings.push('NumeroDoc do QR longo difere do prefixo.');
+      if(xmlChave.length===44){
+        if(xmlChave.slice(6,20)!==cnpj) warnings.push('CNPJ da ChaveNF difere do prefixo.');
+        if(xmlChave.slice(22,25)!==series) warnings.push('Série da ChaveNF difere do prefixo.');
+        if(xmlChave.slice(25,34)!==notePadded) warnings.push('NF da ChaveNF difere do prefixo.');
+      }
+      if(xmlEtiquetas){const m=xmlEtiquetas.match(/(\d+)\s*\/\s*(\d+)/);if(m&&(safeInt(m[1])!==volume||safeInt(m[2])!==total))warnings.push('Etiqueta x/y difere do prefixo.');}
+      return {raw:source,noteRaw,notePadded,series,cnpj,collection,collectionPadded,item,volume,total,xmlPedido,xmlChave,xmlNumero,xmlEtiquetas,warnings,
+        lookupKey:[notePadded,series,cnpj,collectionPadded].join('|'),
+        canonicalVolumeKey:[notePadded,series,cnpj,collectionPadded,String(volume).padStart(3,'0')].join('|')};
+    }
+    window.parseInventoryQr=parseQr;
+
+    function seriesFromKey(key){const k=digits(key);return k.length===44?k.slice(22,25):''}
+    function normalizeReportRow(row,rowNumber){
+      const key=digits(row['CHAVE_NFE']);
+      const note=digits(row['Nota']);
+      const cnpj=digits(row['CNPJ Fornecedor']);
+      const oef=digits(row['Numero OEF']);
+      const vols=safeInt(row['Volumes']);
+      if(!note||!cnpj||!oef||vols<1||key.length!==44) return null;
+      const notePadded=note.padStart(9,'0').slice(-9), series=seriesFromKey(key), cnpj14=cnpj.padStart(14,'0').slice(-14), collectionPadded=oef.padStart(12,'0').slice(-12);
+      return {source_row:rowNumber,note:String(row['Nota']),note_padded:notePadded,series,cNPJ:cnpj14,cnpj_supplier:cnpj14,collection:String(row['Numero OEF']),collection_padded:collectionPadded,expected_volumes:vols,invoice_key:key,
+        order_number:String(row['Pedido']??''),oef:String(row['Numero OEF']??''),supplier:String(row['Fornecedor']??''),client:String(row['Cliente']??''),recipient:String(row['Destinatario']??''),destination:String(row['Destino']??''),destination_uf:String(row['UF Destino']??''),warehouse:String(row['Almoxarifado']??''),wms_address:String(row['End. WMS']??''),weight:Number(row['Peso']||0)||null,merchandise:String(row['Mercadoria']??''),raw_data:row,
+        lookupKey:[notePadded,series,cnpj14,collectionPadded].join('|')};
+    }
+
+    async function parseWorkbook(file){
+      if(!window.XLSX) throw new Error('Biblioteca de Excel não carregada.');
+      const ab=await file.arrayBuffer(), book=XLSX.read(ab,{type:'array'}), sheetName=book.SheetNames.includes('Export')?'Export':book.SheetNames[0];
+      const rows=XLSX.utils.sheet_to_json(book.Sheets[sheetName],{defval:'',raw:false});
+      const required=['Nota','Numero OEF','CNPJ Fornecedor','Volumes','CHAVE_NFE'];
+      const headers=rows.length?Object.keys(rows[0]):[]; const missing=required.filter(h=>!headers.includes(h));
+      if(missing.length) throw new Error('Colunas obrigatórias ausentes: '+missing.join(', '));
+      const items=[]; const invalid=[]; const keys=new Set(); let duplicateKeys=0;
+      rows.forEach((r,i)=>{const item=normalizeReportRow(r,i+2);if(!item){invalid.push(i+2);return}if(keys.has(item.lookupKey)){duplicateKeys++;return}keys.add(item.lookupKey);items.push(item)});
+      const expectedVolumes=items.reduce((s,x)=>s+x.expected_volumes,0);
+      return {sheetName,items,expectedVolumes,duplicateKeys,invalidRows:invalid,totalRows:rows.length,fileName:file.name};
+    }
+
+    function setModeUi(){
+      $('#modeBadge').textContent=configured?'SUPABASE • MULTIUSUÁRIO':'MODO LOCAL • DEMONSTRAÇÃO';$('#modeBadge').classList.toggle('local',!configured);
+      $('#loginModeNotice').className='notice '+(configured?'ok':'warn');
+      $('#loginModeNotice').textContent=configured?'Backend configurado. As leituras serão sincronizadas entre os celulares.':'Supabase ainda não configurado. Use o modo demonstração para testar em um único aparelho.';
+      $('#loginForm').classList.toggle('hidden',!configured);$('#demoLogin').classList.toggle('hidden',configured);
+      $('#backendInfo').textContent=configured?'Supabase configurado e ativo. URL do projeto: '+cfg.supabaseUrl:'Modo local. Configure supabaseUrl e supabaseAnonKey em app-config.js para habilitar sincronização.';
+    }
+
+    async function loginSupabase(email,password){
+      const {data,error}=await db.auth.signInWithPassword({email,password}); if(error)throw error; state.user=data.user;
+      const {data:profile,error:pe}=await db.from('profiles').select('*').eq('id',data.user.id).single();if(pe)throw pe;state.profile=profile;
+    }
+    function loginDemo(role){const name=$('#demoName').value.trim()||'Conferente Teste';state.user={id:'demo-'+role};state.profile={id:state.user.id,name,role,active:true}}
+    async function logout(){try{await stopScanner()}catch{} if(configured)await db.auth.signOut();state.user=null;state.profile=null;showLogin()}
+    function showLogin(){$('#appView').classList.add('hidden');$('#loginView').classList.remove('hidden');document.body.classList.remove('is-admin')}
+    async function enterApp(){
+      $('#loginView').classList.add('hidden');$('#appView').classList.remove('hidden');document.body.classList.toggle('is-admin',state.profile.role==='admin');$('#userBadge').textContent=state.profile.name+' • '+(state.profile.role==='admin'?'Admin':'Conferente');
+      await loadLocations();await loadActiveInventory();await refreshDashboard();renderSettings();navigate('scanner');
+    }
+
+    async function loadLocations(){
+      if(configured){const {data,error}=await db.from('locations').select('*').eq('active',true).order('sort_order');if(error)throw error;state.locations=data||[]}
+      else{state.locations=[...Array(16)].map((_,i)=>({id:i+1,name:'Praça '+String(i+1).padStart(2,'0')})).concat([{id:17,name:'Cantilever'},{id:18,name:'Área Externa'},{id:19,name:'Porta Pallet'}])}
+      const sel=$('#locationSelect'),saved=localStorage.getItem('inventory_location')||'';sel.innerHTML='<option value="">Selecione o local antes de bipar</option>'+state.locations.map(l=>`<option value="${l.id}">${esc(l.name)}</option>`).join('');if(state.locations.some(l=>String(l.id)===saved))sel.value=saved;
+      $('#locationsList').innerHTML=state.locations.map(l=>`<span class="pill">${esc(l.name)}</span>`).join('');
+    }
+    async function loadActiveInventory(){
+      if(state.realtimeChannel&&configured){try{await db.removeChannel(state.realtimeChannel)}catch{} state.realtimeChannel=null}
+      if(configured){const {data,error}=await db.from('inventories').select('*').eq('status','open').order('created_at',{ascending:false}).limit(1);if(error)throw error;state.inventory=data?.[0]||null}
+      else{state.inventory=JSON.parse(localStorage.getItem('demo_inventory')||'null');state.demoItems=JSON.parse(localStorage.getItem('demo_items')||'[]');state.demoScans=JSON.parse(localStorage.getItem('demo_scans')||'[]');state.demoAttempts=JSON.parse(localStorage.getItem('demo_attempts')||'[]')}
+      renderInventoryHeader();renderSettings();
+      if(configured&&state.inventory){
+        state.realtimeChannel=db.channel('inventory-'+state.inventory.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'inventory_scans',filter:'inventory_id=eq.'+state.inventory.id},()=>{refreshDashboard();state.reportDirty=true;$('#reportFreshness')?.classList.remove('hidden')}).subscribe();
+      }
+    }
+    function renderInventoryHeader(){const inv=state.inventory;$('#scannerInventoryName').textContent=inv?inv.name:'Nenhum inventário ativo';$('#scannerInventoryStatus').textContent=inv?'ABERTO':'-';$('#scannerInventoryStatus').className='pill '+(inv?'open':'');$('#dashboardInventoryStatus').textContent=inv?'ABERTO':'SEM INVENTÁRIO';$('#dashboardInventoryStatus').className='pill '+(inv?'open':'');}
+
+    async function registerScan(parsed,locationId){
+      if(configured){
+        const {data,error}=await db.rpc('register_scan',{p_inventory_id:state.inventory.id,p_location_id:Number(locationId),p_raw_code:parsed.raw,p_note_padded:parsed.notePadded,p_series:parsed.series,p_cnpj_supplier:parsed.cnpj,p_collection_padded:parsed.collectionPadded,p_item_code:parsed.item,p_volume_no:parsed.volume,p_total_volumes:parsed.total,p_canonical_volume_key:parsed.canonicalVolumeKey});
+        if(error)throw error;return data;
+      }
+      return registerDemoScan(parsed,Number(locationId));
+    }
+    function registerDemoScan(p,locationId){
+      const existing=state.demoScans.find(s=>s.canonical_volume_key===p.canonicalVolumeKey);const loc=state.locations.find(l=>l.id===locationId);
+      if(existing){state.demoAttempts.push({id:Date.now(),result:'duplicate',user_id:state.profile.id,location_id:locationId,attempted_at:new Date().toISOString(),canonical_volume_key:p.canonicalVolumeKey,existing_scan_id:existing.id||null,raw_code:p.raw});saveDemo();return {result:'duplicate',message:'Volume já conferido',existing_user:existing.user_name,existing_location:existing.location,existing_scanned_at:existing.scanned_at,status:existing.status}}
+      const item=state.demoItems.find(x=>x.lookupKey===p.lookupKey);let status='ok';if(!item)status='divergent_not_in_report';else if(p.volume<1||p.volume>item.expected_volumes)status='divergent_volume_out_of_range';else if(p.total!==item.expected_volumes)status='divergent_total_mismatch';
+      const scan={id:'scan-'+Date.now()+'-'+Math.random().toString(36).slice(2),canonical_volume_key:p.canonicalVolumeKey,item_id:item?.id||null,status,user_id:state.profile.id,user_name:state.profile.name,location_id:locationId,location:loc?.name||'',scanned_at:new Date().toISOString(),raw_code:p.raw,note_padded:p.notePadded,series:p.series,cnpj_supplier:p.cnpj,collection_padded:p.collectionPadded,item_code:p.item,volume_no:p.volume,total_volumes_qr:p.total};state.demoScans.push(scan);state.demoAttempts.push({id:Date.now(),result:status,user_id:state.profile.id,location_id:locationId,attempted_at:new Date().toISOString(),canonical_volume_key:p.canonicalVolumeKey,raw_code:p.raw});saveDemo();
+      const count=item?state.demoScans.filter(s=>s.item_id===item.id&&s.status==='ok').length:0;
+      return {result:status,note:item?.note||p.notePadded,note_padded:p.notePadded,supplier:item?.supplier||'',client:item?.client||'',recipient:item?.recipient||'',destination:item?.destination||'',destination_uf:item?.destination_uf||'',warehouse:item?.warehouse||'',merchandise:item?.merchandise||'',order_number:item?.order_number||'',oef:item?.oef||'',expected_volumes:item?.expected_volumes||null,scanned_volumes:count,nf_complete:Boolean(item&&count===item.expected_volumes),volume_no:p.volume,total_volumes_qr:p.total,location:loc?.name||''};
+    }
+    function saveDemo(){localStorage.setItem('demo_scans',JSON.stringify(state.demoScans));localStorage.setItem('demo_attempts',JSON.stringify(state.demoAttempts));}
+
+    async function processCode(raw){
+      if(!state.inventory){toast('Nenhum inventário aberto.','bad');return}
+      const locationId=$('#locationSelect').value;if(!locationId){toast('Selecione o local da conferência antes de bipar.','warn');$('#locationSelect').focus();return}
+      let parsed;try{parsed=parseQr(raw)}catch(e){renderResult({result:'invalid',message:e.message},null);return}
+      try{
+        $('#scannerState').textContent='Validando...';const result=await registerScan(parsed,locationId);renderResult(result,parsed);addRecent(result,parsed);$('#myScanCount').textContent=state.recent.length+' leituras';
+        if(result.result==='ok')navigator.vibrate?.(80);else navigator.vibrate?.([100,60,100]);
+        if(result.result==='ok'&&result.nf_complete)toast('NF conferida por completo.','ok');
+        refreshDashboard();
+      }catch(e){toast(e.message||'Falha ao registrar leitura.','bad');renderResult({result:'error',message:e.message||'Erro de comunicação'},parsed)}finally{$('#scannerState').textContent=state.scannerRunning?'Câmera ativa':'Câmera parada'}
+    }
+
+    function resultVisual(result){
+      if(result.result==='ok')return {cls:'ok',icon:'✓',title:result.nf_complete?'NF CONFERIDA':'VOLUME CONFERIDO',msg:result.nf_complete?'Todos os volumes desta NF foram encontrados.':'Volume localizado no relatório.'};
+      if(result.result==='duplicate')return {cls:'warn',icon:'↻',title:'VOLUME JÁ CONFERIDO',msg:`${result.existing_user?result.existing_user+' • ':''}${result.existing_location||''}`};
+      if(result.result==='divergent_not_in_report')return {cls:'bad',icon:'!',title:'DIVERGENTE',msg:'NF/CNPJ/Coleta não constam no relatório carregado.'};
+      if(result.result==='divergent_total_mismatch')return {cls:'warn',icon:'!',title:'TOTAL DE VOLUMES DIVERGENTE',msg:'O total informado na etiqueta difere do relatório.'};
+      if(result.result==='divergent_volume_out_of_range')return {cls:'bad',icon:'!',title:'VOLUME FORA DA FAIXA',msg:'O número do volume é maior que o total esperado no relatório.'};
+      return {cls:'bad',icon:'×',title:'QR INVÁLIDO',msg:result.message||'Não foi possível interpretar a etiqueta.'};
+    }
+    function renderResult(result,p){
+      const v=resultVisual(result),el=$('#scanResult');el.className='result-card '+v.cls;el.classList.remove('hidden');
+      const note=esc(result.note||p?.notePadded||'-'),expected=result.expected_volumes??p?.total??'-',scanned=result.scanned_volumes??'-';
+      const progress=(Number(expected)>0&&Number(scanned)>=0)?Math.min(100,Math.round(Number(scanned)/Number(expected)*100)):0;
+      el.innerHTML=`<div class="result-top"><div class="status-icon">${v.icon}</div><div><p class="result-title">${v.title}</p><p class="result-message">${esc(v.msg)}</p></div></div>
+      ${result.result==='ok'?`<div class="nf-progress"><div class="nf-progress-row"><div><span class="kpi-label">NF ${note}</span><br><strong>${scanned}/${expected}</strong></div><b>${progress}%</b></div><div class="progress" style="margin-top:8px"><span style="width:${progress}%"></span></div></div>`:''}
+      <div class="detail-grid"><div class="detail"><span>NF</span><b>${note}</b></div><div class="detail"><span>Volume</span><b>${esc(result.volume_no??p?.volume??'-')} / ${esc(result.total_volumes_qr??p?.total??'-')}</b></div><div class="detail"><span>Fornecedor</span><b>${esc(result.supplier||'-')}</b></div><div class="detail"><span>Cliente</span><b>${esc(result.client||'-')}</b></div><div class="detail"><span>Destino</span><b>${esc([result.destination,result.destination_uf].filter(Boolean).join(' - ')||'-')}</b></div><div class="detail"><span>Local</span><b>${esc(result.location||result.existing_location||'-')}</b></div><div class="detail"><span>OEF / Coleta</span><b>${esc(result.oef||p?.collection||'-')}</b></div><div class="detail"><span>Mercadoria</span><b>${esc(result.merchandise||'-')}</b></div></div>
+      ${p?.warnings?.length?`<div class="notice warn">${esc(p.warnings.join(' '))}</div>`:''}`;
+    }
+    function addRecent(result,p){const v=resultVisual(result);state.recent.unshift({cls:v.cls,note:result.note||p?.notePadded||'-',vol:result.volume_no??p?.volume??'-',total:result.total_volumes_qr??p?.total??'-',desc:v.title,time:nowTime()});state.recent=state.recent.slice(0,12);$('#recentList').innerHTML=state.recent.map(x=>`<div class="recent-item"><span class="recent-dot ${x.cls}"></span><div class="recent-main"><b>NF ${esc(x.note)} • Volume ${esc(x.vol)}/${esc(x.total)}</b><small>${esc(x.desc)}</small></div><span class="recent-time">${x.time}</span></div>`).join('')}
+
+    async function startScanner(){
+      if(!$('#locationSelect').value){toast('Selecione o local antes de abrir a câmera.','warn');return}
+      if(!window.Html5Qrcode){toast('Leitor de câmera não carregou. Use a entrada manual.','bad');return}
+      if(state.scannerRunning)return;$('#reader').classList.remove('hidden');state.scanner=new Html5Qrcode('reader');
+      try{
+        await state.scanner.start({facingMode:'environment'},{fps:12,qrbox:(w,h)=>{const s=Math.floor(Math.min(w,h)*.72);return{width:s,height:s}},aspectRatio:1.0},async decoded=>{if(state._scanLock)return;state._scanLock=true;await processCode(decoded);setTimeout(()=>state._scanLock=false,900)},()=>{});
+        state.scannerRunning=true;$('#startScanBtn').disabled=true;$('#stopScanBtn').disabled=false;$('#scannerState').textContent='Câmera ativa';
+      }catch(e){$('#reader').classList.add('hidden');state.scanner=null;toast('Não foi possível abrir a câmera. Verifique permissão e HTTPS.','bad')}
+    }
+    async function stopScanner(){if(state.scanner&&state.scannerRunning){try{await state.scanner.stop();await state.scanner.clear()}catch{} }state.scanner=null;state.scannerRunning=false;$('#reader').classList.add('hidden');$('#startScanBtn').disabled=false;$('#stopScanBtn').disabled=true;$('#scannerState').textContent='Câmera parada'}
+
+    function demoSummary(){
+      const per=new Map(state.demoItems.map(i=>[i.id,{expected:i.expected_volumes,ok:0}]));state.demoScans.filter(s=>s.status==='ok'&&s.item_id).forEach(s=>{const x=per.get(s.item_id);if(x)x.ok++});
+      let complete=0,partial=0,notStarted=0,expectedVol=0,okVol=0;for(const x of per.values()){expectedVol+=x.expected;okVol+=x.ok;if(x.ok===x.expected)complete++;else if(x.ok>0)partial++;else notStarted++}
+      return {expected_notes:per.size,expected_volumes:expectedVol,complete_notes:complete,partial_notes:partial,not_started_notes:notStarted,ok_volumes:okVol,divergences:state.demoScans.filter(s=>s.status!=='ok').length,duplicates:state.demoAttempts.filter(a=>a.result==='duplicate').length};
+    }
+    async function refreshDashboard(){
+      let s={expected_notes:0,expected_volumes:0,complete_notes:0,partial_notes:0,not_started_notes:0,ok_volumes:0,divergences:0,duplicates:0};
+      if(state.inventory){if(configured){const {data,error}=await db.rpc('get_inventory_summary',{p_inventory_id:state.inventory.id});if(!error&&data)s=data}else s=demoSummary()}
+      $('#kExpectedVolumes').textContent=fmtNum(s.expected_volumes);$('#kOkVolumes').textContent=fmtNum(s.ok_volumes);$('#kCompleteNotes').textContent=fmtNum(s.complete_notes);$('#kCompleteNotes2').textContent=fmtNum(s.complete_notes);$('#kDivergences').textContent=fmtNum(s.divergences);$('#kDuplicates').textContent=fmtNum(s.duplicates)+' duplicidades';$('#kExpectedNotes').textContent=fmtNum(s.expected_notes);$('#kPartialNotes').textContent=fmtNum(s.partial_notes);$('#kNotStartedNotes').textContent=fmtNum(s.not_started_notes);
+      const pct=s.expected_volumes?Math.min(100,Math.round(s.ok_volumes/s.expected_volumes*100)):0;$('#dashboardPercent').textContent=pct+'%';$('#dashboardProgress').style.width=pct+'%';
+      $('#dashboardInventoryInfo').innerHTML=state.inventory?`<div class="detail-grid"><div class="detail"><span>Nome</span><b>${esc(state.inventory.name)}</b></div><div class="detail"><span>Arquivo</span><b>${esc(state.inventory.source_filename||'-')}</b></div><div class="detail"><span>Registros</span><b>${fmtNum(state.inventory.imported_rows)}</b></div><div class="detail"><span>Volumes esperados</span><b>${fmtNum(state.inventory.expected_volumes)}</b></div></div>`:'Nenhum inventário ativo.';
+    }
+
+
+    const divergenceLabels={divergent_not_in_report:'Não consta no relatório',divergent_total_mismatch:'Total diferente',divergent_volume_out_of_range:'Volume fora da faixa'};
+    const statusLabels={complete:'Conferida',partial:'Parcial',not_started:'Não conferida',off_report:'Fora do relatório'};
+    function reportStatusBadge(status){return `<span class="report-status ${status==='complete'?'complete':status==='partial'?'partial':status==='off_report'?'offreport':'pending'}">${esc(statusLabels[status]||status)}</span>`}
+    function uniq(arr){return [...new Set(arr.filter(Boolean))]}
+    async function fetchAllRows(table,select,apply){const out=[];const step=1000;let from=0;while(true){let q=db.from(table).select(select).range(from,from+step-1);if(apply)q=apply(q);const {data,error}=await q;if(error)throw error;const part=data||[];out.push(...part);if(part.length<step)break;from+=step}return out}
+    async function loadReportInventories(){
+      if(configured){state.reportInventories=await fetchAllRows('inventories','*',q=>q.order('created_at',{ascending:false}))}
+      else state.reportInventories=state.inventory?[state.inventory]:[];
+      const sel=$('#reportInventorySelect');const current=state.reportInventoryId||(state.inventory?.id)||state.reportInventories[0]?.id||'';
+      sel.innerHTML='<option value="">Selecione...</option>'+state.reportInventories.map(i=>`<option value="${esc(i.id)}">${esc(i.name)} • ${i.status==='open'?'ABERTO':'ENCERRADO'} • ${new Date(i.created_at).toLocaleDateString('pt-BR')}</option>`).join('');
+      if(state.reportInventories.some(i=>i.id===current)){sel.value=current;state.reportInventoryId=current}else{state.reportInventoryId=''}
+    }
+    async function loadReport(force=true){
+      if(state.profile?.role!=='admin')return;
+      if(!state.reportInventories.length)await loadReportInventories();
+      const invId=$('#reportInventorySelect').value||state.reportInventoryId;if(!invId){state.reportRows=[];state.reportFiltered=[];renderReport();return}
+      state.reportInventoryId=invId;$('#reportBody').innerHTML='<tr><td colspan="14" class="empty">Carregando dados do inventário...</td></tr>';
+      try{
+        if(configured){
+          const [items,scans,attempts,profiles]=await Promise.all([
+            fetchAllRows('inventory_items','*',q=>q.eq('inventory_id',invId).order('source_row',{ascending:true})),
+            fetchAllRows('inventory_scans','*',q=>q.eq('inventory_id',invId).order('scanned_at',{ascending:true})),
+            fetchAllRows('scan_attempts','*',q=>q.eq('inventory_id',invId).eq('result','duplicate').order('attempted_at',{ascending:true})),
+            fetchAllRows('profiles','id,name,role,active',q=>q.order('name',{ascending:true}))
+          ]);state.reportItems=items;state.reportScans=scans;state.reportAttempts=attempts;state.reportProfiles=new Map(profiles.map(x=>[x.id,x.name]));
+        }else{state.reportItems=state.demoItems;state.reportScans=state.demoScans;state.reportAttempts=state.demoAttempts.filter(x=>x.result==='duplicate');state.reportProfiles=new Map([[state.profile.id,state.profile.name]])}
+        buildReportRows();state.reportDirty=false;$('#reportFreshness').classList.add('hidden');applyReportFilters();
+      }catch(e){toast(e.message||'Falha ao carregar relatório.','bad');$('#reportBody').innerHTML=`<tr><td colspan="14" class="empty">${esc(e.message||'Falha ao carregar.')}</td></tr>`}
+    }
+    function scanLocationName(scan){return scan.location||state.locations.find(l=>String(l.id)===String(scan.location_id))?.name||''}
+    function scanUserName(scan){return scan.user_name||state.reportProfiles.get(scan.user_id)||''}
+    function keyPrefixFromCanonical(key){return String(key||'').split('|').slice(0,4).join('|')}
+    function itemLookupKey(item){return [item.note_padded,item.series,item.cnpj_supplier,item.collection_padded].join('|')}
+    function buildReportRows(){
+      const scansByItem=new Map(),dupsByPrefix=new Map();
+      state.reportScans.forEach(sc=>{if(sc.item_id){if(!scansByItem.has(sc.item_id))scansByItem.set(sc.item_id,[]);scansByItem.get(sc.item_id).push(sc)}});
+      state.reportAttempts.forEach(a=>{const k=keyPrefixFromCanonical(a.canonical_volume_key);if(k)dupsByPrefix.set(k,(dupsByPrefix.get(k)||0)+1)});
+      const rows=state.reportItems.map(item=>{
+        const scans=scansByItem.get(item.id)||[],oks=scans.filter(x=>x.status==='ok'),divs=scans.filter(x=>x.status!=='ok'),okVols=new Set(oks.map(x=>Number(x.volume_no)));
+        const missing=[];for(let v=1;v<=Number(item.expected_volumes||0);v++)if(!okVols.has(v))missing.push(v);
+        const status=oks.length>=Number(item.expected_volumes)?'complete':oks.length?'partial':'not_started';const prefix=itemLookupKey(item);
+        const divTypes=uniq(divs.map(x=>x.status));const locations=uniq(oks.map(scanLocationName));const users=uniq(oks.map(scanUserName));
+        return {key:'item:'+item.id,recordType:'base',item,status,nf:item.note||item.note_padded,series:item.series,oef:item.oef||item.collection_padded,supplier:item.supplier||'',client:item.client||'',destination:[item.destination,item.destination_uf].filter(Boolean).join(' - '),expected:Number(item.expected_volumes||0),ok:oks.length,missing,scans,okScans:oks,divScans:divs,divTypes,duplicateCount:dupsByPrefix.get(prefix)||0,locations,users,searchText:[item.note,item.note_padded,item.series,item.oef,item.collection_padded,item.cnpj_supplier,item.supplier,item.client,item.recipient,item.destination,item.destination_uf,item.order_number,item.warehouse,item.wms_address,item.merchandise].join(' ').toLowerCase()}
+      });
+      const offGroups=new Map();
+      state.reportScans.filter(x=>x.status==='divergent_not_in_report'||!x.item_id).forEach(sc=>{const prefix=[sc.note_padded,sc.series,sc.cnpj_supplier,sc.collection_padded].join('|');if(!offGroups.has(prefix))offGroups.set(prefix,[]);offGroups.get(prefix).push(sc)});
+      offGroups.forEach((scans,prefix)=>{const first=scans[0],locations=uniq(scans.map(scanLocationName)),users=uniq(scans.map(scanUserName));rows.push({key:'off:'+prefix,recordType:'off_report',item:null,status:'off_report',nf:first.note_padded||prefix.split('|')[0],series:first.series||'',oef:first.collection_padded||'',supplier:'',client:'',destination:'',expected:null,ok:scans.length,missing:[],scans,okScans:[],divScans:scans,divTypes:['divergent_not_in_report'],duplicateCount:dupsByPrefix.get(prefix)||0,locations,users,searchText:[first.note_padded,first.series,first.cnpj_supplier,first.collection_padded].join(' ').toLowerCase()})});
+      state.reportRows=rows;state.reportPage=1;renderReportKpis();
+      $('#reportLocationFilter').innerHTML='<option value="all">Todos os locais</option>'+state.locations.map(l=>`<option value="${esc(l.name)}">${esc(l.name)}</option>`).join('');
+    }
+    function renderReportKpis(){const base=state.reportRows.filter(r=>r.recordType==='base');$('#rExpectedNotes').textContent=fmtNum(base.length);$('#rCompleteNotes').textContent=fmtNum(base.filter(r=>r.status==='complete').length);$('#rPartialNotes').textContent=fmtNum(base.filter(r=>r.status==='partial').length);$('#rNotStartedNotes').textContent=fmtNum(base.filter(r=>r.status==='not_started').length);$('#rOffReport').textContent=fmtNum(state.reportRows.filter(r=>r.recordType==='off_report').length);$('#rDuplicates').textContent=fmtNum(state.reportAttempts.length)}
+    function rowHasDivergence(row,type){if(type==='duplicate')return row.duplicateCount>0;if(type==='divergent_not_in_report')return row.recordType==='off_report'||row.divTypes.includes(type);return row.divTypes.includes(type)}
+    function applyReportFilters(){
+      const q=$('#reportSearch').value.trim().toLowerCase(),status=$('#reportStatusFilter').value,div=$('#reportDivergenceFilter').value,loc=$('#reportLocationFilter').value;
+      state.reportFiltered=state.reportRows.filter(r=>{if(q&&!r.searchText.includes(q))return false;if(status!=='all'&&r.status!==status)return false;if(loc!=='all'&&!r.locations.includes(loc))return false;const anyDiv=r.divTypes.length>0||r.duplicateCount>0;if(div==='none'&&anyDiv)return false;if(div==='any'&&!anyDiv)return false;if(!['all','none','any'].includes(div)&&!rowHasDivergence(r,div))return false;return true});state.reportPage=1;renderReport();
+    }
+    function divergenceText(row){const parts=row.divTypes.map(x=>divergenceLabels[x]||x);if(row.duplicateCount)parts.push(`${row.duplicateCount} duplicidade${row.duplicateCount===1?'':'s'}`);return parts.length?parts.join(' • '):'-'}
+    function renderReport(){
+      const rows=state.reportFiltered||[],pages=Math.max(1,Math.ceil(rows.length/state.reportPageSize));state.reportPage=Math.min(Math.max(1,state.reportPage),pages);const start=(state.reportPage-1)*state.reportPageSize,part=rows.slice(start,start+state.reportPageSize);
+      $('#reportCount').textContent=`${fmtNum(rows.length)} registro(s) exibido(s) de ${fmtNum(state.reportRows.length)}.`;
+      $('#reportBody').innerHTML=part.length?part.map(r=>`<tr><td>${reportStatusBadge(r.status)}</td><td class="nf-cell">${esc(r.nf)}</td><td>${esc(r.series||'-')}</td><td>${esc(r.oef||'-')}</td><td>${esc(r.supplier||'-')}</td><td>${esc(r.client||'-')}</td><td>${esc(r.destination||'-')}</td><td>${r.expected==null?'-':fmtNum(r.expected)}</td><td>${fmtNum(r.ok)}</td><td>${r.recordType==='base'?(r.missing.length?esc(r.missing.join(', ')):'-'):'-'}</td><td>${esc(divergenceText(r))}</td><td>${esc(r.locations.join(', ')||'-')}</td><td>${esc(r.users.join(', ')||'-')}</td><td><button class="btn ghost report-detail-btn" data-report-key="${esc(r.key)}" type="button">Ver volumes</button></td></tr>`).join(''):'<tr><td colspan="14" class="empty">Nenhum registro encontrado com os filtros atuais.</td></tr>';
+      $('#reportPageInfo').textContent=`Página ${rows.length?state.reportPage:0} de ${rows.length?pages:0} • ${fmtNum(rows.length)} registro(s)`;$('#reportPrevBtn').disabled=!rows.length||state.reportPage<=1;$('#reportNextBtn').disabled=!rows.length||state.reportPage>=pages;
+    }
+    function openReportDetail(key){const r=state.reportRows.find(x=>x.key===key);if(!r)return;$('#reportModalTitle').textContent=(r.recordType==='base'?'NF ':'Divergência NF ')+r.nf;$('#reportModalSubtitle').textContent=r.recordType==='base'?`${statusLabels[r.status]} • ${r.ok}/${r.expected} volumes OK`:'Conferido fisicamente, mas não consta no relatório carregado';
+      let header='';if(r.item){const i=r.item;header=`<div class="detail-grid" style="margin-bottom:14px"><div class="detail"><span>Fornecedor</span><b>${esc(i.supplier||'-')}</b></div><div class="detail"><span>Cliente</span><b>${esc(i.client||'-')}</b></div><div class="detail"><span>OEF / Coleta</span><b>${esc(i.oef||i.collection_padded||'-')}</b></div><div class="detail"><span>CNPJ</span><b>${esc(i.cnpj_supplier||'-')}</b></div><div class="detail"><span>Pedido</span><b>${esc(i.order_number||'-')}</b></div><div class="detail"><span>Destino</span><b>${esc([i.destination,i.destination_uf].filter(Boolean).join(' - ')||'-')}</b></div><div class="detail"><span>Almoxarifado</span><b>${esc(i.warehouse||'-')}</b></div><div class="detail"><span>End. WMS</span><b>${esc(i.wms_address||'-')}</b></div><div class="detail"><span>Peso</span><b>${i.weight??'-'}</b></div><div class="detail"><span>Mercadoria</span><b>${esc(i.merchandise||'-')}</b></div></div>`}
+      const cards=[];if(r.recordType==='base'){const byVol=new Map(r.scans.map(s=>[Number(s.volume_no),s]));for(let v=1;v<=r.expected;v++){const sc=byVol.get(v);if(!sc)cards.push(`<div class="volume-card pending"><strong>Volume ${v}/${r.expected}</strong><small>Não conferido</small></div>`);else{const ok=sc.status==='ok';cards.push(`<div class="volume-card ${ok?'ok':'bad'}"><strong>Volume ${v}/${r.expected}</strong><small>${ok?'Conferido':'Divergente: '+esc(divergenceLabels[sc.status]||sc.status)}</small><small>${esc(scanLocationName(sc)||'-')} • ${esc(scanUserName(sc)||'-')}</small><small>${fmtDateTime(sc.scanned_at)}</small></div>`)}}
+        r.scans.filter(s=>Number(s.volume_no)>r.expected||Number(s.volume_no)<1).forEach(sc=>cards.push(`<div class="volume-card bad"><strong>Volume ${esc(sc.volume_no)}/${esc(sc.total_volumes_qr)}</strong><small>${esc(divergenceLabels[sc.status]||sc.status)}</small><small>${esc(scanLocationName(sc)||'-')} • ${esc(scanUserName(sc)||'-')} • ${fmtDateTime(sc.scanned_at)}</small></div>`));
+      }else r.scans.forEach(sc=>cards.push(`<div class="volume-card bad"><strong>Volume ${esc(sc.volume_no??'-')}/${esc(sc.total_volumes_qr??'-')}</strong><small>Não consta no relatório</small><small>${esc(scanLocationName(sc)||'-')} • ${esc(scanUserName(sc)||'-')}</small><small>${fmtDateTime(sc.scanned_at)}</small></div>`));
+      $('#reportModalContent').innerHTML=header+`<div class="section-head"><h2>Volumes / leituras</h2><span class="pill">${cards.length} registro(s)</span></div><div class="volume-grid">${cards.join('')}</div>${r.duplicateCount?`<div class="notice warn" style="margin-top:14px">Foram registradas ${r.duplicateCount} tentativa(s) de leitura duplicada para esta NF/combinação.</div>`:''}`;$('#reportModal').classList.remove('hidden')
+    }
+    function masterVolumeRows(rows){
+      const out=[];
+      rows.forEach(r=>{
+        if(r.recordType==='base'){
+          const byVol=new Map();r.scans.forEach(sc=>{if(!byVol.has(Number(sc.volume_no))||sc.status==='ok')byVol.set(Number(sc.volume_no),sc)});
+          for(let v=1;v<=r.expected;v++){const sc=byVol.get(v);out.push(exportVolumeRow(r,sc,v,r.expected))}
+          r.scans.filter(sc=>Number(sc.volume_no)>r.expected||Number(sc.volume_no)<1).forEach(sc=>out.push(exportVolumeRow(r,sc,Number(sc.volume_no),r.expected)));
+        }else{
+          r.scans.forEach(sc=>out.push(exportVolumeRow(r,sc,Number(sc.volume_no)||'',null)));
+        }
+      });
+      return out;
+    }
+    function exportVolumeRow(r,sc,volume,expected){const i=r.item||{};return {'Tipo Registro':r.recordType==='base'?'Base do inventário':'Divergência fora do relatório','Status NF':statusLabels[r.status]||r.status,'Status Volume':!sc?'Não conferido':sc.status==='ok'?'Conferido':'Divergente','Tipo Divergência':sc&&sc.status!=='ok'?(divergenceLabels[sc.status]||sc.status):'','NF':r.nf,'Série':r.series||'','CNPJ Fornecedor':i.cnpj_supplier||sc?.cnpj_supplier||'','OEF / Coleta':r.oef||'','Volume':volume,'Total Volumes Relatório':expected??'','Total Volumes QR':sc?.total_volumes_qr??'','Item QR':sc?.item_code||'','Fornecedor':i.supplier||'','Cliente':i.client||'','Destinatário':i.recipient||'','Destino':i.destination||'','UF Destino':i.destination_uf||'','Pedido':i.order_number||'','Almoxarifado':i.warehouse||'','End. WMS':i.wms_address||'','Peso':i.weight??'','Mercadoria':i.merchandise||'','Local Conferência':sc?scanLocationName(sc):'','Conferente':sc?scanUserName(sc):'','Data/Hora Conferência':sc?fmtDateTime(sc.scanned_at):'','Chave NF-e':i.invoice_key||'','Código QR Lido':sc?.raw_code||''}}
+    function exportReport(filtered=false){if(!window.XLSX){toast('Biblioteca de Excel não carregada.','bad');return}const rows=filtered?state.reportFiltered:state.reportRows;if(!rows.length){toast('Não há dados para exportar.','warn');return}const inv=state.reportInventories.find(x=>x.id===state.reportInventoryId)||state.inventory||{};
+      const summary=rows.map(r=>({'Tipo':r.recordType==='base'?'NF do relatório':'Conferido fora do relatório','Status NF':statusLabels[r.status]||r.status,'NF':r.nf,'Série':r.series,'CNPJ Fornecedor':r.item?.cnpj_supplier||r.scans[0]?.cnpj_supplier||'','OEF / Coleta':r.oef,'Fornecedor':r.supplier,'Cliente':r.client,'Destino':r.destination,'Volumes Esperados':r.expected??'','Volumes OK':r.ok,'Volumes Faltantes':r.recordType==='base'?r.missing.join(', '):'','Divergências':divergenceText(r),'Locais':r.locations.join(', '),'Conferentes':r.users.join(', '),'Pedido':r.item?.order_number||'','Almoxarifado':r.item?.warehouse||'','End. WMS':r.item?.wms_address||'','Peso':r.item?.weight??'','Mercadoria':r.item?.merchandise||''}));
+      const scans=(filtered?rows.flatMap(r=>r.scans):state.reportScans).map(sc=>({'Status Leitura':sc.status==='ok'?'OK':divergenceLabels[sc.status]||sc.status,'NF':sc.note_padded,'Série':sc.series,'CNPJ':sc.cnpj_supplier,'OEF / Coleta':sc.collection_padded,'Volume':sc.volume_no,'Total QR':sc.total_volumes_qr,'Item QR':sc.item_code,'Local':scanLocationName(sc),'Conferente':scanUserName(sc),'Data/Hora':fmtDateTime(sc.scanned_at),'Código QR':sc.raw_code||''}));
+      const dups=state.reportAttempts.map(a=>({'Resultado':'Duplicidade','Chave do volume':a.canonical_volume_key||'','Conferente':state.reportProfiles.get(a.user_id)||'','Local':state.locations.find(l=>String(l.id)===String(a.location_id))?.name||'','Data/Hora':fmtDateTime(a.attempted_at),'Código QR':a.raw_code||''}));
+      const wb=XLSX.utils.book_new();const sheets=[['Status por Volume',masterVolumeRows(rows)],['Resumo NFs',summary],['Leituras',scans],['Duplicidades',dups]];sheets.forEach(([name,data])=>{const ws=XLSX.utils.json_to_sheet(data.length?data:[{'Sem dados':''}]);ws['!autofilter']={ref:ws['!ref']};XLSX.utils.book_append_sheet(wb,ws,name)});const safe=(inv.name||'inventario').replace(/[\\/:*?"<>|]+/g,'_').slice(0,70);XLSX.writeFile(wb,`${safe}_${filtered?'filtrado':'completo'}.xlsx`);toast('Relatório Excel gerado.','ok')
+    }
+
+    async function createInventory(){
+      if(!state.importItems.length)return;let name=$('#inventoryName').value.trim();if(!name)name='Inventário '+new Date().toLocaleDateString('pt-BR');const btn=$('#createInventoryBtn');btn.disabled=true;btn.textContent='Enviando...';
+      try{
+        if(state.inventory&&state.inventory.status==='open')throw new Error('Já existe um inventário aberto. Encerre-o antes de criar outro.');
+        if(configured){
+          const {data:inv,error}=await db.from('inventories').insert({name,source_filename:state.importMeta.fileName,imported_rows:state.importItems.length,expected_volumes:state.importMeta.expectedVolumes,created_by:state.profile.id}).select().single();if(error)throw error;
+          const items=state.importItems.map(({lookupKey,cNPJ,...x})=>({...x,inventory_id:inv.id}));
+          for(let i=0;i<items.length;i+=400){btn.textContent=`Enviando ${Math.min(i+400,items.length)}/${items.length}...`;const {error:e}=await db.from('inventory_items').insert(items.slice(i,i+400));if(e)throw e}
+          state.inventory=inv;
+        }else{
+          const id='demo-'+Date.now();state.inventory={id,name,status:'open',source_filename:state.importMeta.fileName,imported_rows:state.importItems.length,expected_volumes:state.importMeta.expectedVolumes,created_at:new Date().toISOString()};state.demoItems=state.importItems.map((x,i)=>({...x,id:'item-'+i}));state.demoScans=[];state.demoAttempts=[];localStorage.setItem('demo_inventory',JSON.stringify(state.inventory));localStorage.setItem('demo_items',JSON.stringify(state.demoItems));saveDemo();
+        }
+        toast('Inventário criado com sucesso.','ok');renderInventoryHeader();renderSettings();await refreshDashboard();navigate('scanner');
+      }catch(e){toast(e.message||'Falha ao criar inventário.','bad')}finally{btn.disabled=false;btn.textContent='Criar inventário e enviar base'}
+    }
+    async function closeInventory(){if(!state.inventory)return;if(!confirm('Encerrar o inventário atual? Novas leituras ficarão bloqueadas.'))return;try{if(configured){const {error}=await db.from('inventories').update({status:'closed',closed_at:new Date().toISOString()}).eq('id',state.inventory.id);if(error)throw error}else{state.inventory.status='closed';localStorage.setItem('demo_inventory',JSON.stringify(state.inventory));localStorage.removeItem('demo_inventory');state.inventory=null}await loadActiveInventory();await refreshDashboard();toast('Inventário encerrado.','ok')}catch(e){toast(e.message,'bad')}}
+
+    function renderSettings(){const inv=state.inventory;$('#adminInventoryInfo').innerHTML=inv?`<div class="detail-grid"><div class="detail"><span>Nome</span><b>${esc(inv.name)}</b></div><div class="detail"><span>Base</span><b>${esc(inv.source_filename||'-')}</b></div><div class="detail"><span>Notas</span><b>${fmtNum(inv.imported_rows)}</b></div><div class="detail"><span>Volumes</span><b>${fmtNum(inv.expected_volumes)}</b></div></div>`:'<div class="empty">Nenhum inventário aberto.</div>';$('#closeInventoryBtn').classList.toggle('hidden',!inv)}
+
+    function navigate(page){if((page==='report'||page==='admin'||page==='settings')&&state.profile?.role!=='admin')page='scanner';$$('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+page));$$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));if(page!=='scanner')stopScanner();if(page==='dashboard')refreshDashboard();if(page==='report'){loadReportInventories().then(()=>loadReport()).catch(e=>toast(e.message,'bad'))}if(page==='settings')renderSettings()}
+
+    $('#loginForm').addEventListener('submit',async e=>{e.preventDefault();try{await loginSupabase($('#email').value.trim(),$('#password').value);await enterApp()}catch(err){toast(err.message||'Falha no login.','bad')}});
+    $('#demoChecker').addEventListener('click',async()=>{loginDemo('conferente');await enterApp()});$('#demoAdmin').addEventListener('click',async()=>{loginDemo('admin');await enterApp()});$('#logoutBtn').addEventListener('click',logout);
+    $$('[data-page]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.page)));
+    $('#locationSelect').addEventListener('change',e=>localStorage.setItem('inventory_location',e.target.value));$('#startScanBtn').addEventListener('click',startScanner);$('#stopScanBtn').addEventListener('click',stopScanner);
+    $('#manualSubmit').addEventListener('click',()=>{const v=$('#manualCode').value.trim();if(v){processCode(v);$('#manualCode').value=''}});$('#manualCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#manualSubmit').click()}});
+    $('#refreshDashboard').addEventListener('click',refreshDashboard);$('#createInventoryBtn').addEventListener('click',createInventory);$('#closeInventoryBtn').addEventListener('click',closeInventory);
+    $('#refreshReportBtn').addEventListener('click',()=>loadReport());$('#reportInventorySelect').addEventListener('change',()=>{state.reportInventoryId=$('#reportInventorySelect').value;loadReport()});['reportSearch','reportStatusFilter','reportDivergenceFilter','reportLocationFilter'].forEach(id=>$('#'+id).addEventListener(id==='reportSearch'?'input':'change',applyReportFilters));
+    $('#reportPrevBtn').addEventListener('click',()=>{if(state.reportPage>1){state.reportPage--;renderReport()}});$('#reportNextBtn').addEventListener('click',()=>{if(state.reportPage*state.reportPageSize<state.reportFiltered.length){state.reportPage++;renderReport()}});$('#exportFullBtn').addEventListener('click',()=>exportReport(false));$('#exportFilteredBtn').addEventListener('click',()=>exportReport(true));
+    $('#reportBody').addEventListener('click',e=>{const b=e.target.closest('.report-detail-btn');if(b)openReportDetail(b.dataset.reportKey)});$('#reportModalClose').addEventListener('click',()=>$('#reportModal').classList.add('hidden'));$('#reportModal').addEventListener('click',e=>{if(e.target.id==='reportModal')$('#reportModal').classList.add('hidden')});
+
+    $('#reportFile').addEventListener('change',async e=>{
+      const file=e.target.files?.[0];if(!file)return;$('#importNotice').className='notice info';$('#importNotice').textContent='Lendo e validando o relatório...';$('#createInventoryBtn').disabled=true;
+      try{const meta=await parseWorkbook(file);state.importItems=meta.items;state.importMeta=meta;$('#importNotes').textContent=fmtNum(meta.items.length);$('#importVolumes').textContent=fmtNum(meta.expectedVolumes);$('#importDuplicates').textContent=fmtNum(meta.duplicateKeys);$('#importSheet').textContent=meta.sheetName;$('#importFileName').textContent=file.name;
+        $('#previewBody').innerHTML=meta.items.slice(0,8).map(x=>`<tr><td>${esc(x.note)}</td><td>${esc(x.series)}</td><td>${esc(x.cnpj_supplier)}</td><td>${esc(x.collection)}</td><td>${fmtNum(x.expected_volumes)}</td><td>${esc(x.supplier)}</td><td>${esc(x.destination)} ${esc(x.destination_uf)}</td></tr>`).join('');
+        const sample=meta.items.find(x=>x.note_padded==='001504500'&&x.cnpj_supplier==='61409892005990'&&x.collection_padded==='000001581974');$('#sampleMatch').className='notice '+(sample?'ok':'info');$('#sampleMatch').textContent=sample?`Exemplo validado na base: NF 1504500 • OEF 1581974 • ${sample.expected_volumes} volumes • ${sample.supplier}.`:'Estrutura validada. O exemplo NF 1504500 não foi encontrado neste arquivo.';
+        $('#importNotice').className='notice '+(meta.invalidRows.length||meta.duplicateKeys?'warn':'ok');$('#importNotice').textContent=`${fmtNum(meta.items.length)} registros válidos. ${meta.invalidRows.length?meta.invalidRows.length+' linhas ignoradas por dados obrigatórios inválidos. ':''}${meta.duplicateKeys?meta.duplicateKeys+' chaves duplicadas ignoradas.':''}`;$('#createInventoryBtn').disabled=false;
+      }catch(err){state.importItems=[];state.importMeta=null;$('#importNotice').className='notice bad';$('#importNotice').textContent=err.message;toast(err.message,'bad')}
+    });
+
+    async function init(){setModeUi();if(configured){const {data}=await db.auth.getSession();if(data.session){state.user=data.session.user;const {data:p}=await db.from('profiles').select('*').eq('id',state.user.id).single();if(p){state.profile=p;await enterApp();return}}}showLogin()}
+    init();
+  })();
+  </script>
+</body>
+</html>
