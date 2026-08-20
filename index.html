@@ -128,6 +128,12 @@
     .toast-wrap{position:fixed;right:16px;bottom:16px;z-index:50;display:flex;flex-direction:column;gap:8px;max-width:min(420px,calc(100vw - 32px))}
     .toast{background:#111827;color:white;border-radius:13px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:13px}
     .toast.bad{background:#991b1b}.toast.ok{background:#166534}.toast.warn{background:#92400e}
+    .scan-feedback{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;padding:18px;pointer-events:none;opacity:0;visibility:hidden;background:rgba(15,23,42,.20);transition:opacity .10s ease,visibility .10s ease}
+    .scan-feedback.show{opacity:1;visibility:visible}
+    .scan-feedback-card{width:min(650px,calc(100vw - 28px));border-radius:26px;padding:30px 20px;text-align:center;color:white;box-shadow:0 24px 70px rgba(0,0,0,.38);transform:scale(.96);transition:transform .10s ease}
+    .scan-feedback.show .scan-feedback-card{transform:scale(1)}
+    .scan-feedback.ok .scan-feedback-card{background:#15803d}.scan-feedback.warn .scan-feedback-card{background:#b45309}.scan-feedback.bad .scan-feedback-card{background:#b91c1c}
+    .scan-feedback-icon{font-size:46px;line-height:1;margin-bottom:9px;font-weight:900}.scan-feedback-title{font-size:30px;line-height:1.08;font-weight:1000;letter-spacing:.25px;text-transform:uppercase}
     .empty{padding:30px;text-align:center;color:var(--muted)}
     .connection{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
     .connection-dot{width:8px;height:8px;border-radius:50%;background:#22c55e}.connection-dot.off{background:#ef4444}
@@ -144,6 +150,7 @@
       .main{padding:10px}.grid.kpis{grid-template-columns:1fr 1fr;gap:9px}.kpi-value{font-size:24px}.kpi-label{font-size:10px}
       .scan-actions{grid-template-columns:1fr}.manual-box{grid-template-columns:1fr}.detail-grid{grid-template-columns:1fr 1fr}.result-card{padding:14px}.login-card{padding:20px}.demo-actions{grid-template-columns:1fr}
       .import-stats{grid-template-columns:1fr}.topbar .brand-badge{width:32px;height:32px}.topbar{min-height:58px}.layout{min-height:calc(100vh - 58px)}.report-toolbar{grid-template-columns:1fr}.report-kpis{grid-template-columns:1fr 1fr!important}.report-actions .btn{flex:1 1 100%}
+      .scan-feedback-card{padding:26px 16px;border-radius:22px}.scan-feedback-icon{font-size:42px}.scan-feedback-title{font-size:25px}
     }
   </style>
 </head>
@@ -316,6 +323,7 @@
   <div id="reportModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="reportModalTitle">
     <div class="modal-card"><div class="modal-head"><div><h2 id="reportModalTitle">Detalhes da NF</h2><p id="reportModalSubtitle" class="subtitle" style="margin:3px 0 0"></p></div><button id="reportModalClose" class="modal-close" type="button" aria-label="Fechar">×</button></div><div id="reportModalContent"></div></div>
   </div>
+  <div id="scanFeedback" class="scan-feedback" aria-live="assertive" aria-atomic="true"><div class="scan-feedback-card"><div id="scanFeedbackIcon" class="scan-feedback-icon">✓</div><div id="scanFeedbackTitle" class="scan-feedback-title">VOLUME CONFERIDO</div></div></div>
   <div id="toastWrap" class="toast-wrap"></div>
 
   <script src="app-config.js"></script>
@@ -337,6 +345,10 @@
     const fmtDateTime=v=>v?new Date(v).toLocaleString('pt-BR'):'-';
     const safeInt=v=>{const n=parseInt(String(v??'').replace(',','.'),10);return Number.isFinite(n)?n:0};
     function toast(msg,type=''){const el=document.createElement('div');el.className='toast '+type;el.textContent=msg;$('#toastWrap').appendChild(el);setTimeout(()=>el.remove(),3800)}
+    let scanFeedbackTimer=null,scanAudioCtx=null;
+    function unlockScanAudio(){try{const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return;if(!scanAudioCtx)scanAudioCtx=new AudioCtx();if(scanAudioCtx.state==='suspended')scanAudioCtx.resume().catch(()=>{})}catch{}}
+    function playScanSound(type='ok'){try{unlockScanAudio();const ctx=scanAudioCtx;if(!ctx||ctx.state!=='running')return;const now=ctx.currentTime;const tone=(freq,start,duration,volume=.16)=>{const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='sine';osc.frequency.setValueAtTime(freq,now+start);gain.gain.setValueAtTime(.0001,now+start);gain.gain.exponentialRampToValueAtTime(volume,now+start+.008);gain.gain.exponentialRampToValueAtTime(.0001,now+start+duration);osc.connect(gain);gain.connect(ctx.destination);osc.start(now+start);osc.stop(now+start+duration+.02)};if(type==='ok')tone(940,0,.10,.18);else if(type==='warn'){tone(720,0,.08,.16);tone(570,.11,.09,.16)}else tone(290,0,.17,.18)}catch{}}
+    function showScanFeedback(result){const v=resultVisual(result),el=$('#scanFeedback');clearTimeout(scanFeedbackTimer);$('#scanFeedbackIcon').textContent=v.icon;$('#scanFeedbackTitle').textContent=v.title;el.className='scan-feedback '+v.cls+' show';playScanSound(v.cls);scanFeedbackTimer=setTimeout(()=>el.classList.remove('show'),1000)}
     function setConnection(){const on=navigator.onLine;$('#connectionDot').classList.toggle('off',!on);$('#connectionText').textContent=on?'Online':'Sem conexão'}
     addEventListener('online',setConnection);addEventListener('offline',setConnection);setConnection();
 
@@ -470,7 +482,7 @@
       return {cls:'bad',icon:'×',title:'QR INVÁLIDO',msg:result.message||'Não foi possível interpretar a etiqueta.'};
     }
     function renderResult(result,p){
-      const v=resultVisual(result),el=$('#scanResult');el.className='result-card '+v.cls;el.classList.remove('hidden');
+      const v=resultVisual(result),el=$('#scanResult');showScanFeedback(result);el.className='result-card '+v.cls;el.classList.remove('hidden');
       const note=esc(result.note||p?.notePadded||'-'),expected=result.expected_volumes??p?.total??'-',scanned=result.scanned_volumes??'-';
       const progress=(Number(expected)>0&&Number(scanned)>=0)?Math.min(100,Math.round(Number(scanned)/Number(expected)*100)):0;
       el.innerHTML=`<div class="result-top"><div class="status-icon">${v.icon}</div><div><p class="result-title">${v.title}</p><p class="result-message">${esc(v.msg)}</p></div></div>
@@ -483,6 +495,7 @@
     async function startScanner(){
       if(!$('#locationSelect').value){toast('Selecione o local antes de abrir a câmera.','warn');return}
       if(!window.Html5Qrcode){toast('Leitor de câmera não carregou. Use a entrada manual.','bad');return}
+      unlockScanAudio();
       if(state.scannerRunning)return;$('#reader').classList.remove('hidden');state.scanner=new Html5Qrcode('reader');
       try{
         await state.scanner.start({facingMode:'environment'},{fps:12,qrbox:(w,h)=>{const s=Math.floor(Math.min(w,h)*.72);return{width:s,height:s}},aspectRatio:1.0},async decoded=>{if(state._scanLock)return;state._scanLock=true;await processCode(decoded);setTimeout(()=>state._scanLock=false,900)},()=>{});
@@ -621,7 +634,7 @@
     $('#demoChecker').addEventListener('click',async()=>{loginDemo('conferente');await enterApp()});$('#demoAdmin').addEventListener('click',async()=>{loginDemo('admin');await enterApp()});$('#logoutBtn').addEventListener('click',logout);
     $$('[data-page]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.page)));
     $('#locationSelect').addEventListener('change',e=>localStorage.setItem('inventory_location',e.target.value));$('#startScanBtn').addEventListener('click',startScanner);$('#stopScanBtn').addEventListener('click',stopScanner);
-    $('#manualSubmit').addEventListener('click',()=>{const v=$('#manualCode').value.trim();if(v){processCode(v);$('#manualCode').value=''}});$('#manualCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#manualSubmit').click()}});
+    $('#manualSubmit').addEventListener('click',()=>{unlockScanAudio();const v=$('#manualCode').value.trim();if(v){processCode(v);$('#manualCode').value=''}});$('#manualCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#manualSubmit').click()}});
     $('#refreshDashboard').addEventListener('click',refreshDashboard);$('#createInventoryBtn').addEventListener('click',createInventory);$('#closeInventoryBtn').addEventListener('click',closeInventory);
     $('#refreshReportBtn').addEventListener('click',()=>loadReport());$('#reportInventorySelect').addEventListener('change',()=>{state.reportInventoryId=$('#reportInventorySelect').value;loadReport()});['reportSearch','reportStatusFilter','reportDivergenceFilter','reportLocationFilter'].forEach(id=>$('#'+id).addEventListener(id==='reportSearch'?'input':'change',applyReportFilters));
     $('#reportPrevBtn').addEventListener('click',()=>{if(state.reportPage>1){state.reportPage--;renderReport()}});$('#reportNextBtn').addEventListener('click',()=>{if(state.reportPage*state.reportPageSize<state.reportFiltered.length){state.reportPage++;renderReport()}});$('#exportFullBtn').addEventListener('click',()=>exportReport(false));$('#exportFilteredBtn').addEventListener('click',()=>exportReport(true));
