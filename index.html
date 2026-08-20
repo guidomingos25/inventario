@@ -450,7 +450,7 @@
 
     async function loadLocations(){
       if(configured){const {data,error}=await db.from('locations').select('*').eq('active',true).order('sort_order');if(error)throw error;state.locations=data||[]}
-      else{state.locations=[...Array(16)].map((_,i)=>({id:i+1,name:'Praça '+String(i+1).padStart(2,'0')})).concat([{id:17,name:'Cantilever'},{id:18,name:'Área Externa'},{id:19,name:'Porta Pallet'}])}
+      else{state.locations=[...Array(16)].map((_,i)=>({id:i+1,name:'Praça '+String(i+1).padStart(2,'0')})).concat([{id:17,name:'Cantilever'},{id:18,name:'Área Externa'},{id:19,name:'Porta Pallet'},{id:20,name:'Químico'}])}
       const sel=$('#locationSelect'),saved=localStorage.getItem('inventory_location')||'';sel.innerHTML='<option value="">Selecione o local antes de bipar</option>'+state.locations.map(l=>`<option value="${l.id}">${esc(l.name)}</option>`).join('');if(state.locations.some(l=>String(l.id)===saved))sel.value=saved;
       $('#locationsList').innerHTML=state.locations.map(l=>`<span class="pill">${esc(l.name)}</span>`).join('');
     }
