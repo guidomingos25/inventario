@@ -417,15 +417,20 @@
 
     async function parseWorkbook(file){
       if(!window.XLSX) throw new Error('Biblioteca de Excel não carregada.');
-      const ab=await file.arrayBuffer(), book=XLSX.read(ab,{type:'array'}), sheetName=book.SheetNames.includes('Export')?'Export':book.SheetNames[0];
-      const rows=XLSX.utils.sheet_to_json(book.Sheets[sheetName],{defval:'',raw:false});
+      const ab=await file.arrayBuffer(), book=XLSX.read(ab,{type:'array'}), sheetName=book.SheetNames.includes('Export')?'Export':book.SheetNames[0], sheet=book.Sheets[sheetName];
+      const headerMatrix=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false,blankrows:false});
+      const headers=(headerMatrix[0]||[]).map(h=>String(h??'').trim()).filter(Boolean);
+      const rows=XLSX.utils.sheet_to_json(sheet,{defval:'',raw:false});
       const required=['Nota','Numero OEF','CNPJ Fornecedor','Volumes','CHAVE_NFE'];
-      const headers=rows.length?Object.keys(rows[0]):[]; const missing=required.filter(h=>!headers.includes(h));
+      const missing=required.filter(h=>!headers.includes(h));
       if(missing.length) throw new Error('Colunas obrigatórias ausentes: '+missing.join(', '));
       const items=[]; const invalid=[]; const keys=new Set(); let duplicateKeys=0;
       rows.forEach((r,i)=>{const item=normalizeReportRow(r,i+2);if(!item){invalid.push(i+2);return}if(keys.has(item.lookupKey)){duplicateKeys++;return}keys.add(item.lookupKey);items.push(item)});
+      // Guarda a ordem original dos cabeçalhos dentro do primeiro registro para que ela sobreviva
+      // ao envio do raw_data para o JSONB do Supabase, que não preserva a ordem das chaves do objeto.
+      if(items.length)items[0].raw_data={...items[0].raw_data,__inventory_source_headers:headers};
       const expectedVolumes=items.reduce((s,x)=>s+x.expected_volumes,0);
-      return {sheetName,items,expectedVolumes,duplicateKeys,invalidRows:invalid,totalRows:rows.length,fileName:file.name};
+      return {sheetName,items,expectedVolumes,duplicateKeys,invalidRows:invalid,totalRows:rows.length,fileName:file.name,headers};
     }
 
     function setModeUi(){
@@ -663,30 +668,63 @@
       }else r.scans.forEach(sc=>cards.push(`<div class="volume-card bad"><strong>Volume ${esc(sc.volume_no??'-')}/${esc(sc.total_volumes_qr??'-')}</strong><small>Não consta no relatório</small><small>${esc(scanLocationName(sc)||'-')} • ${esc(scanUserName(sc)||'-')}</small><small>${fmtDateTime(sc.scanned_at)}</small></div>`));
       $('#reportModalContent').innerHTML=header+`<div class="section-head"><h2>Volumes / leituras</h2><span class="pill">${cards.length} registro(s)</span></div><div class="volume-grid">${cards.join('')}</div>${r.duplicateCount?`<div class="notice warn" style="margin-top:14px">Foram registradas ${r.duplicateCount} tentativa(s) de leitura duplicada para esta NF/combinação/Etiqueta Única.</div>`:''}`;$('#reportModal').classList.remove('hidden')
     }
-    function masterVolumeRows(rows){
+    const knownReportHeaderOrder=['Filial Atual','Data de Check in','Data de Entrada da Nota','Data Resolução Ocorrencia','Nota','Numero OEF','INCOTERMS','UF_ID','Pedido','Organização de Vendas','Range de Dias','CNPJ Fornecedor','Fornecedor','Cliente','Destinatario','Destino','UF Destino','CNPJ Destino','BP Destino','Almoxarifado','CTE','ONU','End. WMS','Peso','Volumes','Mercadoria','Etiqueta Unica','Prioridade','Dt Limite Embarque','Dt Final Entrega','Pesado','ALTURA','COMPRIMENTO','LARGURA','CHAVE_NFE','Filial Origem','Data Programacao','Data de Criação da Coleta','Valor Nota','Liberacao Suzano','Inventario','Data Inventario','Ultimo Inventario Filial','Status no Inventario','Janela de Emissao','CIF/FOB','OF','Janela Operacional','CEP Destino','Fonte Data Entrega','Data Limite Embarque (Ajuste Janela de Carregamento)','Contrato','Veiculo Coleta'];
+    function cleanSourceRaw(raw){if(!raw||typeof raw!=='object'||Array.isArray(raw))return{};return raw}
+    function reportSourceHeaders(){
+      const raws=state.reportItems.map(i=>cleanSourceRaw(i.raw_data));
+      const saved=raws.map(r=>r.__inventory_source_headers).find(v=>Array.isArray(v)&&v.length);
+      if(saved)return saved.map(h=>String(h??'').trim()).filter(Boolean);
+      const allKeys=[];const seen=new Set();raws.forEach(r=>Object.keys(r).forEach(k=>{if(k==='__inventory_source_headers'||seen.has(k))return;seen.add(k);allKeys.push(k)}));
+      const present=new Set(allKeys),ordered=knownReportHeaderOrder.filter(h=>present.has(h));
+      allKeys.forEach(h=>{if(!ordered.includes(h))ordered.push(h)});
+      return ordered;
+    }
+    function sourceHeaderRepresented(header,obj){
+      const aliases={
+        'Nota':['NF'],
+        'Numero OEF':['OEF / Coleta'],
+        'Destinatario':['Destinatário'],
+        'Volumes':['Total Volumes Considerado','Volumes Esperados / Etiqueta'],
+        'Etiqueta Unica':['Etiqueta Única'],
+        'CHAVE_NFE':['Chave NF-e']
+      };
+      if(Object.prototype.hasOwnProperty.call(obj,header))return true;
+      return (aliases[header]||[]).some(k=>Object.prototype.hasOwnProperty.call(obj,k));
+    }
+    function appendMissingSourceColumns(obj,item,headers){
+      const raw=cleanSourceRaw(item?.raw_data),out={...obj};
+      headers.forEach(header=>{if(header==='__inventory_source_headers'||sourceHeaderRepresented(header,out))return;out[header]=Object.prototype.hasOwnProperty.call(raw,header)?raw[header]:''});
+      return out;
+    }
+    function masterVolumeRows(rows,sourceHeaders){
       const out=[];
       rows.forEach(r=>{
         if(r.recordType==='base'&&r.uniqueMode){
           const byVol=new Map();r.uniqueScans.forEach(sc=>{if(!byVol.has(Number(sc.volume_no))||sc.status==='ok')byVol.set(Number(sc.volume_no),sc)});
-          for(let v=1;v<=r.expected;v++)out.push(exportVolumeRow(r,byVol.get(v),v,r.expected,true));
-          r.uniqueScans.filter(sc=>Number(sc.volume_no)>r.expected||Number(sc.volume_no)<1).forEach(sc=>out.push(exportVolumeRow(r,sc,Number(sc.volume_no),r.expected,true)));
+          for(let v=1;v<=r.expected;v++)out.push(exportVolumeRow(r,byVol.get(v),v,r.expected,true,sourceHeaders));
+          r.uniqueScans.filter(sc=>Number(sc.volume_no)>r.expected||Number(sc.volume_no)<1).forEach(sc=>out.push(exportVolumeRow(r,sc,Number(sc.volume_no),r.expected,true,sourceHeaders)));
         }else if(r.recordType==='base'){
           const byVol=new Map();r.scans.forEach(sc=>{if(!byVol.has(Number(sc.volume_no))||sc.status==='ok')byVol.set(Number(sc.volume_no),sc)});
-          for(let v=1;v<=r.expected;v++)out.push(exportVolumeRow(r,byVol.get(v),v,r.expected,false));
-          r.scans.filter(sc=>Number(sc.volume_no)>r.expected||Number(sc.volume_no)<1).forEach(sc=>out.push(exportVolumeRow(r,sc,Number(sc.volume_no),r.expected,false)));
-        }else if(r.recordType==='off_report_unique')r.uniqueScans.forEach(sc=>out.push(exportVolumeRow(r,sc,Number(sc.volume_no)||'',null,true)));
-        else r.scans.forEach(sc=>out.push(exportVolumeRow(r,sc,Number(sc.volume_no)||'',null,false)));
+          for(let v=1;v<=r.expected;v++)out.push(exportVolumeRow(r,byVol.get(v),v,r.expected,false,sourceHeaders));
+          r.scans.filter(sc=>Number(sc.volume_no)>r.expected||Number(sc.volume_no)<1).forEach(sc=>out.push(exportVolumeRow(r,sc,Number(sc.volume_no),r.expected,false,sourceHeaders)));
+        }else if(r.recordType==='off_report_unique')r.uniqueScans.forEach(sc=>out.push(exportVolumeRow(r,sc,Number(sc.volume_no)||'',null,true,sourceHeaders)));
+        else r.scans.forEach(sc=>out.push(exportVolumeRow(r,sc,Number(sc.volume_no)||'',null,false,sourceHeaders)));
       });
       return out;
     }
-    function exportVolumeRow(r,sc,volume,expected,isUnique=false){const i=r.item||{};return {'Tipo Registro':r.recordType==='base'?'Base do inventário':'Divergência fora do relatório','Tipo Conferência':isUnique?'Etiqueta Única':'NF','Etiqueta Única':r.uniqueLabel||i.unique_label||sc?.unique_label||'','Status NF':statusLabels[r.status]||r.status,'Status Volume':!sc?(isUnique?'Não conferido — Etiqueta Única':'Não conferido'):sc.status==='ok'?'Conferido':'Divergente','Tipo Divergência':sc&&sc.status!=='ok'?(divergenceLabels[sc.status]||sc.status):'','NF':r.nf,'Série':r.series||'','CNPJ Fornecedor':i.cnpj_supplier||sc?.cnpj_supplier||'','OEF / Coleta':r.oef||'','Volume':volume,'Total Volumes Considerado':expected??'','Total Volumes QR':sc?.total_volumes_qr??'','Item QR':sc?.item_code||'','Fornecedor':i.supplier||'','Cliente':i.client||'','Destinatário':i.recipient||'','Destino':i.destination||'','UF Destino':i.destination_uf||'','Pedido':i.order_number||'','Almoxarifado':i.warehouse||'','End. WMS':i.wms_address||'','Peso':i.weight??'','Mercadoria':i.merchandise||'','Local Conferência':sc?scanLocationName(sc):'','Conferente':sc?scanUserName(sc):'','Data/Hora Conferência':sc?fmtDateTime(sc.scanned_at):'','Chave NF-e':i.invoice_key||'','Código QR Lido':sc?.raw_code||''}}
+    function exportVolumeRow(r,sc,volume,expected,isUnique=false,sourceHeaders=[]){
+      const i=r.item||{};
+      const base={'Tipo Registro':r.recordType==='base'?'Base do inventário':'Divergência fora do relatório','Tipo Conferência':isUnique?'Etiqueta Única':'NF','Etiqueta Única':r.uniqueLabel||i.unique_label||sc?.unique_label||'','Status NF':statusLabels[r.status]||r.status,'Status Volume':!sc?(isUnique?'Não conferido — Etiqueta Única':'Não conferido'):sc.status==='ok'?'Conferido':'Divergente','Tipo Divergência':sc&&sc.status!=='ok'?(divergenceLabels[sc.status]||sc.status):'','NF':r.nf,'Série':r.series||'','CNPJ Fornecedor':i.cnpj_supplier||sc?.cnpj_supplier||'','OEF / Coleta':r.oef||'','Volume':volume,'Total Volumes Considerado':expected??'','Total Volumes QR':sc?.total_volumes_qr??'','Item QR':sc?.item_code||'','Fornecedor':i.supplier||'','Cliente':i.client||'','Destinatário':i.recipient||'','Destino':i.destination||'','UF Destino':i.destination_uf||'','Pedido':i.order_number||'','Almoxarifado':i.warehouse||'','End. WMS':i.wms_address||'','Peso':i.weight??'','Mercadoria':i.merchandise||'','Local Conferência':sc?scanLocationName(sc):'','Conferente':sc?scanUserName(sc):'','Data/Hora Conferência':sc?fmtDateTime(sc.scanned_at):'','Chave NF-e':i.invoice_key||'','Código QR Lido':sc?.raw_code||''};
+      return appendMissingSourceColumns(base,r.recordType==='base'?i:null,sourceHeaders);
+    }
     function uniqueByScanId(arr){const m=new Map();arr.filter(Boolean).forEach(x=>m.set(x.id||[x.canonical_volume_key,x.scanned_at].join('|'),x));return [...m.values()]}
     function exportReport(filtered=false){if(!window.XLSX){toast('Biblioteca de Excel não carregada.','bad');return}const rows=filtered?state.reportFiltered:state.reportRows;if(!rows.length){toast('Não há dados para exportar.','warn');return}const inv=state.reportInventories.find(x=>x.id===state.reportInventoryId)||state.inventory||{};
-      const summary=rows.map(r=>({'Tipo':r.recordType==='base'?'NF do relatório':r.recordType==='off_report_unique'?'Etiqueta Única fora do relatório':'Conferido fora do relatório','Status NF':statusLabels[r.status]||r.status,'NF':r.nf,'Etiqueta Única':r.uniqueLabel||'','Origem do Status':r.uniqueMode?'Etiqueta Única':'QR da NF','Série':r.series,'CNPJ Fornecedor':r.item?.cnpj_supplier||r.scans[0]?.cnpj_supplier||'','OEF / Coleta':r.oef,'Fornecedor':r.supplier,'Cliente':r.client,'Destino':r.destination,'Volumes Esperados / Etiqueta':r.expected??'','Volumes OK':r.ok,'Volumes Faltantes':r.recordType==='base'?r.missingDisplay.join(', '):'','Divergências':divergenceText(r),'Locais':r.locations.join(', '),'Conferentes':r.users.join(', '),'Pedido':r.item?.order_number||'','Almoxarifado':r.item?.warehouse||'','End. WMS':r.item?.wms_address||'','Peso':r.item?.weight??'','Mercadoria':r.item?.merchandise||''}));
+      const sourceHeaders=reportSourceHeaders();
+      const summary=rows.map(r=>appendMissingSourceColumns({'Tipo':r.recordType==='base'?'NF do relatório':r.recordType==='off_report_unique'?'Etiqueta Única fora do relatório':'Conferido fora do relatório','Status NF':statusLabels[r.status]||r.status,'NF':r.nf,'Etiqueta Única':r.uniqueLabel||'','Origem do Status':r.uniqueMode?'Etiqueta Única':'QR da NF','Série':r.series,'CNPJ Fornecedor':r.item?.cnpj_supplier||r.scans[0]?.cnpj_supplier||'','OEF / Coleta':r.oef,'Fornecedor':r.supplier,'Cliente':r.client,'Destino':r.destination,'Volumes Esperados / Etiqueta':r.expected??'','Volumes OK':r.ok,'Volumes Faltantes':r.recordType==='base'?r.missingDisplay.join(', '):'','Divergências':divergenceText(r),'Locais':r.locations.join(', '),'Conferentes':r.users.join(', '),'Pedido':r.item?.order_number||'','Almoxarifado':r.item?.warehouse||'','End. WMS':r.item?.wms_address||'','Peso':r.item?.weight??'','Mercadoria':r.item?.merchandise||''},r.recordType==='base'?r.item:null,sourceHeaders));
       const normalSource=filtered?uniqueByScanId(rows.flatMap(r=>r.scans)):state.reportScans,uniqueSource=filtered?uniqueByScanId(rows.flatMap(r=>r.uniqueScans)):state.reportUniqueScans;
       const scans=[...normalSource.map(sc=>({'Tipo Leitura':'NF','Status Leitura':sc.status==='ok'?'OK':divergenceLabels[sc.status]||sc.status,'Etiqueta Única':'','NF':sc.note_padded,'Série':sc.series,'CNPJ':sc.cnpj_supplier,'OEF / Coleta':sc.collection_padded,'Volume':sc.volume_no,'Total QR':sc.total_volumes_qr,'Item QR':sc.item_code,'Local':scanLocationName(sc),'Conferente':scanUserName(sc),'Data/Hora':fmtDateTime(sc.scanned_at),'Código QR':sc.raw_code||''})),...uniqueSource.map(sc=>({'Tipo Leitura':'Etiqueta Única','Status Leitura':sc.status==='ok'?'OK':divergenceLabels[sc.status]||sc.status,'Etiqueta Única':sc.unique_label||'','NF':'','Série':'','CNPJ':'','OEF / Coleta':'','Volume':sc.volume_no,'Total QR':sc.total_volumes_qr,'Item QR':'','Local':scanLocationName(sc),'Conferente':scanUserName(sc),'Data/Hora':fmtDateTime(sc.scanned_at),'Código QR':sc.raw_code||''}))];
       const dups=state.reportAttempts.map(a=>({'Resultado':'Duplicidade','Tipo Leitura':uniqueLabelFromCanonical(a.canonical_volume_key)?'Etiqueta Única':'NF','Etiqueta Única':uniqueLabelFromCanonical(a.canonical_volume_key),'Chave do volume':a.canonical_volume_key||'','Conferente':state.reportProfiles.get(a.user_id)||'','Local':state.locations.find(l=>String(l.id)===String(a.location_id))?.name||'','Data/Hora':fmtDateTime(a.attempted_at),'Código QR':a.raw_code||''}));
-      const wb=XLSX.utils.book_new();const sheets=[['Status por Volume',masterVolumeRows(rows)],['Resumo NFs',summary],['Leituras',scans],['Duplicidades',dups]];sheets.forEach(([name,data])=>{const ws=XLSX.utils.json_to_sheet(data.length?data:[{'Sem dados':''}]);ws['!autofilter']={ref:ws['!ref']};XLSX.utils.book_append_sheet(wb,ws,name)});const safe=(inv.name||'inventario').replace(/[\/:*?"<>|]+/g,'_').slice(0,70);XLSX.writeFile(wb,`${safe}_${filtered?'filtrado':'completo'}.xlsx`);toast('Relatório Excel gerado.','ok')
+      const wb=XLSX.utils.book_new();const sheets=[['Status por Volume',masterVolumeRows(rows,sourceHeaders)],['Resumo NFs',summary],['Leituras',scans],['Duplicidades',dups]];sheets.forEach(([name,data])=>{const ws=XLSX.utils.json_to_sheet(data.length?data:[{'Sem dados':''}]);ws['!autofilter']={ref:ws['!ref']};XLSX.utils.book_append_sheet(wb,ws,name)});const safe=(inv.name||'inventario').replace(/[\/:*?"<>|]+/g,'_').slice(0,70);XLSX.writeFile(wb,`${safe}_${filtered?'filtrado':'completo'}.xlsx`);toast('Relatório Excel gerado.','ok')
     }
 
     async function createInventory(){
