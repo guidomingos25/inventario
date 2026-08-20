@@ -718,13 +718,59 @@
       return appendMissingSourceColumns(base,r.recordType==='base'?i:null,sourceHeaders);
     }
     function uniqueByScanId(arr){const m=new Map();arr.filter(Boolean).forEach(x=>m.set(x.id||[x.canonical_volume_key,x.scanned_at].join('|'),x));return [...m.values()]}
+    function excelDateHeader(name){
+      const h=String(name??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+      if(!h)return false;
+      // Colunas como "Fonte Data Entrega" são classificações textuais, não datas.
+      if(h.startsWith('fonte data')||h.startsWith('origem data'))return false;
+      return h==='data'||h==='data/hora'||h.includes('data/hora')||h.includes('data hora')||/^dt(?:\.|\s|_|-|$)/.test(h)||/^data(?:\s|_|-|$)/.test(h)||h==='atualizado_em'||h==='created_at'||h==='closed_at'||h==='scanned_at'||h==='attempted_at';
+    }
+    function parseExcelExportDate(value,header=''){
+      if(value instanceof Date&&!Number.isNaN(value.getTime()))return {date:value,hasTime:!!(value.getHours()||value.getMinutes()||value.getSeconds()||value.getMilliseconds())};
+      if(typeof value==='number'&&Number.isFinite(value)&&value>1&&value<100000){
+        const dc=XLSX.SSF.parse_date_code(value);
+        if(dc)return {date:new Date(dc.y,dc.m-1,dc.d,dc.H||0,dc.M||0,Math.floor(dc.S||0)),hasTime:!!((dc.H||0)||(dc.M||0)||(dc.S||0))};
+      }
+      const text=String(value??'').trim();if(!text)return null;
+      const h=String(header??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+      const generatedPtBr=h==='data/hora'||h==='data/hora conferencia';
+      let m=text.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/);
+      if(m){const y=+m[1],mo=+m[2],d=+m[3],hh=+(m[4]||0),mi=+(m[5]||0),ss=+(m[6]||0);const dt=new Date(y,mo-1,d,hh,mi,ss);if(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d)return {date:dt,hasTime:m[4]!==undefined};}
+      m=text.match(/^(\d{1,2})([\/-])(\d{1,2})\2(\d{2}|\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?)?$/i);
+      if(m){
+        const a=+m[1],b=+m[3],yearTxt=m[4],y=yearTxt.length===2?(+yearTxt>=70?1900+ +yearTxt:2000+ +yearTxt):+yearTxt;
+        let day,month;
+        if(generatedPtBr||a>12){day=a;month=b}else if(b>12){month=a;day=b}else{month=a;day=b}
+        let hh=+(m[5]||0),mi=+(m[6]||0),ss=+(m[7]||0);const ap=(m[8]||'').toUpperCase();
+        if(ap==='PM'&&hh<12)hh+=12;if(ap==='AM'&&hh===12)hh=0;
+        const dt=new Date(y,month-1,day,hh,mi,ss);
+        if(dt.getFullYear()===y&&dt.getMonth()===month-1&&dt.getDate()===day)return {date:dt,hasTime:m[5]!==undefined};
+      }
+      return null;
+    }
+    function excelSerialFromDate(date){
+      return (Date.UTC(date.getFullYear(),date.getMonth(),date.getDate(),date.getHours(),date.getMinutes(),date.getSeconds(),date.getMilliseconds())-Date.UTC(1899,11,30))/86400000;
+    }
+    function formatWorksheetDateColumns(ws){
+      if(!ws||!ws['!ref'])return;
+      const range=XLSX.utils.decode_range(ws['!ref']);
+      for(let c=range.s.c;c<=range.e.c;c++){
+        const head=ws[XLSX.utils.encode_cell({r:range.s.r,c})];
+        if(!head||!excelDateHeader(head.v))continue;
+        for(let r=range.s.r+1;r<=range.e.r;r++){
+          const addr=XLSX.utils.encode_cell({r,c}),cell=ws[addr];if(!cell||cell.v===null||cell.v==='')continue;
+          const parsed=parseExcelExportDate(cell.v,head.v);if(!parsed)continue;
+          cell.t='n';cell.v=excelSerialFromDate(parsed.date);cell.z=parsed.hasTime?'dd/mm/yyyy hh:mm:ss':'dd/mm/yyyy';
+        }
+      }
+    }
     function exportReport(filtered=false){if(!window.XLSX){toast('Biblioteca de Excel não carregada.','bad');return}const rows=filtered?state.reportFiltered:state.reportRows;if(!rows.length){toast('Não há dados para exportar.','warn');return}const inv=state.reportInventories.find(x=>x.id===state.reportInventoryId)||state.inventory||{};
       const sourceHeaders=reportSourceHeaders();
       const summary=rows.map(r=>appendMissingSourceColumns({'Tipo':r.recordType==='base'?'NF do relatório':r.recordType==='off_report_unique'?'Etiqueta Única fora do relatório':'Conferido fora do relatório','Status NF':statusLabels[r.status]||r.status,'NF':r.nf,'Etiqueta Única':r.uniqueLabel||'','Origem do Status':r.uniqueMode?'Etiqueta Única':'QR da NF','Série':r.series,'CNPJ Fornecedor':r.item?.cnpj_supplier||r.scans[0]?.cnpj_supplier||'','OEF / Coleta':r.oef,'Fornecedor':r.supplier,'Cliente':r.client,'Destino':r.destination,'Volumes Esperados / Etiqueta':r.expected??'','Volumes OK':r.ok,'Volumes Faltantes':r.recordType==='base'?r.missingDisplay.join(', '):'','Divergências':divergenceText(r),'Locais':r.locations.join(', '),'Conferentes':r.users.join(', '),'Pedido':r.item?.order_number||'','Almoxarifado':r.item?.warehouse||'','End. WMS':r.item?.wms_address||'','Peso':r.item?.weight??'','Mercadoria':r.item?.merchandise||''},r.recordType==='base'?r.item:null,sourceHeaders));
       const normalSource=filtered?uniqueByScanId(rows.flatMap(r=>r.scans)):state.reportScans,uniqueSource=filtered?uniqueByScanId(rows.flatMap(r=>r.uniqueScans)):state.reportUniqueScans;
       const scans=[...normalSource.map(sc=>({'Tipo Leitura':'NF','Status Leitura':sc.status==='ok'?'OK':divergenceLabels[sc.status]||sc.status,'Etiqueta Única':'','NF':sc.note_padded,'Série':sc.series,'CNPJ':sc.cnpj_supplier,'OEF / Coleta':sc.collection_padded,'Volume':sc.volume_no,'Total QR':sc.total_volumes_qr,'Item QR':sc.item_code,'Local':scanLocationName(sc),'Conferente':scanUserName(sc),'Data/Hora':fmtDateTime(sc.scanned_at),'Código QR':sc.raw_code||''})),...uniqueSource.map(sc=>({'Tipo Leitura':'Etiqueta Única','Status Leitura':sc.status==='ok'?'OK':divergenceLabels[sc.status]||sc.status,'Etiqueta Única':sc.unique_label||'','NF':'','Série':'','CNPJ':'','OEF / Coleta':'','Volume':sc.volume_no,'Total QR':sc.total_volumes_qr,'Item QR':'','Local':scanLocationName(sc),'Conferente':scanUserName(sc),'Data/Hora':fmtDateTime(sc.scanned_at),'Código QR':sc.raw_code||''}))];
       const dups=state.reportAttempts.map(a=>({'Resultado':'Duplicidade','Tipo Leitura':uniqueLabelFromCanonical(a.canonical_volume_key)?'Etiqueta Única':'NF','Etiqueta Única':uniqueLabelFromCanonical(a.canonical_volume_key),'Chave do volume':a.canonical_volume_key||'','Conferente':state.reportProfiles.get(a.user_id)||'','Local':state.locations.find(l=>String(l.id)===String(a.location_id))?.name||'','Data/Hora':fmtDateTime(a.attempted_at),'Código QR':a.raw_code||''}));
-      const wb=XLSX.utils.book_new();const sheets=[['Status por Volume',masterVolumeRows(rows,sourceHeaders)],['Resumo NFs',summary],['Leituras',scans],['Duplicidades',dups]];sheets.forEach(([name,data])=>{const ws=XLSX.utils.json_to_sheet(data.length?data:[{'Sem dados':''}]);ws['!autofilter']={ref:ws['!ref']};XLSX.utils.book_append_sheet(wb,ws,name)});const safe=(inv.name||'inventario').replace(/[\/:*?"<>|]+/g,'_').slice(0,70);XLSX.writeFile(wb,`${safe}_${filtered?'filtrado':'completo'}.xlsx`);toast('Relatório Excel gerado.','ok')
+      const wb=XLSX.utils.book_new();const sheets=[['Status por Volume',masterVolumeRows(rows,sourceHeaders)],['Resumo NFs',summary],['Leituras',scans],['Duplicidades',dups]];sheets.forEach(([name,data])=>{const ws=XLSX.utils.json_to_sheet(data.length?data:[{'Sem dados':''}]);formatWorksheetDateColumns(ws);ws['!autofilter']={ref:ws['!ref']};XLSX.utils.book_append_sheet(wb,ws,name)});const safe=(inv.name||'inventario').replace(/[\/:*?"<>|]+/g,'_').slice(0,70);XLSX.writeFile(wb,`${safe}_${filtered?'filtrado':'completo'}.xlsx`);toast('Relatório Excel gerado.','ok')
     }
 
     async function createInventory(){
