@@ -138,10 +138,16 @@
     .scan-feedback-icon{font-size:46px;line-height:1;margin-bottom:9px;font-weight:900}.scan-feedback-title{font-size:30px;line-height:1.08;font-weight:1000;letter-spacing:.25px;text-transform:uppercase}
     .empty{padding:30px;text-align:center;color:var(--muted)}
     .connection{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+    .users-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) 180px auto;gap:10px;align-items:end}
+    .users-table table{min-width:980px}.users-table td{vertical-align:middle}
+    .user-status{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900}.user-status.active{background:var(--okbg);color:#166534}.user-status.inactive{background:var(--badbg);color:#991b1b}
+    .user-role{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900;background:#eef2ff;color:#3730a3}
+    .user-actions{display:flex;gap:6px;flex-wrap:wrap}.user-actions .btn{min-height:36px;padding:7px 10px;font-size:12px}
+    .security-box{border:1px solid #bfdbfe;background:#eff6ff;border-radius:14px;padding:12px 14px;color:#1e3a8a;font-size:13px;line-height:1.45}
     .connection-dot{width:8px;height:8px;border-radius:50%;background:#22c55e}.connection-dot.off{background:#ef4444}
     @media(max-width:900px){
       .layout{grid-template-columns:1fr}.sidebar{display:none}.main{padding:14px}.grid.kpis{grid-template-columns:repeat(2,1fr)}.grid.two{grid-template-columns:1fr}
-      .topbar{padding:9px 12px}.brand-title{font-size:14px}.mode-badge{display:none}.user-badge{max-width:120px}.mobile-nav{display:grid!important}.report-toolbar{grid-template-columns:1fr 1fr}.report-kpis{grid-template-columns:repeat(3,1fr)!important}
+      .topbar{padding:9px 12px}.brand-title{font-size:14px}.mode-badge{display:none}.user-badge{max-width:120px}.mobile-nav{display:grid!important}.report-toolbar{grid-template-columns:1fr 1fr}.report-kpis{grid-template-columns:repeat(3,1fr)!important}.users-toolbar{grid-template-columns:1fr 1fr}
       h1{font-size:23px}.card{padding:14px;border-radius:16px}
     }
     .mobile-nav{display:none;position:sticky;bottom:0;z-index:19;background:white;border-top:1px solid var(--line);grid-template-columns:repeat(5,1fr);padding-bottom:env(safe-area-inset-bottom)}
@@ -151,7 +157,7 @@
     @media(max-width:520px){
       .main{padding:10px}.grid.kpis{grid-template-columns:1fr 1fr;gap:9px}.kpi-value{font-size:24px}.kpi-label{font-size:10px}
       .scan-actions{grid-template-columns:1fr}.manual-box{grid-template-columns:1fr}.detail-grid{grid-template-columns:1fr 1fr}.result-card{padding:14px}.login-card{padding:20px}.demo-actions{grid-template-columns:1fr}
-      .import-stats{grid-template-columns:1fr}.topbar .brand-badge{width:32px;height:32px}.topbar{min-height:58px}.layout{min-height:calc(100vh - 58px)}.report-toolbar{grid-template-columns:1fr}.report-kpis{grid-template-columns:1fr 1fr!important}.report-actions .btn{flex:1 1 100%}
+      .import-stats{grid-template-columns:1fr}.topbar .brand-badge{width:32px;height:32px}.topbar{min-height:58px}.layout{min-height:calc(100vh - 58px)}.report-toolbar{grid-template-columns:1fr}.report-kpis{grid-template-columns:1fr 1fr!important}.report-actions .btn{flex:1 1 100%}.users-toolbar{grid-template-columns:1fr}.user-actions{flex-direction:column}.user-actions .btn{width:100%}
       .scan-feedback-card{padding:26px 16px;border-radius:22px}.scan-feedback-icon{font-size:42px}.scan-feedback-title{font-size:25px}
     }
   </style>
@@ -190,6 +196,7 @@
         <button class="navbtn" data-page="dashboard">📊 Painel</button>
         <button class="navbtn admin-only" data-page="report">📋 Relatório do inventário</button>
         <button class="navbtn admin-only" data-page="admin">📥 Carregar relatório</button>
+        <button class="navbtn admin-only" data-page="users">👥 Usuários</button>
         <button class="navbtn admin-only" data-page="settings">⚙️ Administração</button>
       </aside>
       <main class="main">
@@ -307,13 +314,50 @@
           </div>
         </section>
 
+        <section id="page-users" class="page">
+          <div class="section-head">
+            <div><h1>Gerenciamento de usuários</h1><p class="subtitle">Cadastre, edite, desative e exclua usuários sem acessar o painel de Authentication.</p></div>
+            <button id="refreshUsersBtn" class="btn" type="button">Atualizar</button>
+          </div>
+          <div id="usersBackendNotice" class="security-box" style="margin-bottom:16px">As operações administrativas são executadas por uma Edge Function protegida. A chave secreta do Supabase nunca fica no navegador ou no GitHub Pages.</div>
+          <div class="grid two">
+            <div class="card">
+              <h2>Novo usuário</h2>
+              <p class="login-help">O usuário será criado já confirmado, pronto para entrar com e-mail e senha.</p>
+              <form id="createUserForm" style="margin-top:14px">
+                <div class="field"><label for="newUserName">Nome</label><input id="newUserName" required placeholder="Ex.: João Silva"></div>
+                <div class="field"><label for="newUserEmail">Login / e-mail</label><input id="newUserEmail" type="email" required autocomplete="off" placeholder="conferente01@empresa.local"></div>
+                <div class="field"><label for="newUserPassword">Senha inicial</label><input id="newUserPassword" type="password" required minlength="8" autocomplete="new-password" placeholder="Mínimo 8 caracteres"></div>
+                <div class="field"><label for="newUserRole">Perfil</label><select id="newUserRole"><option value="conferente">Conferente</option><option value="admin">Administrador</option></select></div>
+                <button id="createUserBtn" class="btn primary" style="width:100%" type="submit">Cadastrar usuário</button>
+              </form>
+            </div>
+            <div class="card">
+              <h2>Segurança adotada</h2>
+              <div class="notice ok" style="margin-top:14px">Somente um usuário autenticado com <b>role = admin</b> e <b>active = true</b> pode executar as ações desta página.</div>
+              <p class="login-help">Desativar é a opção recomendada quando um funcionário deixa de usar a aplicação: o acesso é bloqueado, mas o histórico de conferências permanece preservado. A exclusão definitiva só é permitida para usuários sem histórico no inventário.</p>
+              <p class="login-help">Não existe uma segunda senha administrativa salva no HTML. A autorização é validada novamente no servidor a cada operação.</p>
+            </div>
+          </div>
+          <div class="card" style="margin-top:16px">
+            <div class="users-toolbar">
+              <div class="field" style="margin:0"><label for="usersSearch">Pesquisar</label><input id="usersSearch" placeholder="Nome ou login"></div>
+              <div class="field" style="margin:0"><label for="usersStatusFilter">Status</label><select id="usersStatusFilter"><option value="all">Todos</option><option value="active">Ativos</option><option value="inactive">Inativos</option></select></div>
+              <button id="usersReloadBtn" class="btn ghost" type="button">Recarregar</button>
+            </div>
+            <div id="usersLoading" class="notice info hidden">Carregando usuários...</div>
+            <div class="table-wrap users-table" style="margin-top:14px"><table><thead><tr><th>Nome</th><th>Login / e-mail</th><th>Perfil</th><th>Status</th><th>Criado em</th><th>Último login</th><th>Ações</th></tr></thead><tbody id="usersBody"><tr><td colspan="7" class="empty">Abra esta página para carregar os usuários.</td></tr></tbody></table></div>
+          </div>
+        </section>
+
         <section id="page-settings" class="page">
           <h1>Administração</h1><p class="subtitle">Informações do ambiente e inventário.</p>
           <div class="grid two">
             <div class="card"><h2>Backend</h2><div id="backendInfo" class="notice info"></div><p class="login-help">A publishable/anon key pode estar no navegador quando as tabelas usam RLS. Nunca use a service_role key no front-end.</p></div>
             <div class="card"><h2>Inventário ativo</h2><div id="adminInventoryInfo" style="margin-top:12px"></div><div id="adminInventoryTypeBox" class="hidden" style="margin-top:14px"><div class="field"><label for="adminInventoryType">Classificação do inventário</label><select id="adminInventoryType"><option value="general">Inventário Geral</option><option value="rotating">Inventário Rotativo</option></select></div><button id="saveInventoryTypeBtn" class="btn" type="button">Salvar tipo</button></div><button id="closeInventoryBtn" class="btn danger hidden" style="margin-top:10px" type="button">Encerrar inventário</button></div>
           </div>
-          <div class="card" style="margin-top:16px"><h2>Locais cadastrados</h2><div id="locationsList" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"></div></div>
+          <div class="card" style="margin-top:16px"><div class="section-head"><div><h2>Gerenciamento de usuários</h2><p class="login-help" style="margin:4px 0 0">Cadastre, altere senha, desative ou exclua usuários.</p></div><button id="openUsersAdminBtn" class="btn primary" type="button">Abrir usuários</button></div></div>
+<div class="card" style="margin-top:16px"><h2>Locais cadastrados</h2><div id="locationsList" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"></div></div>
         </section>
       </main>
     </div>
@@ -324,6 +368,19 @@
       <button class="admin-only" data-page="admin"><span>📥</span>Base</button>
       <button class="admin-only" data-page="settings"><span>⚙️</span>Admin</button>
     </nav>
+  </div>
+  <div id="userEditModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="userEditTitle">
+    <div class="modal-card" style="width:min(620px,100%)"><div class="modal-head"><div><h2 id="userEditTitle">Editar usuário</h2><p id="userEditSubtitle" class="subtitle" style="margin:3px 0 0"></p></div><button id="userEditClose" class="modal-close" type="button" aria-label="Fechar">×</button></div>
+      <form id="editUserForm">
+        <input id="editUserId" type="hidden">
+        <div class="field"><label for="editUserName">Nome</label><input id="editUserName" required></div>
+        <div class="field"><label for="editUserEmail">Login / e-mail</label><input id="editUserEmail" type="email" required></div>
+        <div class="field"><label for="editUserRole">Perfil</label><select id="editUserRole"><option value="conferente">Conferente</option><option value="admin">Administrador</option></select></div>
+        <div class="field"><label for="editUserActive">Status</label><select id="editUserActive"><option value="true">Ativo</option><option value="false">Inativo / acesso bloqueado</option></select></div>
+        <div class="field"><label for="editUserPassword">Nova senha (opcional)</label><input id="editUserPassword" type="password" minlength="8" autocomplete="new-password" placeholder="Deixe em branco para manter a senha atual"></div>
+        <div class="report-actions"><button id="saveUserBtn" class="btn primary" type="submit">Salvar alterações</button><button id="deleteUserBtn" class="btn danger" type="button">Excluir definitivamente</button></div>
+      </form>
+    </div>
   </div>
   <div id="pendingNotesModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="pendingNotesTitle">
     <div class="modal-card"><div class="modal-head"><div><h2 id="pendingNotesTitle">Notas que faltam conferir</h2><p id="pendingNotesSubtitle" class="subtitle" style="margin:3px 0 0">Notas não iniciadas ou parcialmente conferidas.</p></div><button id="pendingNotesClose" class="modal-close" type="button" aria-label="Fechar">×</button></div>
@@ -349,7 +406,7 @@
     const cfg=window.APP_CONFIG||{};
     const configured=Boolean(cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase);
     const db=configured ? window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true}}) : null;
-    const state={user:null,profile:null,inventory:null,locations:[],importItems:[],importMeta:null,recent:[],scanner:null,scannerRunning:false,realtimeChannel:null,demoItems:[],demoScans:[],demoUniqueScans:[],demoAttempts:[],reportInventories:[],reportInventoryId:null,reportRows:[],reportFiltered:[],reportItems:[],reportScans:[],reportUniqueScans:[],reportAttempts:[],reportProfiles:new Map(),reportPage:1,reportPageSize:100,reportDirty:false,pendingRows:[],pendingFiltered:[],pendingPage:1,pendingPageSize:100};
+    const state={user:null,profile:null,inventory:null,locations:[],importItems:[],importMeta:null,recent:[],scanner:null,scannerRunning:false,realtimeChannel:null,demoItems:[],demoScans:[],demoUniqueScans:[],demoAttempts:[],reportInventories:[],reportInventoryId:null,reportRows:[],reportFiltered:[],reportItems:[],reportScans:[],reportUniqueScans:[],reportAttempts:[],reportProfiles:new Map(),reportPage:1,reportPageSize:100,reportDirty:false,pendingRows:[],pendingFiltered:[],pendingPage:1,pendingPageSize:100,users:[],usersFiltered:[]};
     const $=s=>document.querySelector(s); const $$=s=>[...document.querySelectorAll(s)];
     const digits=v=>String(v??'').replace(/\D/g,'');
     const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -458,7 +515,7 @@
 
     async function loginSupabase(email,password){
       const {data,error}=await db.auth.signInWithPassword({email,password}); if(error)throw error; state.user=data.user;
-      const {data:profile,error:pe}=await db.from('profiles').select('*').eq('id',data.user.id).single();if(pe)throw pe;state.profile=profile;
+      const {data:profile,error:pe}=await db.from('profiles').select('*').eq('id',data.user.id).single();if(pe)throw pe;if(!profile?.active){await db.auth.signOut({scope:'local'});state.user=null;throw new Error('Usuário inativo. Procure um administrador.')}state.profile=profile;
     }
     function loginDemo(role){const name=$('#demoName').value.trim()||'Conferente Teste';state.user={id:'demo-'+role};state.profile={id:state.user.id,name,role,active:true}}
     async function logout(){try{await stopScanner()}catch{} if(configured)await db.auth.signOut();state.user=null;state.profile=null;showLogin()}
@@ -830,14 +887,33 @@
     }
     async function closeInventory(){if(!state.inventory)return;if(!confirm('Encerrar o inventário atual? Novas leituras ficarão bloqueadas.'))return;try{if(configured){const {error}=await db.from('inventories').update({status:'closed',closed_at:new Date().toISOString()}).eq('id',state.inventory.id);if(error)throw error}else{state.inventory.status='closed';localStorage.setItem('demo_inventory',JSON.stringify(state.inventory));localStorage.removeItem('demo_inventory');state.inventory=null}await loadActiveInventory();await refreshDashboard();toast('Inventário encerrado.','ok')}catch(e){toast(e.message,'bad')}}
 
+    async function userAdminInvoke(action,payload={}){
+      if(!configured)throw new Error('Gerenciamento de usuários exige Supabase configurado.');
+      const {data:{session}}=await db.auth.getSession();if(!session)throw new Error('Sua sessão expirou. Entre novamente.');
+      const {data,error}=await db.functions.invoke('manage-users',{body:{action,...payload}});
+      if(error){let msg=error.message||'Falha na Edge Function.';try{const body=await error.context?.json?.();if(body?.error)msg=body.error}catch{}throw new Error(msg)}
+      if(data?.error)throw new Error(data.error);return data;
+    }
+    function userIsActive(u){return Boolean(u.active&&!u.is_banned)}
+    function applyUsersFilters(){const q=$('#usersSearch').value.trim().toLowerCase(),status=$('#usersStatusFilter').value;state.usersFiltered=state.users.filter(u=>{const active=userIsActive(u);if(q&&!`${u.name||''} ${u.email||''}`.toLowerCase().includes(q))return false;if(status==='active'&&!active)return false;if(status==='inactive'&&active)return false;return true});renderUsers()}
+    function renderUsers(){const rows=state.usersFiltered||[];$('#usersBody').innerHTML=rows.length?rows.map(u=>{const active=userIsActive(u),self=u.id===state.user?.id;return `<tr><td><b>${esc(u.name||'-')}</b>${self?' <span class="pill">VOCÊ</span>':''}</td><td>${esc(u.email||'-')}</td><td><span class="user-role">${u.role==='admin'?'Administrador':'Conferente'}</span></td><td><span class="user-status ${active?'active':'inactive'}">${active?'Ativo':'Inativo'}</span></td><td>${esc(fmtDateTime(u.created_at))}</td><td>${esc(fmtDateTime(u.last_sign_in_at))}</td><td><div class="user-actions"><button class="btn ghost user-edit-btn" data-user-id="${esc(u.id)}" type="button">Editar</button><button class="btn ${active?'danger':'primary'} user-toggle-btn" data-user-id="${esc(u.id)}" data-user-active="${active?'true':'false'}" type="button" ${self?'disabled title="Você não pode desativar a própria conta"':''}>${active?'Desativar':'Ativar'}</button></div></td></tr>`}).join(''):'<tr><td colspan="7" class="empty">Nenhum usuário encontrado.</td></tr>'}
+    async function loadUsers(){if(state.profile?.role!=='admin')return;$('#usersLoading').classList.remove('hidden');try{const data=await userAdminInvoke('list');state.users=data.users||[];applyUsersFilters()}catch(e){toast(e.message,'bad');$('#usersBody').innerHTML=`<tr><td colspan="7" class="empty">${esc(e.message)}</td></tr>`}finally{$('#usersLoading').classList.add('hidden')}}
+    function openUserEdit(id){const u=state.users.find(x=>x.id===id);if(!u)return;$('#editUserId').value=u.id;$('#editUserName').value=u.name||'';$('#editUserEmail').value=u.email||'';$('#editUserRole').value=u.role||'conferente';$('#editUserActive').value=userIsActive(u)?'true':'false';$('#editUserPassword').value='';$('#userEditSubtitle').textContent=u.email||'';const self=u.id===state.user?.id;$('#editUserRole').disabled=self;$('#editUserActive').disabled=self;$('#deleteUserBtn').disabled=self;$('#deleteUserBtn').title=self?'Você não pode excluir sua própria conta':'';$('#userEditModal').classList.remove('hidden')}
+    async function createManagedUser(){const btn=$('#createUserBtn'),name=$('#newUserName').value.trim(),email=$('#newUserEmail').value.trim(),password=$('#newUserPassword').value,role=$('#newUserRole').value;if(!name||!email||password.length<8){toast('Informe nome, e-mail e uma senha com pelo menos 8 caracteres.','warn');return}btn.disabled=true;btn.textContent='Cadastrando...';try{await userAdminInvoke('create',{name,email,password,role});$('#createUserForm').reset();$('#newUserRole').value='conferente';toast('Usuário cadastrado com sucesso.','ok');await loadUsers()}catch(e){toast(e.message,'bad')}finally{btn.disabled=false;btn.textContent='Cadastrar usuário'}}
+    async function saveManagedUser(){const id=$('#editUserId').value,name=$('#editUserName').value.trim(),email=$('#editUserEmail').value.trim(),role=$('#editUserRole').value,active=$('#editUserActive').value==='true',password=$('#editUserPassword').value;const btn=$('#saveUserBtn');if(!name||!email){toast('Nome e e-mail são obrigatórios.','warn');return}if(password&&password.length<8){toast('A nova senha precisa ter pelo menos 8 caracteres.','warn');return}btn.disabled=true;btn.textContent='Salvando...';try{await userAdminInvoke('update',{user_id:id,name,email,role,active,password:password||undefined});$('#userEditModal').classList.add('hidden');toast('Usuário atualizado.','ok');await loadUsers()}catch(e){toast(e.message,'bad')}finally{btn.disabled=false;btn.textContent='Salvar alterações'}}
+    async function toggleManagedUser(id,currentActive){const u=state.users.find(x=>x.id===id);if(!u)return;const next=!currentActive;if(!confirm(`${next?'Ativar':'Desativar'} o usuário ${u.name||u.email}?`))return;try{await userAdminInvoke('update',{user_id:id,name:u.name,email:u.email,role:u.role,active:next});toast(next?'Usuário ativado.':'Usuário desativado. O acesso foi bloqueado.',next?'ok':'warn');await loadUsers()}catch(e){toast(e.message,'bad')}}
+    async function deleteManagedUser(){const id=$('#editUserId').value,u=state.users.find(x=>x.id===id);if(!u)return;if(!confirm(`Excluir DEFINITIVAMENTE ${u.name||u.email}?\n\nIsso só será permitido se o usuário não possuir histórico de inventário.`))return;const typed=prompt('Para confirmar, digite EXCLUIR:');if(typed!=='EXCLUIR')return;const btn=$('#deleteUserBtn');btn.disabled=true;try{await userAdminInvoke('delete',{user_id:id});$('#userEditModal').classList.add('hidden');toast('Usuário excluído definitivamente.','ok');await loadUsers()}catch(e){toast(e.message,'bad')}finally{btn.disabled=false}}
+
     function renderSettings(){const inv=state.inventory;$('#adminInventoryInfo').innerHTML=inv?`<div class="detail-grid"><div class="detail"><span>Nome</span><b>${esc(inv.name)}</b></div><div class="detail"><span>Tipo</span><b>${esc(inventoryTypeName(inv.inventory_type||'general'))}</b></div><div class="detail"><span>Base</span><b>${esc(inv.source_filename||'-')}</b></div><div class="detail"><span>Notas</span><b>${fmtNum(inv.imported_rows)}</b></div><div class="detail"><span>Volumes</span><b>${fmtNum(inv.expected_volumes)}</b></div></div>`:'<div class="empty">Nenhum inventário aberto.</div>';$('#closeInventoryBtn').classList.toggle('hidden',!inv);$('#adminInventoryTypeBox').classList.toggle('hidden',!inv);if(inv)$('#adminInventoryType').value=inv.inventory_type||'general'}
     async function saveInventoryType(){if(!state.inventory)return;const type=$('#adminInventoryType').value||'general';try{if(configured){const {data,error}=await db.from('inventories').update({inventory_type:type}).eq('id',state.inventory.id).select().single();if(error)throw error;state.inventory=data}else{state.inventory.inventory_type=type;localStorage.setItem('demo_inventory',JSON.stringify(state.inventory))}renderInventoryHeader();renderSettings();await refreshDashboard();toast('Tipo do inventário atualizado.','ok')}catch(e){toast(e.message||'Falha ao atualizar o tipo do inventário.','bad')}}
 
-    function navigate(page){if((page==='report'||page==='admin'||page==='settings')&&state.profile?.role!=='admin')page='scanner';$$('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+page));$$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));if(page!=='scanner')stopScanner();if(page==='dashboard')refreshDashboard();if(page==='report'){loadReportInventories().then(()=>loadReport()).catch(e=>toast(e.message,'bad'))}if(page==='settings')renderSettings()}
+    function navigate(page){if((page==='report'||page==='admin'||page==='settings'||page==='users')&&state.profile?.role!=='admin')page='scanner';$$('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+page));$$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));if(page!=='scanner')stopScanner();if(page==='dashboard')refreshDashboard();if(page==='report'){loadReportInventories().then(()=>loadReport()).catch(e=>toast(e.message,'bad'))}if(page==='settings')renderSettings();if(page==='users')loadUsers()}
 
     $('#loginForm').addEventListener('submit',async e=>{e.preventDefault();try{await loginSupabase($('#email').value.trim(),$('#password').value);await enterApp()}catch(err){toast(err.message||'Falha no login.','bad')}});
     $('#demoChecker').addEventListener('click',async()=>{loginDemo('conferente');await enterApp()});$('#demoAdmin').addEventListener('click',async()=>{loginDemo('admin');await enterApp()});$('#logoutBtn').addEventListener('click',logout);
     $$('[data-page]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.page)));
+    $('#openUsersAdminBtn').addEventListener('click',()=>navigate('users'));$('#refreshUsersBtn').addEventListener('click',loadUsers);$('#usersReloadBtn').addEventListener('click',loadUsers);$('#usersSearch').addEventListener('input',applyUsersFilters);$('#usersStatusFilter').addEventListener('change',applyUsersFilters);
+    $('#createUserForm').addEventListener('submit',e=>{e.preventDefault();createManagedUser()});$('#editUserForm').addEventListener('submit',e=>{e.preventDefault();saveManagedUser()});$('#deleteUserBtn').addEventListener('click',deleteManagedUser);$('#userEditClose').addEventListener('click',()=>$('#userEditModal').classList.add('hidden'));$('#userEditModal').addEventListener('click',e=>{if(e.target.id==='userEditModal')$('#userEditModal').classList.add('hidden')});$('#usersBody').addEventListener('click',e=>{const edit=e.target.closest('.user-edit-btn');if(edit)return openUserEdit(edit.dataset.userId);const tog=e.target.closest('.user-toggle-btn');if(tog&&!tog.disabled)toggleManagedUser(tog.dataset.userId,tog.dataset.userActive==='true')});
     $('#locationSelect').addEventListener('change',e=>localStorage.setItem('inventory_location',e.target.value));$('#startScanBtn').addEventListener('click',startScanner);$('#stopScanBtn').addEventListener('click',stopScanner);
     $('#manualSubmit').addEventListener('click',()=>{unlockScanAudio();const v=$('#manualCode').value.trim();if(v){processCode(v);$('#manualCode').value=''}});$('#manualCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#manualSubmit').click()}});
     $('#refreshDashboard').addEventListener('click',refreshDashboard);$('#pendingNotesBtn').addEventListener('click',loadPendingNotes);$('#createInventoryBtn').addEventListener('click',createInventory);$('#saveInventoryTypeBtn').addEventListener('click',saveInventoryType);$('#closeInventoryBtn').addEventListener('click',closeInventory);
@@ -855,7 +931,7 @@
       }catch(err){state.importItems=[];state.importMeta=null;$('#importNotice').className='notice bad';$('#importNotice').textContent=err.message;toast(err.message,'bad')}
     });
 
-    async function init(){setModeUi();if(configured){const {data}=await db.auth.getSession();if(data.session){state.user=data.session.user;const {data:p}=await db.from('profiles').select('*').eq('id',state.user.id).single();if(p){state.profile=p;await enterApp();return}}}showLogin()}
+    async function init(){setModeUi();if(configured){const {data}=await db.auth.getSession();if(data.session){state.user=data.session.user;const {data:p}=await db.from('profiles').select('*').eq('id',state.user.id).single();if(p?.active){state.profile=p;await enterApp();return}if(p&&!p.active)await db.auth.signOut({scope:'local'})}}showLogin()}
     init();
   })();
   </script>
