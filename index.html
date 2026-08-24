@@ -70,6 +70,8 @@
     .inventory-strip{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
     .pill{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:7px 11px;font-weight:800;font-size:12px;background:#f3f4f6;color:#374151}
     .pill.open{background:#dcfce7;color:#166534}
+    .pill.type-general{background:#dbeafe;color:#1e40af}.pill.type-rotating{background:#fef3c7;color:#92400e}
+    #pendingNotesModal table{min-width:1700px}#pendingNotesModal th,#pendingNotesModal td{white-space:nowrap}#pendingNotesModal td:last-child{white-space:normal}
     .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px}
     table{width:100%;border-collapse:collapse;min-width:760px;background:white}
     th,td{padding:11px 12px;border-bottom:1px solid var(--line);font-size:13px;text-align:left;vertical-align:top}
@@ -195,6 +197,7 @@
           <div class="scanner-shell">
             <div class="inventory-strip">
               <span id="scannerInventoryName" class="pill">Nenhum inventário</span>
+              <span id="scannerInventoryType" class="pill">-</span>
               <span id="scannerInventoryStatus" class="pill">-</span>
               <span class="connection"><span id="connectionDot" class="connection-dot"></span><span id="connectionText">Online</span></span>
             </div>
@@ -223,16 +226,17 @@
         </section>
 
         <section id="page-dashboard" class="page">
-          <div class="section-head"><div><h1>Painel do inventário</h1><p class="subtitle">Acompanhamento geral de notas e volumes.</p></div><button id="refreshDashboard" class="btn" type="button">Atualizar</button></div>
+          <div class="section-head"><div><h1>Painel do inventário</h1><p class="subtitle">Acompanhamento geral de notas e volumes.</p></div><div class="report-actions"><button id="pendingNotesBtn" class="btn ghost" type="button">📋 Notas que faltam conferir</button><button id="refreshDashboard" class="btn" type="button">Atualizar</button></div></div>
           <div class="grid kpis">
             <div class="card"><div class="kpi-label">Volumes esperados</div><div id="kExpectedVolumes" class="kpi-value">0</div><div class="kpi-foot">Base carregada</div></div>
-            <div class="card"><div class="kpi-label">Volumes OK</div><div id="kOkVolumes" class="kpi-value">0</div><div class="kpi-foot">Leituras válidas</div></div>
+            <div class="card"><div class="kpi-label">Volumes OK</div><div id="kOkVolumes" class="kpi-value">0</div><div class="kpi-foot">Leituras físicas válidas</div></div>
             <div class="card"><div class="kpi-label">NFs completas</div><div id="kCompleteNotes" class="kpi-value">0</div><div class="kpi-foot">Todos os volumes encontrados</div></div>
             <div class="card"><div class="kpi-label">Divergências</div><div id="kDivergences" class="kpi-value">0</div><div id="kDuplicates" class="kpi-foot">0 duplicidades</div></div>
           </div>
           <div class="card" style="margin-top:16px">
             <div class="section-head"><h2>Progresso geral</h2><b id="dashboardPercent">0%</b></div>
             <div class="progress"><span id="dashboardProgress"></span></div>
+            <div id="dashboardProgressDetail" class="login-help" style="margin-top:8px;text-align:right">0 de 0 volumes considerados na progressão</div>
             <div class="grid kpis" style="margin-top:16px">
               <div class="mini"><span>NFs esperadas</span><b id="kExpectedNotes">0</b></div>
               <div class="mini"><span>Em andamento</span><b id="kPartialNotes">0</b></div>
@@ -241,7 +245,7 @@
             </div>
           </div>
           <div class="card" style="margin-top:16px">
-            <div class="section-head"><h2>Inventário ativo</h2><span id="dashboardInventoryStatus" class="pill">-</span></div>
+            <div class="section-head"><h2>Inventário ativo</h2><div class="report-actions"><span id="dashboardInventoryType" class="pill">-</span><span id="dashboardInventoryStatus" class="pill">-</span></div></div>
             <div id="dashboardInventoryInfo" class="empty">Nenhum inventário ativo.</div>
           </div>
         </section>
@@ -280,6 +284,7 @@
           <div class="grid two">
             <div class="card">
               <div class="field"><label for="inventoryName">Nome do inventário</label><input id="inventoryName" placeholder="Ex.: Inventário 20/08/2026"></div>
+              <div class="field"><label for="inventoryType">Tipo do inventário</label><select id="inventoryType"><option value="general">Inventário Geral</option><option value="rotating">Inventário Rotativo</option></select></div>
               <div class="upload-zone">
                 <b>Relatório Excel (.xlsx)</b><p class="login-help">A aba Export será utilizada quando existir.</p><input id="reportFile" type="file" accept=".xlsx,.xls">
               </div>
@@ -306,7 +311,7 @@
           <h1>Administração</h1><p class="subtitle">Informações do ambiente e inventário.</p>
           <div class="grid two">
             <div class="card"><h2>Backend</h2><div id="backendInfo" class="notice info"></div><p class="login-help">A publishable/anon key pode estar no navegador quando as tabelas usam RLS. Nunca use a service_role key no front-end.</p></div>
-            <div class="card"><h2>Inventário ativo</h2><div id="adminInventoryInfo" style="margin-top:12px"></div><button id="closeInventoryBtn" class="btn danger hidden" type="button">Encerrar inventário</button></div>
+            <div class="card"><h2>Inventário ativo</h2><div id="adminInventoryInfo" style="margin-top:12px"></div><div id="adminInventoryTypeBox" class="hidden" style="margin-top:14px"><div class="field"><label for="adminInventoryType">Classificação do inventário</label><select id="adminInventoryType"><option value="general">Inventário Geral</option><option value="rotating">Inventário Rotativo</option></select></div><button id="saveInventoryTypeBtn" class="btn" type="button">Salvar tipo</button></div><button id="closeInventoryBtn" class="btn danger hidden" style="margin-top:10px" type="button">Encerrar inventário</button></div>
           </div>
           <div class="card" style="margin-top:16px"><h2>Locais cadastrados</h2><div id="locationsList" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"></div></div>
         </section>
@@ -319,6 +324,14 @@
       <button class="admin-only" data-page="admin"><span>📥</span>Base</button>
       <button class="admin-only" data-page="settings"><span>⚙️</span>Admin</button>
     </nav>
+  </div>
+  <div id="pendingNotesModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="pendingNotesTitle">
+    <div class="modal-card"><div class="modal-head"><div><h2 id="pendingNotesTitle">Notas que faltam conferir</h2><p id="pendingNotesSubtitle" class="subtitle" style="margin:3px 0 0">Notas não iniciadas ou parcialmente conferidas.</p></div><button id="pendingNotesClose" class="modal-close" type="button" aria-label="Fechar">×</button></div>
+      <div class="field"><label for="pendingNotesSearch">Pesquisar nas notas pendentes</label><input id="pendingNotesSearch" placeholder="NF, OEF, fornecedor, almoxarifado, mercadoria..."></div>
+      <div id="pendingNotesLoading" class="notice info hidden">Carregando notas pendentes...</div>
+      <div class="table-wrap"><table><thead><tr><th>Data de Check in</th><th>Data de Entrada da Nota</th><th>Data Resolução Ocorrencia</th><th>Nota</th><th>Numero OEF</th><th>Fornecedor</th><th>Almoxarifado</th><th>ONU</th><th>End. WMS</th><th>Peso</th><th>Volumes</th><th>Mercadoria</th></tr></thead><tbody id="pendingNotesBody"><tr><td colspan="12" class="empty">Clique no botão do painel para carregar.</td></tr></tbody></table></div>
+      <div class="report-pagination"><span id="pendingNotesPageInfo" class="login-help">Página 0 de 0</span><div class="report-pagination-actions"><button id="pendingNotesPrev" class="btn" type="button">Anterior</button><button id="pendingNotesNext" class="btn" type="button">Próxima</button></div></div>
+    </div>
   </div>
   <div id="reportModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="reportModalTitle">
     <div class="modal-card"><div class="modal-head"><div><h2 id="reportModalTitle">Detalhes da NF</h2><p id="reportModalSubtitle" class="subtitle" style="margin:3px 0 0"></p></div><button id="reportModalClose" class="modal-close" type="button" aria-label="Fechar">×</button></div><div id="reportModalContent"></div></div>
@@ -336,13 +349,15 @@
     const cfg=window.APP_CONFIG||{};
     const configured=Boolean(cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase);
     const db=configured ? window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true}}) : null;
-    const state={user:null,profile:null,inventory:null,locations:[],importItems:[],importMeta:null,recent:[],scanner:null,scannerRunning:false,realtimeChannel:null,demoItems:[],demoScans:[],demoUniqueScans:[],demoAttempts:[],reportInventories:[],reportInventoryId:null,reportRows:[],reportFiltered:[],reportItems:[],reportScans:[],reportUniqueScans:[],reportAttempts:[],reportProfiles:new Map(),reportPage:1,reportPageSize:100,reportDirty:false};
+    const state={user:null,profile:null,inventory:null,locations:[],importItems:[],importMeta:null,recent:[],scanner:null,scannerRunning:false,realtimeChannel:null,demoItems:[],demoScans:[],demoUniqueScans:[],demoAttempts:[],reportInventories:[],reportInventoryId:null,reportRows:[],reportFiltered:[],reportItems:[],reportScans:[],reportUniqueScans:[],reportAttempts:[],reportProfiles:new Map(),reportPage:1,reportPageSize:100,reportDirty:false,pendingRows:[],pendingFiltered:[],pendingPage:1,pendingPageSize:100};
     const $=s=>document.querySelector(s); const $$=s=>[...document.querySelectorAll(s)];
     const digits=v=>String(v??'').replace(/\D/g,'');
     const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
     const fmtNum=n=>Number(n||0).toLocaleString('pt-BR');
     const nowTime=()=>new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
     const fmtDateTime=v=>v?new Date(v).toLocaleString('pt-BR'):'-';
+    const inventoryTypeLabel=v=>v==='rotating'?'ROTATIVO':'GERAL';
+    const inventoryTypeName=v=>v==='rotating'?'Inventário Rotativo':'Inventário Geral';
     const safeInt=v=>{const n=parseInt(String(v??'').replace(',','.'),10);return Number.isFinite(n)?n:0};
     function toast(msg,type=''){const el=document.createElement('div');el.className='toast '+type;el.textContent=msg;$('#toastWrap').appendChild(el);setTimeout(()=>el.remove(),3800)}
     let scanFeedbackTimer=null,scanAudioCtx=null;
@@ -468,7 +483,7 @@
         state.realtimeChannel=db.channel('inventory-'+state.inventory.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'inventory_scans',filter:'inventory_id=eq.'+state.inventory.id},()=>{refreshDashboard();state.reportDirty=true;$('#reportFreshness')?.classList.remove('hidden')}).on('postgres_changes',{event:'INSERT',schema:'public',table:'inventory_unique_label_scans',filter:'inventory_id=eq.'+state.inventory.id},()=>{refreshDashboard();state.reportDirty=true;$('#reportFreshness')?.classList.remove('hidden')}).subscribe();
       }
     }
-    function renderInventoryHeader(){const inv=state.inventory;$('#scannerInventoryName').textContent=inv?inv.name:'Nenhum inventário ativo';$('#scannerInventoryStatus').textContent=inv?'ABERTO':'-';$('#scannerInventoryStatus').className='pill '+(inv?'open':'');$('#dashboardInventoryStatus').textContent=inv?'ABERTO':'SEM INVENTÁRIO';$('#dashboardInventoryStatus').className='pill '+(inv?'open':'');}
+    function renderInventoryHeader(){const inv=state.inventory,type=inv?.inventory_type||'general';$('#scannerInventoryName').textContent=inv?inv.name:'Nenhum inventário ativo';$('#scannerInventoryType').textContent=inv?inventoryTypeLabel(type):'-';$('#scannerInventoryType').className='pill '+(inv?(type==='rotating'?'type-rotating':'type-general'):'');$('#scannerInventoryStatus').textContent=inv?'ABERTO':'-';$('#scannerInventoryStatus').className='pill '+(inv?'open':'');$('#dashboardInventoryType').textContent=inv?inventoryTypeName(type):'-';$('#dashboardInventoryType').className='pill '+(inv?(type==='rotating'?'type-rotating':'type-general'):'');$('#dashboardInventoryStatus').textContent=inv?'ABERTO':'SEM INVENTÁRIO';$('#dashboardInventoryStatus').className='pill '+(inv?'open':'');}
 
     async function registerScan(parsed,locationId){
       if(parsed.type==='unique_label'){
@@ -561,18 +576,43 @@
     function demoSummary(){
       const directOk=new Map(state.demoItems.map(i=>[i.id,0]));state.demoScans.filter(s=>s.status==='ok'&&s.item_id).forEach(s=>directOk.set(s.item_id,(directOk.get(s.item_id)||0)+1));
       const uniqueStats=new Map();state.demoUniqueScans.filter(s=>s.status==='ok').forEach(s=>{const label=normalizeUniqueLabel(s.unique_label);if(!uniqueStats.has(label))uniqueStats.set(label,{vols:new Set(),total:Number(s.total_volumes_qr||0)});const x=uniqueStats.get(label);x.vols.add(Number(s.volume_no));if(!x.total)x.total=Number(s.total_volumes_qr||0)});
-      let complete=0,partial=0,notStarted=0,expectedVol=0,okVol=0;
-      state.demoItems.forEach(i=>{const normal=directOk.get(i.id)||0;expectedVol+=Number(i.expected_volumes||0);okVol+=normal;const us=i.unique_label?uniqueStats.get(normalizeUniqueLabel(i.unique_label)):null,statusOk=us&&us.vols.size?us.vols.size:normal,statusExpected=us&&us.vols.size?us.total:Number(i.expected_volumes||0);if(statusOk===statusExpected&&statusExpected>0)complete++;else if(statusOk>0)partial++;else notStarted++});
-      return {expected_notes:state.demoItems.length,expected_volumes:expectedVol,complete_notes:complete,partial_notes:partial,not_started_notes:notStarted,ok_volumes:okVol,divergences:state.demoScans.filter(s=>s.status!=='ok').length+state.demoUniqueScans.filter(s=>s.status!=='ok').length,duplicates:state.demoAttempts.filter(a=>a.result==='duplicate').length};
+      let complete=0,partial=0,notStarted=0,expectedVol=0,progressVol=0;
+      state.demoItems.forEach(i=>{const normal=directOk.get(i.id)||0,itemExpected=Number(i.expected_volumes||0);expectedVol+=itemExpected;const us=i.unique_label?uniqueStats.get(normalizeUniqueLabel(i.unique_label)):null,statusOk=us&&us.vols.size?us.vols.size:normal,statusExpected=us&&us.vols.size?us.total:itemExpected;if(statusOk>=statusExpected&&statusExpected>0)complete++;else if(statusOk>0)partial++;else notStarted++;if(us&&us.vols.size&&us.total>0)progressVol+=itemExpected*Math.min(us.vols.size,us.total)/us.total;else progressVol+=Math.min(normal,itemExpected)});
+      const physicalOk=state.demoScans.filter(s=>s.status==='ok').length+state.demoUniqueScans.filter(s=>s.status==='ok').length;
+      return {expected_notes:state.demoItems.length,expected_volumes:expectedVol,complete_notes:complete,partial_notes:partial,not_started_notes:notStarted,ok_volumes:physicalOk,progress_volumes:progressVol,divergences:state.demoScans.filter(s=>s.status!=='ok').length+state.demoUniqueScans.filter(s=>s.status!=='ok').length,duplicates:state.demoAttempts.filter(a=>a.result==='duplicate').length};
     }
     async function refreshDashboard(){
-      let s={expected_notes:0,expected_volumes:0,complete_notes:0,partial_notes:0,not_started_notes:0,ok_volumes:0,divergences:0,duplicates:0};
-      if(state.inventory){if(configured){const {data,error}=await db.rpc('get_inventory_summary',{p_inventory_id:state.inventory.id});if(!error&&data)s=data}else s=demoSummary()}
+      let s={expected_notes:0,expected_volumes:0,complete_notes:0,partial_notes:0,not_started_notes:0,ok_volumes:0,progress_volumes:0,divergences:0,duplicates:0};
+      if(state.inventory){if(configured){const {data,error}=await db.rpc('get_inventory_summary',{p_inventory_id:state.inventory.id});if(!error&&data)s=data;else if(error)console.warn('get_inventory_summary',error)}else s=demoSummary()}
       $('#kExpectedVolumes').textContent=fmtNum(s.expected_volumes);$('#kOkVolumes').textContent=fmtNum(s.ok_volumes);$('#kCompleteNotes').textContent=fmtNum(s.complete_notes);$('#kCompleteNotes2').textContent=fmtNum(s.complete_notes);$('#kDivergences').textContent=fmtNum(s.divergences);$('#kDuplicates').textContent=fmtNum(s.duplicates)+' duplicidades';$('#kExpectedNotes').textContent=fmtNum(s.expected_notes);$('#kPartialNotes').textContent=fmtNum(s.partial_notes);$('#kNotStartedNotes').textContent=fmtNum(s.not_started_notes);
-      const pct=s.expected_volumes?Math.min(100,Math.round(s.ok_volumes/s.expected_volumes*100)):0;$('#dashboardPercent').textContent=pct+'%';$('#dashboardProgress').style.width=pct+'%';
-      $('#dashboardInventoryInfo').innerHTML=state.inventory?`<div class="detail-grid"><div class="detail"><span>Nome</span><b>${esc(state.inventory.name)}</b></div><div class="detail"><span>Arquivo</span><b>${esc(state.inventory.source_filename||'-')}</b></div><div class="detail"><span>Registros</span><b>${fmtNum(state.inventory.imported_rows)}</b></div><div class="detail"><span>Volumes esperados</span><b>${fmtNum(state.inventory.expected_volumes)}</b></div></div>`:'Nenhum inventário ativo.';
+      const progressVolumes=Number(s.progress_volumes??s.ok_volumes??0),expectedVolumes=Number(s.expected_volumes||0),pctRaw=expectedVolumes?Math.min(100,progressVolumes/expectedVolumes*100):0,pctText=pctRaw===100?'100%':pctRaw.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';$('#dashboardPercent').textContent=pctText;$('#dashboardProgress').style.width=pctRaw+'%';$('#dashboardProgressDetail').textContent=`${fmtNum(Math.round(progressVolumes))} de ${fmtNum(expectedVolumes)} volumes considerados na progressão`;
+      const type=state.inventory?.inventory_type||'general';$('#dashboardInventoryInfo').innerHTML=state.inventory?`<div class="detail-grid"><div class="detail"><span>Nome</span><b>${esc(state.inventory.name)}</b></div><div class="detail"><span>Tipo</span><b>${esc(inventoryTypeName(type))}</b></div><div class="detail"><span>Arquivo</span><b>${esc(state.inventory.source_filename||'-')}</b></div><div class="detail"><span>Registros</span><b>${fmtNum(state.inventory.imported_rows)}</b></div><div class="detail"><span>Volumes esperados</span><b>${fmtNum(state.inventory.expected_volumes)}</b></div></div>`:'Nenhum inventário ativo.';
     }
 
+
+    function pendingItemIsComplete(item,directByItem,uniqueByLabel){
+      const direct=directByItem.get(item.id)||new Set(),label=normalizeUniqueLabel(item.unique_label),us=label?uniqueByLabel.get(label):null;
+      if(us&&us.vols.size&&us.total>0)return us.vols.size>=us.total;
+      return direct.size>=Number(item.expected_volumes||0)&&Number(item.expected_volumes||0)>0;
+    }
+    function pendingRawValue(item,key,fallback=''){const raw=cleanSourceRaw(item.raw_data);return Object.prototype.hasOwnProperty.call(raw,key)?raw[key]:fallback}
+    async function loadPendingNotes(){
+      if(!state.inventory){toast('Nenhum inventário aberto.','warn');return}
+      $('#pendingNotesModal').classList.remove('hidden');$('#pendingNotesLoading').classList.remove('hidden');$('#pendingNotesBody').innerHTML='<tr><td colspan="12" class="empty">Carregando notas pendentes...</td></tr>';
+      try{
+        let items,scans,uniqueScans;
+        if(configured){[items,scans,uniqueScans]=await Promise.all([fetchAllRows('inventory_items','*',q=>q.eq('inventory_id',state.inventory.id).order('source_row',{ascending:true})),fetchAllRows('inventory_scans','item_id,volume_no,status',q=>q.eq('inventory_id',state.inventory.id).eq('status','ok')),fetchAllRows('inventory_unique_label_scans','unique_label,volume_no,total_volumes_qr,status',q=>q.eq('inventory_id',state.inventory.id).eq('status','ok'))])}
+        else{items=state.demoItems;scans=state.demoScans.filter(x=>x.status==='ok');uniqueScans=state.demoUniqueScans.filter(x=>x.status==='ok')}
+        const directByItem=new Map();scans.forEach(sc=>{if(!sc.item_id)return;if(!directByItem.has(sc.item_id))directByItem.set(sc.item_id,new Set());directByItem.get(sc.item_id).add(Number(sc.volume_no))});
+        const uniqueByLabel=new Map();uniqueScans.forEach(sc=>{const label=normalizeUniqueLabel(sc.unique_label);if(!label)return;if(!uniqueByLabel.has(label))uniqueByLabel.set(label,{vols:new Set(),total:Number(sc.total_volumes_qr||0)});const x=uniqueByLabel.get(label);x.vols.add(Number(sc.volume_no));if(!x.total)x.total=Number(sc.total_volumes_qr||0)});
+        state.pendingRows=items.filter(i=>!pendingItemIsComplete(i,directByItem,uniqueByLabel)).map(i=>({
+          checkin:pendingRawValue(i,'Data de Check in',''),entrada:pendingRawValue(i,'Data de Entrada da Nota',''),resolucao:pendingRawValue(i,'Data Resolução Ocorrencia',''),nota:pendingRawValue(i,'Nota',i.note||i.note_padded||''),oef:pendingRawValue(i,'Numero OEF',i.oef||i.collection||i.collection_padded||''),fornecedor:pendingRawValue(i,'Fornecedor',i.supplier||''),almox:pendingRawValue(i,'Almoxarifado',i.warehouse||''),onu:pendingRawValue(i,'ONU',''),wms:pendingRawValue(i,'End. WMS',i.wms_address||''),peso:pendingRawValue(i,'Peso',i.weight??''),volumes:pendingRawValue(i,'Volumes',i.expected_volumes??''),mercadoria:pendingRawValue(i,'Mercadoria',i.merchandise||'')
+        }));
+        state.pendingPage=1;applyPendingNotesFilter();
+      }catch(e){toast(e.message||'Falha ao carregar notas pendentes.','bad');$('#pendingNotesBody').innerHTML=`<tr><td colspan="12" class="empty">${esc(e.message||'Falha ao carregar.')}</td></tr>`}finally{$('#pendingNotesLoading').classList.add('hidden')}
+    }
+    function applyPendingNotesFilter(){const q=$('#pendingNotesSearch').value.trim().toLowerCase();state.pendingFiltered=state.pendingRows.filter(r=>!q||Object.values(r).join(' ').toLowerCase().includes(q));state.pendingPage=1;renderPendingNotes()}
+    function renderPendingNotes(){const rows=state.pendingFiltered||[],pages=Math.max(1,Math.ceil(rows.length/state.pendingPageSize));state.pendingPage=Math.min(Math.max(1,state.pendingPage),pages);const start=(state.pendingPage-1)*state.pendingPageSize,part=rows.slice(start,start+state.pendingPageSize);$('#pendingNotesSubtitle').textContent=`${fmtNum(rows.length)} nota(s) ainda não concluída(s) no inventário aberto.`;$('#pendingNotesBody').innerHTML=part.length?part.map(r=>`<tr><td>${esc(r.checkin||'')}</td><td>${esc(r.entrada||'')}</td><td>${esc(r.resolucao||'')}</td><td>${esc(r.nota||'')}</td><td>${esc(r.oef||'')}</td><td>${esc(r.fornecedor||'')}</td><td>${esc(r.almox||'')}</td><td>${esc(r.onu||'')}</td><td>${esc(r.wms||'')}</td><td>${esc(r.peso??'')}</td><td>${esc(r.volumes??'')}</td><td>${esc(r.mercadoria||'')}</td></tr>`).join(''):'<tr><td colspan="12" class="empty">Nenhuma nota pendente. Inventário 100% concluído.</td></tr>';$('#pendingNotesPageInfo').textContent=`Página ${rows.length?state.pendingPage:0} de ${rows.length?pages:0} • ${fmtNum(rows.length)} nota(s)`;$('#pendingNotesPrev').disabled=!rows.length||state.pendingPage<=1;$('#pendingNotesNext').disabled=!rows.length||state.pendingPage>=pages}
 
     const divergenceLabels={divergent_not_in_report:'Não consta no relatório',divergent_total_mismatch:'Total diferente',divergent_volume_out_of_range:'Volume fora da faixa'};
     const statusLabels={complete:'Conferida',partial:'Parcial',not_started:'Não conferida',off_report:'Fora do relatório'};
@@ -583,7 +623,7 @@
       if(configured){state.reportInventories=await fetchAllRows('inventories','*',q=>q.order('created_at',{ascending:false}))}
       else state.reportInventories=state.inventory?[state.inventory]:[];
       const sel=$('#reportInventorySelect');const current=state.reportInventoryId||(state.inventory?.id)||state.reportInventories[0]?.id||'';
-      sel.innerHTML='<option value="">Selecione...</option>'+state.reportInventories.map(i=>`<option value="${esc(i.id)}">${esc(i.name)} • ${i.status==='open'?'ABERTO':'ENCERRADO'} • ${new Date(i.created_at).toLocaleDateString('pt-BR')}</option>`).join('');
+      sel.innerHTML='<option value="">Selecione...</option>'+state.reportInventories.map(i=>`<option value="${esc(i.id)}">${esc(i.name)} • ${inventoryTypeLabel(i.inventory_type||'general')} • ${i.status==='open'?'ABERTO':'ENCERRADO'} • ${new Date(i.created_at).toLocaleDateString('pt-BR')}</option>`).join('');
       if(state.reportInventories.some(i=>i.id===current)){sel.value=current;state.reportInventoryId=current}else{state.reportInventoryId=''}
     }
     async function loadReport(force=true){
@@ -774,23 +814,24 @@
     }
 
     async function createInventory(){
-      if(!state.importItems.length)return;let name=$('#inventoryName').value.trim();if(!name)name='Inventário '+new Date().toLocaleDateString('pt-BR');const btn=$('#createInventoryBtn');btn.disabled=true;btn.textContent='Enviando...';
+      if(!state.importItems.length)return;let name=$('#inventoryName').value.trim();if(!name)name='Inventário '+new Date().toLocaleDateString('pt-BR');const inventoryType=$('#inventoryType').value||'general',btn=$('#createInventoryBtn');btn.disabled=true;btn.textContent='Enviando...';
       try{
         if(state.inventory&&state.inventory.status==='open')throw new Error('Já existe um inventário aberto. Encerre-o antes de criar outro.');
         if(configured){
-          const {data:inv,error}=await db.from('inventories').insert({name,source_filename:state.importMeta.fileName,imported_rows:state.importItems.length,expected_volumes:state.importMeta.expectedVolumes,created_by:state.profile.id}).select().single();if(error)throw error;
+          const {data:inv,error}=await db.from('inventories').insert({name,inventory_type:inventoryType,source_filename:state.importMeta.fileName,imported_rows:state.importItems.length,expected_volumes:state.importMeta.expectedVolumes,created_by:state.profile.id}).select().single();if(error)throw error;
           const items=state.importItems.map(({lookupKey,cNPJ,...x})=>({...x,inventory_id:inv.id}));
           for(let i=0;i<items.length;i+=400){btn.textContent=`Enviando ${Math.min(i+400,items.length)}/${items.length}...`;const {error:e}=await db.from('inventory_items').insert(items.slice(i,i+400));if(e)throw e}
           state.inventory=inv;
         }else{
-          const id='demo-'+Date.now();state.inventory={id,name,status:'open',source_filename:state.importMeta.fileName,imported_rows:state.importItems.length,expected_volumes:state.importMeta.expectedVolumes,created_at:new Date().toISOString()};state.demoItems=state.importItems.map((x,i)=>({...x,id:'item-'+i}));state.demoScans=[];state.demoUniqueScans=[];state.demoAttempts=[];localStorage.setItem('demo_inventory',JSON.stringify(state.inventory));localStorage.setItem('demo_items',JSON.stringify(state.demoItems));saveDemo();
+          const id='demo-'+Date.now();state.inventory={id,name,inventory_type:inventoryType,status:'open',source_filename:state.importMeta.fileName,imported_rows:state.importItems.length,expected_volumes:state.importMeta.expectedVolumes,created_at:new Date().toISOString()};state.demoItems=state.importItems.map((x,i)=>({...x,id:'item-'+i}));state.demoScans=[];state.demoUniqueScans=[];state.demoAttempts=[];localStorage.setItem('demo_inventory',JSON.stringify(state.inventory));localStorage.setItem('demo_items',JSON.stringify(state.demoItems));saveDemo();
         }
         toast('Inventário criado com sucesso.','ok');renderInventoryHeader();renderSettings();await refreshDashboard();navigate('scanner');
       }catch(e){toast(e.message||'Falha ao criar inventário.','bad')}finally{btn.disabled=false;btn.textContent='Criar inventário e enviar base'}
     }
     async function closeInventory(){if(!state.inventory)return;if(!confirm('Encerrar o inventário atual? Novas leituras ficarão bloqueadas.'))return;try{if(configured){const {error}=await db.from('inventories').update({status:'closed',closed_at:new Date().toISOString()}).eq('id',state.inventory.id);if(error)throw error}else{state.inventory.status='closed';localStorage.setItem('demo_inventory',JSON.stringify(state.inventory));localStorage.removeItem('demo_inventory');state.inventory=null}await loadActiveInventory();await refreshDashboard();toast('Inventário encerrado.','ok')}catch(e){toast(e.message,'bad')}}
 
-    function renderSettings(){const inv=state.inventory;$('#adminInventoryInfo').innerHTML=inv?`<div class="detail-grid"><div class="detail"><span>Nome</span><b>${esc(inv.name)}</b></div><div class="detail"><span>Base</span><b>${esc(inv.source_filename||'-')}</b></div><div class="detail"><span>Notas</span><b>${fmtNum(inv.imported_rows)}</b></div><div class="detail"><span>Volumes</span><b>${fmtNum(inv.expected_volumes)}</b></div></div>`:'<div class="empty">Nenhum inventário aberto.</div>';$('#closeInventoryBtn').classList.toggle('hidden',!inv)}
+    function renderSettings(){const inv=state.inventory;$('#adminInventoryInfo').innerHTML=inv?`<div class="detail-grid"><div class="detail"><span>Nome</span><b>${esc(inv.name)}</b></div><div class="detail"><span>Tipo</span><b>${esc(inventoryTypeName(inv.inventory_type||'general'))}</b></div><div class="detail"><span>Base</span><b>${esc(inv.source_filename||'-')}</b></div><div class="detail"><span>Notas</span><b>${fmtNum(inv.imported_rows)}</b></div><div class="detail"><span>Volumes</span><b>${fmtNum(inv.expected_volumes)}</b></div></div>`:'<div class="empty">Nenhum inventário aberto.</div>';$('#closeInventoryBtn').classList.toggle('hidden',!inv);$('#adminInventoryTypeBox').classList.toggle('hidden',!inv);if(inv)$('#adminInventoryType').value=inv.inventory_type||'general'}
+    async function saveInventoryType(){if(!state.inventory)return;const type=$('#adminInventoryType').value||'general';try{if(configured){const {data,error}=await db.from('inventories').update({inventory_type:type}).eq('id',state.inventory.id).select().single();if(error)throw error;state.inventory=data}else{state.inventory.inventory_type=type;localStorage.setItem('demo_inventory',JSON.stringify(state.inventory))}renderInventoryHeader();renderSettings();await refreshDashboard();toast('Tipo do inventário atualizado.','ok')}catch(e){toast(e.message||'Falha ao atualizar o tipo do inventário.','bad')}}
 
     function navigate(page){if((page==='report'||page==='admin'||page==='settings')&&state.profile?.role!=='admin')page='scanner';$$('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+page));$$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));if(page!=='scanner')stopScanner();if(page==='dashboard')refreshDashboard();if(page==='report'){loadReportInventories().then(()=>loadReport()).catch(e=>toast(e.message,'bad'))}if(page==='settings')renderSettings()}
 
@@ -799,7 +840,8 @@
     $$('[data-page]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.page)));
     $('#locationSelect').addEventListener('change',e=>localStorage.setItem('inventory_location',e.target.value));$('#startScanBtn').addEventListener('click',startScanner);$('#stopScanBtn').addEventListener('click',stopScanner);
     $('#manualSubmit').addEventListener('click',()=>{unlockScanAudio();const v=$('#manualCode').value.trim();if(v){processCode(v);$('#manualCode').value=''}});$('#manualCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#manualSubmit').click()}});
-    $('#refreshDashboard').addEventListener('click',refreshDashboard);$('#createInventoryBtn').addEventListener('click',createInventory);$('#closeInventoryBtn').addEventListener('click',closeInventory);
+    $('#refreshDashboard').addEventListener('click',refreshDashboard);$('#pendingNotesBtn').addEventListener('click',loadPendingNotes);$('#createInventoryBtn').addEventListener('click',createInventory);$('#saveInventoryTypeBtn').addEventListener('click',saveInventoryType);$('#closeInventoryBtn').addEventListener('click',closeInventory);
+    $('#pendingNotesClose').addEventListener('click',()=>$('#pendingNotesModal').classList.add('hidden'));$('#pendingNotesModal').addEventListener('click',e=>{if(e.target.id==='pendingNotesModal')$('#pendingNotesModal').classList.add('hidden')});$('#pendingNotesSearch').addEventListener('input',applyPendingNotesFilter);$('#pendingNotesPrev').addEventListener('click',()=>{if(state.pendingPage>1){state.pendingPage--;renderPendingNotes()}});$('#pendingNotesNext').addEventListener('click',()=>{if(state.pendingPage*state.pendingPageSize<state.pendingFiltered.length){state.pendingPage++;renderPendingNotes()}});
     $('#refreshReportBtn').addEventListener('click',()=>loadReport());$('#reportInventorySelect').addEventListener('change',()=>{state.reportInventoryId=$('#reportInventorySelect').value;loadReport()});['reportSearch','reportStatusFilter','reportDivergenceFilter','reportLocationFilter'].forEach(id=>$('#'+id).addEventListener(id==='reportSearch'?'input':'change',applyReportFilters));
     $('#reportPrevBtn').addEventListener('click',()=>{if(state.reportPage>1){state.reportPage--;renderReport()}});$('#reportNextBtn').addEventListener('click',()=>{if(state.reportPage*state.reportPageSize<state.reportFiltered.length){state.reportPage++;renderReport()}});$('#exportFullBtn').addEventListener('click',()=>exportReport(false));$('#exportFilteredBtn').addEventListener('click',()=>exportReport(true));
     $('#reportBody').addEventListener('click',e=>{const b=e.target.closest('.report-detail-btn');if(b)openReportDetail(b.dataset.reportKey)});$('#reportModalClose').addEventListener('click',()=>$('#reportModal').classList.add('hidden'));$('#reportModal').addEventListener('click',e=>{if(e.target.id==='reportModal')$('#reportModal').classList.add('hidden')});
