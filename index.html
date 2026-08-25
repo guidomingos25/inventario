@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#111827">
   <title>Inventário QR</title>
+  <!-- Versão teste: conferência compacta + volumes faltantes -->
   <style>
     :root{
       --bg:#f3f4f6;--panel:#ffffff;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;
@@ -90,7 +91,9 @@
     .scan-actions{padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid var(--line)}
     .scan-main{min-height:56px;font-size:17px}
     .manual-box{padding:0 14px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
-    .result-card{margin-top:14px;border-radius:20px;border:2px solid var(--line);padding:17px;background:white;box-shadow:var(--shadow)}
+    .result-card{margin-top:14px;border-radius:20px;border:2px solid var(--line);padding:17px;background:white;box-shadow:var(--shadow);position:relative}
+    .scan-result-close{position:absolute;top:8px;right:8px;width:32px;height:32px;min-height:0;border:0;border-radius:999px;background:rgba(255,255,255,.88);color:#374151;display:grid;place-items:center;font-size:22px;font-weight:900;line-height:1;box-shadow:0 2px 10px rgba(15,23,42,.16);z-index:2;padding:0}
+    .scan-result-close:active{transform:scale(.94)}
     .result-card.ok{border-color:#22c55e;background:#f0fdf4}
     .result-card.bad{border-color:#ef4444;background:#fef2f2}
     .result-card.warn{border-color:#f59e0b;background:#fffbeb}
@@ -136,6 +139,14 @@
     .scan-feedback.show .scan-feedback-card{transform:scale(1)}
     .scan-feedback.ok .scan-feedback-card{background:#15803d}.scan-feedback.warn .scan-feedback-card{background:#b45309}.scan-feedback.bad .scan-feedback-card{background:#b91c1c}
     .scan-feedback-icon{font-size:46px;line-height:1;margin-bottom:9px;font-weight:900}.scan-feedback-title{font-size:30px;line-height:1.08;font-weight:1000;letter-spacing:.25px;text-transform:uppercase}
+    .scan-feedback-detail{margin-top:12px;font-size:17px;font-weight:800;line-height:1.35;opacity:.98}
+    .scan-missing{margin-top:10px;border-radius:13px;padding:10px 12px;background:rgba(255,255,255,.72);border:1px solid rgba(0,0,0,.08)}
+    .scan-missing span{display:block;font-size:10px;text-transform:uppercase;font-weight:900;letter-spacing:.45px;color:#4b5563;margin-bottom:3px}
+    .scan-missing b{display:block;font-size:14px;line-height:1.35;overflow-wrap:anywhere}
+    .scan-critical-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+    .scan-critical{background:rgba(255,255,255,.62);border:1px solid rgba(0,0,0,.07);border-radius:11px;padding:8px;min-width:0}
+    .scan-critical span{display:block;font-size:9px;text-transform:uppercase;color:#6b7280;font-weight:900;letter-spacing:.35px}
+    .scan-critical b{display:block;font-size:12px;margin-top:2px;overflow-wrap:anywhere}
     .empty{padding:30px;text-align:center;color:var(--muted)}
     .connection{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
     .users-toolbar{display:grid;grid-template-columns:minmax(220px,1fr) 180px auto;gap:10px;align-items:end}
@@ -158,7 +169,41 @@
       .main{padding:10px}.grid.kpis{grid-template-columns:1fr 1fr;gap:9px}.kpi-value{font-size:24px}.kpi-label{font-size:10px}
       .scan-actions{grid-template-columns:1fr}.manual-box{grid-template-columns:1fr}.detail-grid{grid-template-columns:1fr 1fr}.result-card{padding:14px}.login-card{padding:20px}.demo-actions{grid-template-columns:1fr}
       .import-stats{grid-template-columns:1fr}.topbar .brand-badge{width:32px;height:32px}.topbar{min-height:58px}.layout{min-height:calc(100vh - 58px)}.report-toolbar{grid-template-columns:1fr}.report-kpis{grid-template-columns:1fr 1fr!important}.report-actions .btn{flex:1 1 100%}.users-toolbar{grid-template-columns:1fr}.user-actions{flex-direction:column}.user-actions .btn{width:100%}
-      .scan-feedback-card{padding:26px 16px;border-radius:22px}.scan-feedback-icon{font-size:42px}.scan-feedback-title{font-size:25px}
+      #page-scanner .scanner-shell{max-width:560px}
+      #page-scanner .inventory-strip{gap:6px;margin-bottom:7px}
+      #page-scanner .inventory-strip .pill{padding:5px 8px;font-size:10px}
+      #page-scanner .location-card{padding:8px 10px;margin-bottom:7px;border-radius:12px}
+      #page-scanner .location-card label{font-size:10px;margin-bottom:4px}
+      #page-scanner .location-card select{min-height:38px;padding:6px 9px;font-size:14px;border-radius:9px}
+      #page-scanner .scan-panel{border-radius:14px}
+      #page-scanner .scanner-head{padding:7px 10px 6px}
+      #page-scanner .scanner-head h2{font-size:14px}
+      #page-scanner .scanner-state{font-size:9px}
+      #page-scanner #reader{max-height:175px;overflow:hidden}
+      #page-scanner #reader video{height:175px!important;max-height:175px!important;object-fit:cover!important}
+      #page-scanner .scan-actions{padding:7px;grid-template-columns:1fr 1fr;gap:7px}
+      #page-scanner .scan-main{min-height:40px;font-size:13px;padding:7px 9px}
+      #page-scanner .manual-box{padding:0 7px 7px;grid-template-columns:minmax(0,1fr) auto;gap:6px}
+      #page-scanner .manual-box input{min-height:38px;padding:6px 9px;font-size:13px}
+      #page-scanner .manual-box .btn{min-height:38px;padding:6px 10px;font-size:12px}
+      #page-scanner .recent{margin-top:10px;padding-bottom:245px}
+      #page-scanner .recent .section-head{margin-bottom:7px}
+      #scanResult{position:fixed;left:10px;right:10px;bottom:66px;z-index:18;margin:0;max-height:none;overflow:visible;border-radius:16px;padding:11px;box-shadow:0 16px 40px rgba(15,23,42,.28)}
+      #scanResult .result-top{gap:8px;padding-right:34px}
+      #scanResult .scan-result-close{top:7px;right:7px;width:30px;height:30px;font-size:20px}
+      #scanResult .status-icon{width:36px;height:36px;border-radius:10px;font-size:19px}
+      #scanResult .result-title{font-size:16px}
+      #scanResult .result-message{font-size:11px;line-height:1.3}
+      #scanResult .nf-progress{margin-top:8px;padding-top:8px}
+      #scanResult .nf-progress strong{font-size:19px}
+      #scanResult .progress{height:7px}
+      #scanResult .scan-missing{margin-top:7px;padding:7px 9px}
+      #scanResult .scan-missing b{font-size:12px}
+      #scanResult .scan-critical-grid{margin-top:7px;gap:5px}
+      #scanResult .scan-critical{padding:6px}
+      #scanResult .scan-critical b{font-size:11px}
+      #scanResult .scan-secondary-details{display:none}
+      .scan-feedback-card{padding:24px 15px;border-radius:22px}.scan-feedback-icon{font-size:40px}.scan-feedback-title{font-size:24px}.scan-feedback-detail{font-size:15px;margin-top:9px}
     }
   </style>
 </head>
@@ -168,7 +213,6 @@
       <div class="login-logo">QR</div>
       <h1>Inventário QR</h1>
       <p class="subtitle">Conferência de volumes por etiqueta e localização.</p>
-      <div id="loginModeNotice" class="notice info"></div>
       <form id="loginForm">
         <div class="field"><label for="email">Usuário / e-mail</label><input id="email" autocomplete="username" placeholder="conferente01@empresa.local"></div>
         <div class="field"><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" placeholder="••••••••"></div>
@@ -393,7 +437,7 @@
   <div id="reportModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="reportModalTitle">
     <div class="modal-card"><div class="modal-head"><div><h2 id="reportModalTitle">Detalhes da NF</h2><p id="reportModalSubtitle" class="subtitle" style="margin:3px 0 0"></p></div><button id="reportModalClose" class="modal-close" type="button" aria-label="Fechar">×</button></div><div id="reportModalContent"></div></div>
   </div>
-  <div id="scanFeedback" class="scan-feedback" aria-live="assertive" aria-atomic="true"><div class="scan-feedback-card"><div id="scanFeedbackIcon" class="scan-feedback-icon">✓</div><div id="scanFeedbackTitle" class="scan-feedback-title">VOLUME CONFERIDO</div></div></div>
+  <div id="scanFeedback" class="scan-feedback" aria-live="assertive" aria-atomic="true"><div class="scan-feedback-card"><div id="scanFeedbackIcon" class="scan-feedback-icon">✓</div><div id="scanFeedbackTitle" class="scan-feedback-title">VOLUME CONFERIDO</div><div id="scanFeedbackDetail" class="scan-feedback-detail"></div></div></div>
   <div id="toastWrap" class="toast-wrap"></div>
 
   <script src="app-config.js"></script>
@@ -420,7 +464,33 @@
     let scanFeedbackTimer=null,scanAudioCtx=null;
     function unlockScanAudio(){try{const AudioCtx=window.AudioContext||window.webkitAudioContext;if(!AudioCtx)return;if(!scanAudioCtx)scanAudioCtx=new AudioCtx();if(scanAudioCtx.state==='suspended')scanAudioCtx.resume().catch(()=>{})}catch{}}
     function playScanSound(type='ok'){try{unlockScanAudio();const ctx=scanAudioCtx;if(!ctx||ctx.state!=='running')return;const now=ctx.currentTime;const tone=(freq,start,duration,volume=.16)=>{const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='sine';osc.frequency.setValueAtTime(freq,now+start);gain.gain.setValueAtTime(.0001,now+start);gain.gain.exponentialRampToValueAtTime(volume,now+start+.008);gain.gain.exponentialRampToValueAtTime(.0001,now+start+duration);osc.connect(gain);gain.connect(ctx.destination);osc.start(now+start);osc.stop(now+start+duration+.02)};if(type==='ok')tone(940,0,.10,.18);else if(type==='warn'){tone(720,0,.08,.16);tone(570,.11,.09,.16)}else tone(290,0,.17,.18)}catch{}}
-    function showScanFeedback(result){const v=resultVisual(result),el=$('#scanFeedback');clearTimeout(scanFeedbackTimer);$('#scanFeedbackIcon').textContent=v.icon;$('#scanFeedbackTitle').textContent=v.title;el.className='scan-feedback '+v.cls+' show';playScanSound(v.cls);scanFeedbackTimer=setTimeout(()=>el.classList.remove('show'),1000)}
+    function missingVolumeLabels(result,p,compact=false){
+      const unique=result.scan_type==='unique_label'||p?.type==='unique_label';
+      const expected=Number(result.expected_volumes??p?.total??0);
+      const missing=Array.isArray(result.missing_volumes)?result.missing_volumes.map(Number).filter(Number.isFinite):[];
+      if(!expected)return [];
+      const labels=missing.map(v=>`${v}/${expected}`);
+      if(compact&&labels.length>8)return [...labels.slice(0,8),`+${labels.length-8} volume(s)`];
+      return labels;
+    }
+    function missingVolumeText(result,p,compact=false){
+      const unique=result.scan_type==='unique_label'||p?.type==='unique_label';
+      const expected=Number(result.expected_volumes??p?.total??0);
+      if(!expected)return '';
+      const labels=missingVolumeLabels(result,p,compact);
+      if(!labels.length)return 'Nenhum volume faltante';
+      return `${unique?'Etiqueta Única — faltam':'Faltam'}: ${labels.join(', ')}`;
+    }
+    function feedbackDetail(result,p){
+      const vol=result.volume_no??p?.volume??'-',total=result.total_volumes_qr??p?.total??result.expected_volumes??'-';
+      const validContext=result.result==='ok'||result.result==='duplicate'||result.result==='divergent_total_mismatch'||result.result==='divergent_volume_out_of_range';
+      let first=result.result==='duplicate'?`Volume ${vol}/${total} já estava conferido.`:result.result==='ok'?`Volume ${vol}/${total} conferido.`:`Volume lido: ${vol}/${total}.`;
+      if(validContext){const missing=missingVolumeText(result,p,true);if(missing)first+=' '+missing+'.'}
+      else if(result.result==='divergent_not_in_report')first+=' Não consta no relatório.';
+      else if(result.message)first+=' '+result.message;
+      return first;
+    }
+    function showScanFeedback(result,p){const v=resultVisual(result),el=$('#scanFeedback');clearTimeout(scanFeedbackTimer);$('#scanFeedbackIcon').textContent=v.icon;$('#scanFeedbackTitle').textContent=v.title;$('#scanFeedbackDetail').textContent=feedbackDetail(result,p);el.className='scan-feedback '+v.cls+' show';playScanSound(v.cls);scanFeedbackTimer=setTimeout(()=>el.classList.remove('show'),2200)}
     function setConnection(){const on=navigator.onLine;$('#connectionDot').classList.toggle('off',!on);$('#connectionText').textContent=on?'Online':'Sem conexão'}
     addEventListener('online',setConnection);addEventListener('offline',setConnection);setConnection();
 
@@ -507,8 +577,6 @@
 
     function setModeUi(){
       $('#modeBadge').textContent=configured?'SUPABASE • MULTIUSUÁRIO':'MODO LOCAL • DEMONSTRAÇÃO';$('#modeBadge').classList.toggle('local',!configured);
-      $('#loginModeNotice').className='notice '+(configured?'ok':'warn');
-      $('#loginModeNotice').textContent=configured?'Backend configurado. As leituras serão sincronizadas entre os celulares.':'Supabase ainda não configurado. Use o modo demonstração para testar em um único aparelho.';
       $('#loginForm').classList.toggle('hidden',!configured);$('#demoLogin').classList.toggle('hidden',configured);
       $('#backendInfo').textContent=configured?'Supabase configurado e ativo. URL do projeto: '+cfg.supabaseUrl:'Modo local. Configure supabaseUrl e supabaseAnonKey em app-config.js para habilitar sincronização.';
     }
@@ -556,6 +624,65 @@
       }
       return registerDemoScan(parsed,Number(locationId));
     }
+    async function enrichScanResult(result,p){
+      const out={...(result||{})};
+      if(!p||!state.inventory)return out;
+      out.scan_type=out.scan_type||(p.type==='unique_label'?'unique_label':'nf');
+      out.volume_no=out.volume_no??p.volume;
+      out.total_volumes_qr=out.total_volumes_qr??p.total;
+      const setMissing=(expected,scans)=>{
+        expected=Number(expected||0);
+        const okSet=new Set((scans||[]).filter(s=>s.status==='ok').map(s=>Number(s.volume_no)).filter(v=>Number.isFinite(v)&&v>0));
+        out.expected_volumes=expected||out.expected_volumes||p.total||null;
+        out.scanned_volumes=okSet.size;
+        out.missing_volumes=[];
+        for(let v=1;v<=Number(out.expected_volumes||0);v++)if(!okSet.has(v))out.missing_volumes.push(v);
+      };
+      try{
+        if(p.type==='unique_label'){
+          let scans=[];
+          if(configured){
+            const {data,error}=await db.from('inventory_unique_label_scans').select('volume_no,total_volumes_qr,status').eq('inventory_id',state.inventory.id).eq('unique_label',p.uniqueLabel);
+            if(!error)scans=data||[];
+            const {count}=await db.from('inventory_items').select('id',{count:'exact',head:true}).eq('inventory_id',state.inventory.id).eq('unique_label',p.uniqueLabel);
+            if(Number.isFinite(count))out.matched_notes=count;
+          }else scans=state.demoUniqueScans.filter(s=>normalizeUniqueLabel(s.unique_label)===p.uniqueLabel);
+          const valid=scans.filter(s=>s.status==='ok'),expected=Number(valid[0]?.total_volumes_qr||out.expected_volumes||p.total||0);
+          out.unique_label=out.unique_label||p.uniqueLabel;
+          setMissing(expected,scans);
+          out.label_complete=Boolean(expected&&out.missing_volumes.length===0);
+          return out;
+        }
+        let item=null,scans=[];
+        if(configured){
+          const {data:itemData,error:itemError}=await db.from('inventory_items').select('id,note,note_padded,expected_volumes,supplier,client,recipient,destination,destination_uf,warehouse,merchandise,oef,collection').eq('inventory_id',state.inventory.id).eq('note_padded',p.notePadded).eq('series',p.series).eq('cnpj_supplier',p.cnpj).eq('collection_padded',p.collectionPadded).limit(1).maybeSingle();
+          if(!itemError&&itemData)item=itemData;
+          if(item){
+            const {data:scanData,error:scanError}=await db.from('inventory_scans').select('volume_no,status').eq('inventory_id',state.inventory.id).eq('item_id',item.id);
+            if(!scanError)scans=scanData||[];
+          }
+        }else{
+          item=state.demoItems.find(x=>x.lookupKey===p.lookupKey)||null;
+          if(item)scans=state.demoScans.filter(s=>s.item_id===item.id);
+        }
+        if(item){
+          out.note=out.note||item.note||item.note_padded;
+          out.expected_volumes=Number(item.expected_volumes||p.total||0);
+          out.supplier=out.supplier||item.supplier||'';
+          out.client=out.client||item.client||'';
+          out.recipient=out.recipient||item.recipient||'';
+          out.destination=out.destination||item.destination||'';
+          out.destination_uf=out.destination_uf||item.destination_uf||'';
+          out.warehouse=out.warehouse||item.warehouse||'';
+          out.merchandise=out.merchandise||item.merchandise||'';
+          out.oef=out.oef||item.oef||item.collection||'';
+          setMissing(out.expected_volumes,scans);
+          out.nf_complete=Boolean(out.expected_volumes&&out.missing_volumes.length===0);
+        }
+      }catch(e){console.warn('Não foi possível enriquecer o resultado com os volumes faltantes:',e)}
+      return out;
+    }
+
     function registerDemoScan(p,locationId){
       const existing=state.demoScans.find(s=>s.canonical_volume_key===p.canonicalVolumeKey);const loc=state.locations.find(l=>l.id===locationId);
       if(existing){state.demoAttempts.push({id:Date.now(),result:'duplicate',user_id:state.profile.id,location_id:locationId,attempted_at:new Date().toISOString(),canonical_volume_key:p.canonicalVolumeKey,existing_scan_id:existing.id||null,raw_code:p.raw});saveDemo();return {result:'duplicate',message:'Volume já conferido',existing_user:existing.user_name,existing_location:existing.location,existing_scanned_at:existing.scanned_at,status:existing.status,scan_type:'nf'}}
@@ -580,7 +707,7 @@
       const locationId=$('#locationSelect').value;if(!locationId){toast('Selecione o local da conferência antes de bipar.','warn');$('#locationSelect').focus();return}
       let parsed;try{parsed=parseQr(raw)}catch(e){renderResult({result:'invalid',message:e.message},null);return}
       try{
-        $('#scannerState').textContent='Validando...';const result=await registerScan(parsed,locationId);renderResult(result,parsed);addRecent(result,parsed);$('#myScanCount').textContent=state.recent.length+' leituras';
+        $('#scannerState').textContent='Validando...';const registered=await registerScan(parsed,locationId);const result=await enrichScanResult(registered,parsed);renderResult(result,parsed);addRecent(result,parsed);$('#myScanCount').textContent=state.recent.length+' leituras';
         if(result.result==='ok')navigator.vibrate?.(80);else navigator.vibrate?.([100,60,100]);
         if(result.result==='ok'&&result.nf_complete)toast('NF conferida por completo.','ok');
         if(result.result==='ok'&&result.label_complete)toast('Etiqueta Única conferida por completo. Todas as NFs vinculadas foram concluídas.','ok');
@@ -593,27 +720,33 @@
       if(result.result==='ok'&&unique)return {cls:'ok',icon:'✓',title:result.label_complete?'ETIQUETA ÚNICA CONFERIDA':'VOLUME DA ETIQUETA ÚNICA CONFERIDO',msg:result.label_complete?`Todos os volumes foram encontrados. ${result.matched_notes||0} NF(s) vinculada(s) estão conferidas.`:`Volume localizado. ${result.matched_notes||0} NF(s) vinculada(s) estão parciais.`};
       if(result.result==='ok')return {cls:'ok',icon:'✓',title:result.nf_complete?'NF CONFERIDA':'VOLUME CONFERIDO',msg:result.nf_complete?'Todos os volumes desta NF foram encontrados.':'Volume localizado no relatório.'};
       if(result.result==='duplicate')return {cls:'warn',icon:'↻',title:'VOLUME JÁ CONFERIDO',msg:`${result.existing_user?result.existing_user+' • ':''}${result.existing_location||''}`};
-      if(result.result==='divergent_not_in_report')return {cls:'bad',icon:'!',title:'DIVERGENTE',msg:unique?'Etiqueta Única não consta no relatório carregado.':'NF/CNPJ/Coleta não constam no relatório carregado.'};
+      if(result.result==='divergent_not_in_report')return {cls:'bad',icon:'!',title:'DIVERGENTE',msg:unique?'Etiqueta Única não consta no relatório carregado.':'NF / Coleta não constam no relatório.'};
       if(result.result==='divergent_total_mismatch')return {cls:'warn',icon:'!',title:'TOTAL DE VOLUMES DIVERGENTE',msg:unique?'O total informado difere das demais leituras desta Etiqueta Única.':'O total informado na etiqueta difere do relatório.'};
       if(result.result==='divergent_volume_out_of_range')return {cls:'bad',icon:'!',title:'VOLUME FORA DA FAIXA',msg:'O número do volume é maior que o total informado/esperado.'};
       return {cls:'bad',icon:'×',title:'QR INVÁLIDO',msg:result.message||'Não foi possível interpretar a etiqueta.'};
     }
     function renderResult(result,p){
-      const v=resultVisual(result),el=$('#scanResult');showScanFeedback(result);el.className='result-card '+v.cls;el.classList.remove('hidden');
+      const v=resultVisual(result),el=$('#scanResult');showScanFeedback(result,p);el.className='result-card '+v.cls;el.classList.remove('hidden');
       const unique=result.scan_type==='unique_label'||p?.type==='unique_label';
-      const expected=result.expected_volumes??p?.total??'-',scanned=result.scanned_volumes??'-';
-      const progress=(Number(expected)>0&&Number(scanned)>=0)?Math.min(100,Math.round(Number(scanned)/Number(expected)*100)):0;
+      const expected=Number(result.expected_volumes??p?.total??0),scanned=Number(result.scanned_volumes??0);
+      const progress=expected>0?Math.min(100,Math.round(scanned/expected*100)):0;
+      const missingText=missingVolumeText(result,p,false);
+      const volumeText=`${result.volume_no??p?.volume??'-'} / ${result.total_volumes_qr??p?.total??'-'}`;
+      const progressBlock=expected>0?`<div class="nf-progress"><div class="nf-progress-row"><div><span class="kpi-label">${unique?'Etiqueta Única '+esc(result.unique_label||p?.uniqueLabel||'-'):'NF '+esc(result.note||p?.notePadded||'-')}</span><br><strong>${scanned}/${expected}</strong></div><b>${progress}%</b></div><div class="progress" style="margin-top:6px"><span style="width:${progress}%"></span></div></div>`:'';
+      const missingBlock=missingText?`<div class="scan-missing"><span>Volumes pendentes</span><b>${esc(missingText)}</b></div>`:'';
       if(unique){
         const label=esc(result.unique_label||p?.uniqueLabel||'-');
-        el.innerHTML=`<div class="result-top"><div class="status-icon">${v.icon}</div><div><p class="result-title">${v.title}</p><p class="result-message">${esc(v.msg)}</p></div></div>
-        ${result.result==='ok'?`<div class="nf-progress"><div class="nf-progress-row"><div><span class="kpi-label">Etiqueta Única ${label}</span><br><strong>${scanned}/${expected}</strong></div><b>${progress}%</b></div><div class="progress" style="margin-top:8px"><span style="width:${progress}%"></span></div></div>`:''}
-        <div class="detail-grid"><div class="detail"><span>Etiqueta Única</span><b>${label}</b></div><div class="detail"><span>Volume</span><b>${esc(result.volume_no??p?.volume??'-')} / ${esc(result.total_volumes_qr??p?.total??'-')}</b></div><div class="detail"><span>NFs vinculadas</span><b>${esc(result.matched_notes??'-')}</b></div><div class="detail"><span>Local</span><b>${esc(result.location||result.existing_location||'-')}</b></div><div class="detail"><span>Tipo de leitura</span><b>Etiqueta Única</b></div><div class="detail"><span>Conferente</span><b>${esc(result.existing_user||state.profile?.name||'-')}</b></div></div>`;
+        el.innerHTML=`<button class="scan-result-close" type="button" aria-label="Fechar resultado" title="Fechar">×</button><div class="result-top"><div class="status-icon">${v.icon}</div><div><p class="result-title">${v.title}</p><p class="result-message">${esc(v.msg)}</p></div></div>
+        ${progressBlock}${missingBlock}
+        <div class="scan-critical-grid"><div class="scan-critical"><span>Etiqueta Única</span><b>${label}</b></div><div class="scan-critical"><span>Volume lido</span><b>${esc(volumeText)}</b></div><div class="scan-critical"><span>Local</span><b>${esc(result.location||result.existing_location||'-')}</b></div></div>
+        <div class="detail-grid scan-secondary-details"><div class="detail"><span>NFs vinculadas</span><b>${esc(result.matched_notes??'-')}</b></div><div class="detail"><span>Tipo de leitura</span><b>Etiqueta Única</b></div><div class="detail"><span>Conferente</span><b>${esc(result.existing_user||state.profile?.name||'-')}</b></div></div>`;
         return;
       }
       const note=esc(result.note||p?.notePadded||'-');
-      el.innerHTML=`<div class="result-top"><div class="status-icon">${v.icon}</div><div><p class="result-title">${v.title}</p><p class="result-message">${esc(v.msg)}</p></div></div>
-      ${result.result==='ok'?`<div class="nf-progress"><div class="nf-progress-row"><div><span class="kpi-label">NF ${note}</span><br><strong>${scanned}/${expected}</strong></div><b>${progress}%</b></div><div class="progress" style="margin-top:8px"><span style="width:${progress}%"></span></div></div>`:''}
-      <div class="detail-grid"><div class="detail"><span>NF</span><b>${note}</b></div><div class="detail"><span>Volume</span><b>${esc(result.volume_no??p?.volume??'-')} / ${esc(result.total_volumes_qr??p?.total??'-')}</b></div><div class="detail"><span>Fornecedor</span><b>${esc(result.supplier||'-')}</b></div><div class="detail"><span>Cliente</span><b>${esc(result.client||'-')}</b></div><div class="detail"><span>Destino</span><b>${esc([result.destination,result.destination_uf].filter(Boolean).join(' - ')||'-')}</b></div><div class="detail"><span>Local</span><b>${esc(result.location||result.existing_location||'-')}</b></div><div class="detail"><span>OEF / Coleta</span><b>${esc(result.oef||p?.collection||'-')}</b></div><div class="detail"><span>Mercadoria</span><b>${esc(result.merchandise||'-')}</b></div></div>
+      el.innerHTML=`<button class="scan-result-close" type="button" aria-label="Fechar resultado" title="Fechar">×</button><div class="result-top"><div class="status-icon">${v.icon}</div><div><p class="result-title">${v.title}</p><p class="result-message">${esc(v.msg)}</p></div></div>
+      ${progressBlock}${missingBlock}
+      <div class="scan-critical-grid"><div class="scan-critical"><span>NF</span><b>${note}</b></div><div class="scan-critical"><span>Volume lido</span><b>${esc(volumeText)}</b></div><div class="scan-critical"><span>Local</span><b>${esc(result.location||result.existing_location||'-')}</b></div></div>
+      <div class="detail-grid scan-secondary-details"><div class="detail"><span>Fornecedor</span><b>${esc(result.supplier||'-')}</b></div><div class="detail"><span>Cliente</span><b>${esc(result.client||'-')}</b></div><div class="detail"><span>Destino</span><b>${esc([result.destination,result.destination_uf].filter(Boolean).join(' - ')||'-')}</b></div><div class="detail"><span>OEF / Coleta</span><b>${esc(result.oef||p?.collection||'-')}</b></div><div class="detail"><span>Mercadoria</span><b>${esc(result.merchandise||'-')}</b></div><div class="detail"><span>Conferente</span><b>${esc(result.existing_user||state.profile?.name||'-')}</b></div></div>
       ${p?.warnings?.length?`<div class="notice warn">${esc(p.warnings.join(' '))}</div>`:''}`;
     }
     function addRecent(result,p){const v=resultVisual(result),unique=result.scan_type==='unique_label'||p?.type==='unique_label';state.recent.unshift({cls:v.cls,type:unique?'unique_label':'nf',label:result.unique_label||p?.uniqueLabel||'',note:result.note||p?.notePadded||'-',vol:result.volume_no??p?.volume??'-',total:result.total_volumes_qr??p?.total??'-',desc:v.title,time:nowTime()});state.recent=state.recent.slice(0,12);$('#recentList').innerHTML=state.recent.map(x=>`<div class="recent-item"><span class="recent-dot ${x.cls}"></span><div class="recent-main"><b>${x.type==='unique_label'?'Etiqueta Única '+esc(x.label):'NF '+esc(x.note)} • Volume ${esc(x.vol)}/${esc(x.total)}</b><small>${esc(x.desc)}</small></div><span class="recent-time">${x.time}</span></div>`).join('')}
@@ -624,7 +757,9 @@
       unlockScanAudio();
       if(state.scannerRunning)return;$('#reader').classList.remove('hidden');state.scanner=new Html5Qrcode('reader');
       try{
-        await state.scanner.start({facingMode:'environment'},{fps:12,qrbox:(w,h)=>{const s=Math.floor(Math.min(w,h)*.72);return{width:s,height:s}},aspectRatio:1.0},async decoded=>{if(state._scanLock)return;state._scanLock=true;await processCode(decoded);setTimeout(()=>state._scanLock=false,900)},()=>{});
+        // Sem qrbox: o html5-qrcode utiliza toda a área do vídeo para detectar o QR.
+        // O tamanho visual da câmera continua controlado pelo CSS (175 px no celular).
+        await state.scanner.start({facingMode:'environment'},{fps:12,aspectRatio:1.0},async decoded=>{if(state._scanLock)return;state._scanLock=true;await processCode(decoded);setTimeout(()=>state._scanLock=false,2200)},()=>{});
         state.scannerRunning=true;$('#startScanBtn').disabled=true;$('#stopScanBtn').disabled=false;$('#scannerState').textContent='Câmera ativa';
       }catch(e){$('#reader').classList.add('hidden');state.scanner=null;toast('Não foi possível abrir a câmera. Verifique permissão e HTTPS.','bad')}
     }
@@ -915,6 +1050,7 @@
     $('#openUsersAdminBtn').addEventListener('click',()=>navigate('users'));$('#refreshUsersBtn').addEventListener('click',loadUsers);$('#usersReloadBtn').addEventListener('click',loadUsers);$('#usersSearch').addEventListener('input',applyUsersFilters);$('#usersStatusFilter').addEventListener('change',applyUsersFilters);
     $('#createUserForm').addEventListener('submit',e=>{e.preventDefault();createManagedUser()});$('#editUserForm').addEventListener('submit',e=>{e.preventDefault();saveManagedUser()});$('#deleteUserBtn').addEventListener('click',deleteManagedUser);$('#userEditClose').addEventListener('click',()=>$('#userEditModal').classList.add('hidden'));$('#userEditModal').addEventListener('click',e=>{if(e.target.id==='userEditModal')$('#userEditModal').classList.add('hidden')});$('#usersBody').addEventListener('click',e=>{const edit=e.target.closest('.user-edit-btn');if(edit)return openUserEdit(edit.dataset.userId);const tog=e.target.closest('.user-toggle-btn');if(tog&&!tog.disabled)toggleManagedUser(tog.dataset.userId,tog.dataset.userActive==='true')});
     $('#locationSelect').addEventListener('change',e=>localStorage.setItem('inventory_location',e.target.value));$('#startScanBtn').addEventListener('click',startScanner);$('#stopScanBtn').addEventListener('click',stopScanner);
+    $('#scanResult').addEventListener('click',e=>{if(e.target.closest('.scan-result-close'))$('#scanResult').classList.add('hidden')});
     $('#manualSubmit').addEventListener('click',()=>{unlockScanAudio();const v=$('#manualCode').value.trim();if(v){processCode(v);$('#manualCode').value=''}});$('#manualCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#manualSubmit').click()}});
     $('#refreshDashboard').addEventListener('click',refreshDashboard);$('#pendingNotesBtn').addEventListener('click',loadPendingNotes);$('#createInventoryBtn').addEventListener('click',createInventory);$('#saveInventoryTypeBtn').addEventListener('click',saveInventoryType);$('#closeInventoryBtn').addEventListener('click',closeInventory);
     $('#pendingNotesClose').addEventListener('click',()=>$('#pendingNotesModal').classList.add('hidden'));$('#pendingNotesModal').addEventListener('click',e=>{if(e.target.id==='pendingNotesModal')$('#pendingNotesModal').classList.add('hidden')});$('#pendingNotesSearch').addEventListener('input',applyPendingNotesFilter);$('#pendingNotesPrev').addEventListener('click',()=>{if(state.pendingPage>1){state.pendingPage--;renderPendingNotes()}});$('#pendingNotesNext').addEventListener('click',()=>{if(state.pendingPage*state.pendingPageSize<state.pendingFiltered.length){state.pendingPage++;renderPendingNotes()}});
