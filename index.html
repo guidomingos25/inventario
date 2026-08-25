@@ -850,16 +850,36 @@
       unlockScanAudio();
       if(state.scannerRunning)return;resetEnhancedCameraUi();$('#readerWrap').classList.remove('hidden');
       const ctorCfg=window.Html5QrcodeSupportedFormats?{formatsToSupport:[window.Html5QrcodeSupportedFormats.QR_CODE]}:undefined;
-      state.scanner=ctorCfg?new Html5Qrcode('reader',ctorCfg):new Html5Qrcode('reader');
-      try{
-        // Mantém toda a área visível como área de captura (sem qrbox), mas solicita ao celular
-        // uma imagem interna de alta resolução para aumentar o detalhe disponível ao decodificador.
-        const cameraConstraints={facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30}};
-        const scanConfig={fps:15,disableFlip:true,experimentalFeatures:{useBarCodeDetectorIfSupported:true}};
-        await state.scanner.start(cameraConstraints,scanConfig,async decoded=>{if(state._scanLock)return;state._scanLock=true;await processCode(decoded);setTimeout(()=>state._scanLock=false,2200)},()=>{});
-        state.scannerRunning=true;$('#startScanBtn').disabled=true;$('#stopScanBtn').disabled=false;$('#scannerState').textContent='Câmera ativa • leitura reforçada';
-        await setupEnhancedCamera();
-      }catch(e){$('#readerWrap').classList.add('hidden');resetEnhancedCameraUi();state.scanner=null;toast('Não foi possível abrir a câmera. Verifique permissão e HTTPS.','bad')}
+      const onDecoded=async decoded=>{if(state._scanLock)return;state._scanLock=true;await processCode(decoded);setTimeout(()=>state._scanLock=false,2200)};
+      const makeScanner=()=>ctorCfg?new Html5Qrcode('reader',ctorCfg):new Html5Qrcode('reader');
+      const attempts=[
+        {label:'reforçada',camera:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},config:{fps:15,disableFlip:true,experimentalFeatures:{useBarCodeDetectorIfSupported:true}}},
+        {label:'compatível',camera:{facingMode:'environment'},config:{fps:12,aspectRatio:1.0,disableFlip:true}}
+      ];
+      let started=false,lastError=null,mode='';
+      for(const attempt of attempts){
+        try{
+          state.scanner=makeScanner();
+          await state.scanner.start(attempt.camera,attempt.config,onDecoded,()=>{});
+          started=true;mode=attempt.label;break;
+        }catch(e){
+          lastError=e;console.warn('Falha ao abrir câmera no modo '+attempt.label,e);
+          try{await state.scanner?.stop()}catch{}
+          try{await state.scanner?.clear()}catch{}
+          state.scanner=null;
+          const reader=$('#reader');if(reader)reader.innerHTML='';
+          await new Promise(r=>setTimeout(r,120));
+        }
+      }
+      if(!started){
+        $('#readerWrap').classList.add('hidden');resetEnhancedCameraUi();state.scanner=null;
+        console.error('Não foi possível iniciar a câmera.',lastError);
+        toast('Não foi possível abrir a câmera. Verifique a permissão da câmera no navegador.','bad');return;
+      }
+      state.scannerRunning=true;$('#startScanBtn').disabled=true;$('#stopScanBtn').disabled=false;$('#scannerState').textContent=mode==='reforçada'?'Câmera ativa • leitura reforçada':'Câmera ativa • modo compatível';
+      // Depois que a câmera já abriu, tenta aplicar foco contínuo, zoom e lanterna somente se o aparelho suportar.
+      // Se não suportar, a leitura continua normalmente sem fechar a câmera.
+      try{await setupEnhancedCamera()}catch(e){console.debug('Recursos avançados indisponíveis; câmera mantida em modo compatível.',e)}
     }
     async function stopScanner(){
       if(enhancedCameraTrack&&enhancedCameraTorch){try{await applyTrackFeature('torch',false)}catch{}}
