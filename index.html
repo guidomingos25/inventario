@@ -222,7 +222,6 @@
         <div class="field"><label for="demoName">Nome do conferente</label><input id="demoName" value="Conferente Teste"></div>
         <div class="demo-actions"><button id="demoChecker" class="btn primary" type="button">Entrar como conferente</button><button id="demoAdmin" class="btn" type="button">Entrar como admin</button></div>
       </div>
-      <p class="login-help">Para operação com vários celulares, configure o Supabase em <b>app-config.js</b>. Sem backend, o modo demonstração funciona apenas neste aparelho.</p>
     </div>
   </div>
 
@@ -805,6 +804,21 @@
       return direct.size>=Number(item.expected_volumes||0)&&Number(item.expected_volumes||0)>0;
     }
     function pendingRawValue(item,key,fallback=''){const raw=cleanSourceRaw(item.raw_data);return Object.prototype.hasOwnProperty.call(raw,key)?raw[key]:fallback}
+    function formatPendingDate(value){
+      if(value===null||value===undefined||String(value).trim()==='')return '';
+      const raw=String(value).trim();
+      let m=raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})(?:\s+.*)?$/);
+      if(m){
+        const a=Number(m[1]),b=Number(m[2]);let y=Number(m[3]);if(y<100)y+=y>=70?1900:2000;
+        const day=b>12?a:b,month=b>12?b:a;
+        if(day>=1&&day<=31&&month>=1&&month<=12)return `${String(day).padStart(2,'0')}/${String(month).padStart(2,'0')}/${String(y).padStart(4,'0')}`;
+      }
+      m=raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/);
+      if(m)return `${String(Number(m[3])).padStart(2,'0')}/${String(Number(m[2])).padStart(2,'0')}/${m[1]}`;
+      const d=new Date(raw);
+      if(!Number.isNaN(d.getTime()))return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+      return raw;
+    }
     async function loadPendingNotes(){
       if(!state.inventory){toast('Nenhum inventário aberto.','warn');return}
       $('#pendingNotesModal').classList.remove('hidden');$('#pendingNotesLoading').classList.remove('hidden');$('#pendingNotesBody').innerHTML='<tr><td colspan="12" class="empty">Carregando notas pendentes...</td></tr>';
@@ -821,7 +835,7 @@
       }catch(e){toast(e.message||'Falha ao carregar notas pendentes.','bad');$('#pendingNotesBody').innerHTML=`<tr><td colspan="12" class="empty">${esc(e.message||'Falha ao carregar.')}</td></tr>`}finally{$('#pendingNotesLoading').classList.add('hidden')}
     }
     function applyPendingNotesFilter(){const q=$('#pendingNotesSearch').value.trim().toLowerCase();state.pendingFiltered=state.pendingRows.filter(r=>!q||Object.values(r).join(' ').toLowerCase().includes(q));state.pendingPage=1;renderPendingNotes()}
-    function renderPendingNotes(){const rows=state.pendingFiltered||[],pages=Math.max(1,Math.ceil(rows.length/state.pendingPageSize));state.pendingPage=Math.min(Math.max(1,state.pendingPage),pages);const start=(state.pendingPage-1)*state.pendingPageSize,part=rows.slice(start,start+state.pendingPageSize);$('#pendingNotesSubtitle').textContent=`${fmtNum(rows.length)} nota(s) ainda não concluída(s) no inventário aberto.`;$('#pendingNotesBody').innerHTML=part.length?part.map(r=>`<tr><td>${esc(r.checkin||'')}</td><td>${esc(r.entrada||'')}</td><td>${esc(r.resolucao||'')}</td><td>${esc(r.nota||'')}</td><td>${esc(r.oef||'')}</td><td>${esc(r.fornecedor||'')}</td><td>${esc(r.almox||'')}</td><td>${esc(r.onu||'')}</td><td>${esc(r.wms||'')}</td><td>${esc(r.peso??'')}</td><td>${esc(r.volumes??'')}</td><td>${esc(r.mercadoria||'')}</td></tr>`).join(''):'<tr><td colspan="12" class="empty">Nenhuma nota pendente. Inventário 100% concluído.</td></tr>';$('#pendingNotesPageInfo').textContent=`Página ${rows.length?state.pendingPage:0} de ${rows.length?pages:0} • ${fmtNum(rows.length)} nota(s)`;$('#pendingNotesPrev').disabled=!rows.length||state.pendingPage<=1;$('#pendingNotesNext').disabled=!rows.length||state.pendingPage>=pages}
+    function renderPendingNotes(){const rows=state.pendingFiltered||[],pages=Math.max(1,Math.ceil(rows.length/state.pendingPageSize));state.pendingPage=Math.min(Math.max(1,state.pendingPage),pages);const start=(state.pendingPage-1)*state.pendingPageSize,part=rows.slice(start,start+state.pendingPageSize);$('#pendingNotesSubtitle').textContent=`${fmtNum(rows.length)} nota(s) ainda não concluída(s) no inventário aberto.`;$('#pendingNotesBody').innerHTML=part.length?part.map(r=>`<tr><td>${esc(formatPendingDate(r.checkin))}</td><td>${esc(formatPendingDate(r.entrada))}</td><td>${esc(formatPendingDate(r.resolucao))}</td><td>${esc(r.nota||'')}</td><td>${esc(r.oef||'')}</td><td>${esc(r.fornecedor||'')}</td><td>${esc(r.almox||'')}</td><td>${esc(r.onu||'')}</td><td>${esc(r.wms||'')}</td><td>${esc(r.peso??'')}</td><td>${esc(r.volumes??'')}</td><td>${esc(r.mercadoria||'')}</td></tr>`).join(''):'<tr><td colspan="12" class="empty">Nenhuma nota pendente. Inventário 100% concluído.</td></tr>';$('#pendingNotesPageInfo').textContent=`Página ${rows.length?state.pendingPage:0} de ${rows.length?pages:0} • ${fmtNum(rows.length)} nota(s)`;$('#pendingNotesPrev').disabled=!rows.length||state.pendingPage<=1;$('#pendingNotesNext').disabled=!rows.length||state.pendingPage>=pages}
 
     const divergenceLabels={divergent_not_in_report:'Não consta no relatório',divergent_total_mismatch:'Total diferente',divergent_volume_out_of_range:'Volume fora da faixa'};
     const statusLabels={complete:'Conferida',partial:'Parcial',not_started:'Não conferida',off_report:'Fora do relatório'};
