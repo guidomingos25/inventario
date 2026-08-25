@@ -467,6 +467,7 @@
   <script src="app-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
   (()=>{
@@ -848,6 +849,67 @@
       const next=!enhancedCameraTorch;if(await applyTrackFeature('torch',next)){enhancedCameraTorch=next;$('#cameraTorchBtn').classList.toggle('active',next);$('#cameraTorchBtn').setAttribute('aria-label',next?'Desligar lanterna':'Ligar lanterna')}
     }
 
+    // Fallback de leitura reforçada por software. Não altera a câmera nem o decoder principal.
+    // Só analisa alguns frames extras quando o leitor normal ainda não reconheceu o QR.
+    let reinforcedReaderTimer=null,reinforcedReaderBusy=false,reinforcedReaderCanvas=null,reinforcedReaderCtx=null,reinforcedReaderStartedAt=0,reinforcedReaderTick=0;
+    function stopReinforcedReader(){
+      if(reinforcedReaderTimer){clearInterval(reinforcedReaderTimer);reinforcedReaderTimer=null}
+      reinforcedReaderBusy=false;reinforcedReaderCanvas=null;reinforcedReaderCtx=null;reinforcedReaderStartedAt=0;reinforcedReaderTick=0;
+    }
+    function reinforcedGrayContrast(src,factor=1.45){
+      const out=new Uint8ClampedArray(src.length);
+      for(let i=0;i<src.length;i+=4){
+        const gray=.299*src[i]+.587*src[i+1]+.114*src[i+2];
+        const v=Math.max(0,Math.min(255,(gray-128)*factor+128));
+        out[i]=out[i+1]=out[i+2]=v;out[i+3]=255;
+      }
+      return out;
+    }
+    function tryJsQrPixels(data,w,h){
+      if(!window.jsQR||!data||w<2||h<2)return null;
+      try{return window.jsQR(data,w,h,{inversionAttempts:'attemptBoth'})}catch(e){console.debug('Fallback QR indisponível neste frame.',e);return null}
+    }
+    async function reinforcedReaderFrame(){
+      if(!state.scannerRunning||state._scanLock||reinforcedReaderBusy||!window.jsQR)return;
+      if(Date.now()-reinforcedReaderStartedAt<850)return;
+      const video=$('#reader video');
+      if(!video||video.readyState<2||!video.videoWidth||!video.videoHeight)return;
+      reinforcedReaderBusy=true;reinforcedReaderTick++;
+      try{
+        const cores=Number(navigator.hardwareConcurrency||4);
+        const maxW=cores>=6?1080:820;
+        const scale=Math.min(1,maxW/video.videoWidth);
+        const w=Math.max(2,Math.round(video.videoWidth*scale)),h=Math.max(2,Math.round(video.videoHeight*scale));
+        if(!reinforcedReaderCanvas){reinforcedReaderCanvas=document.createElement('canvas');reinforcedReaderCtx=reinforcedReaderCanvas.getContext('2d',{willReadFrequently:true})}
+        const canvas=reinforcedReaderCanvas,ctx=reinforcedReaderCtx;if(!ctx)return;
+        if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
+        ctx.imageSmoothingEnabled=true;ctx.drawImage(video,0,0,w,h);
+        let frame=ctx.getImageData(0,0,w,h),found=tryJsQrPixels(frame.data,w,h);
+        // Segunda tentativa: tons de cinza + contraste moderado. Ajuda em impressão fraca, riscos e reflexos leves.
+        if(!found?.data){const enhanced=reinforcedGrayContrast(frame.data,1.45);found=tryJsQrPixels(enhanced,w,h)}
+        // Em uma de cada duas passagens, tenta também um recorte central ampliado.
+        // Isso melhora a quantidade de pixels disponíveis quando o operador centraliza uma etiqueta pequena/difícil.
+        if(!found?.data&&reinforcedReaderTick%2===0){
+          const sx=Math.round(video.videoWidth*.08),sy=Math.round(video.videoHeight*.08),sw=Math.round(video.videoWidth*.84),sh=Math.round(video.videoHeight*.84);
+          ctx.clearRect(0,0,w,h);ctx.drawImage(video,sx,sy,sw,sh,0,0,w,h);
+          frame=ctx.getImageData(0,0,w,h);found=tryJsQrPixels(frame.data,w,h);
+          if(!found?.data){const enhanced=reinforcedGrayContrast(frame.data,1.55);found=tryJsQrPixels(enhanced,w,h)}
+        }
+        if(found?.data&&!state._scanLock){
+          state._scanLock=true;
+          await processCode(found.data);
+          setTimeout(()=>state._scanLock=false,2200);
+        }
+      }catch(e){console.debug('Leitura reforçada ignorada neste frame.',e)}finally{reinforcedReaderBusy=false}
+    }
+    function startReinforcedReader(){
+      stopReinforcedReader();
+      if(!window.jsQR)return;
+      reinforcedReaderStartedAt=Date.now();
+      // Frequência baixa de propósito: reforça códigos difíceis sem sobrecarregar celulares mais simples.
+      reinforcedReaderTimer=setInterval(()=>{reinforcedReaderFrame()},700);
+    }
+
     async function startScanner(){
       if(!$('#locationSelect').value){toast('Selecione o local antes de abrir a câmera.','warn');return}
       if(!window.Html5Qrcode){toast('Leitor de câmera não carregou. Use a entrada manual.','bad');return}
@@ -870,6 +932,8 @@
         $('#scannerState').textContent='Câmera ativa • leitura otimizada';
         // Recursos extras são aplicados depois da câmera abrir e não alteram o motor de decodificação.
         try{await setupEnhancedCamera()}catch(e){console.debug('Recursos extras da câmera indisponíveis.',e)}
+        // Mantém o leitor principal intacto e adiciona um segundo caminho de software somente como fallback.
+        startReinforcedReader();
       }catch(e){
         console.error('Não foi possível iniciar a câmera.',e);
         try{await state.scanner?.clear()}catch{}
@@ -878,6 +942,7 @@
       }
     }
     async function stopScanner(){
+      stopReinforcedReader();
       if(enhancedCameraTrack&&enhancedCameraTorch){try{await applyTrackFeature('torch',false)}catch{}}
       if(state.scanner&&state.scannerRunning){try{await state.scanner.stop();await state.scanner.clear()}catch{}}
       state.scanner=null;state.scannerRunning=false;resetEnhancedCameraUi();$('#readerWrap').classList.add('hidden');$('#startScanBtn').disabled=false;$('#stopScanBtn').disabled=true;$('#scannerState').textContent='Câmera parada';
