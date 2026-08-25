@@ -86,8 +86,15 @@
     .scan-panel{background:white;border-radius:22px;border:1px solid var(--line);box-shadow:var(--shadow);overflow:hidden}
     .scanner-head{padding:16px 16px 10px;display:flex;align-items:center;justify-content:space-between;gap:10px}
     .scanner-state{font-size:12px;font-weight:900;color:#6b7280;text-transform:uppercase}
+    .reader-wrap{position:relative;width:100%;background:#0b1020;overflow:hidden}
     #reader{width:100%;background:#0b1020;min-height:0}
     #reader video{border-radius:0!important}
+    .camera-tools{position:absolute;right:8px;bottom:8px;z-index:8;display:flex;align-items:center;gap:5px;pointer-events:auto}
+    .camera-zoom-tools{display:flex;align-items:center;gap:4px;background:rgba(15,23,42,.68);backdrop-filter:blur(4px);border-radius:999px;padding:4px}
+    .camera-tool-btn{border:1px solid rgba(255,255,255,.22);background:rgba(15,23,42,.76);color:#fff;border-radius:999px;min-width:34px;height:34px;min-height:34px;padding:0 9px;font-size:13px;font-weight:900;display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.22)}
+    .camera-tool-btn.icon{width:36px;padding:0;font-size:17px}
+    .camera-tool-btn.active{background:#f59e0b;color:#111827;border-color:#fbbf24}
+    .camera-zoom-label{min-width:46px;text-align:center;color:#fff;font-size:11px;font-weight:900}
     .scan-actions{padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid var(--line)}
     .scan-main{min-height:56px;font-size:17px}
     .manual-box{padding:0 14px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
@@ -181,8 +188,13 @@
       #page-scanner .scanner-head{padding:7px 10px 6px}
       #page-scanner .scanner-head h2{font-size:14px}
       #page-scanner .scanner-state{font-size:9px}
-      #page-scanner #reader{max-height:175px;overflow:hidden}
-      #page-scanner #reader video{height:175px!important;max-height:175px!important;object-fit:cover!important}
+      #page-scanner #readerWrap{height:175px;max-height:175px;overflow:hidden}
+      #page-scanner #reader{height:175px;max-height:175px;overflow:hidden}
+      #page-scanner #reader video{width:100%!important;height:175px!important;max-height:175px!important;object-fit:cover!important}
+      #page-scanner .camera-tools{right:6px;bottom:6px;gap:4px}
+      #page-scanner .camera-tool-btn{min-width:32px;height:32px;min-height:32px;padding:0 8px;font-size:12px}
+      #page-scanner .camera-tool-btn.icon{width:34px;font-size:16px}
+      #page-scanner .camera-zoom-label{min-width:42px;font-size:10px}
       #page-scanner .scan-actions{padding:7px;grid-template-columns:1fr 1fr;gap:7px}
       #page-scanner .scan-main{min-height:40px;font-size:13px;padding:7px 9px}
       #page-scanner .manual-box{padding:0 7px 7px;grid-template-columns:minmax(0,1fr) auto;gap:6px}
@@ -260,7 +272,17 @@
             </div>
             <div class="scan-panel">
               <div class="scanner-head"><div><h2>Leitor de QR Code</h2><div id="scannerState" class="scanner-state">Câmera parada</div></div><span class="pill">QR</span></div>
-              <div id="reader" class="hidden"></div>
+              <div id="readerWrap" class="reader-wrap hidden">
+                <div id="reader"></div>
+                <div id="cameraTools" class="camera-tools hidden" aria-label="Controles da câmera">
+                  <div id="cameraZoomTools" class="camera-zoom-tools hidden">
+                    <button id="cameraZoomOut" class="camera-tool-btn" type="button" aria-label="Diminuir zoom" title="Diminuir zoom">−</button>
+                    <span id="cameraZoomLabel" class="camera-zoom-label">1,0×</span>
+                    <button id="cameraZoomIn" class="camera-tool-btn" type="button" aria-label="Aumentar zoom" title="Aumentar zoom">+</button>
+                  </div>
+                  <button id="cameraTorchBtn" class="camera-tool-btn icon hidden" type="button" aria-label="Ligar lanterna" title="Lanterna">🔦</button>
+                </div>
+              </div>
               <div class="scan-actions">
                 <button id="startScanBtn" class="btn primary scan-main" type="button">📷 Abrir câmera</button>
                 <button id="stopScanBtn" class="btn scan-main" type="button" disabled>■ Fechar câmera</button>
@@ -775,19 +797,75 @@
     }
     function addRecent(result,p){const v=resultVisual(result),unique=result.scan_type==='unique_label'||p?.type==='unique_label';state.recent.unshift({cls:v.cls,type:unique?'unique_label':'nf',label:result.unique_label||p?.uniqueLabel||'',note:result.note||p?.notePadded||'-',vol:result.volume_no??p?.volume??'-',total:result.total_volumes_qr??p?.total??'-',desc:v.title,time:nowTime()});state.recent=state.recent.slice(0,12);$('#recentList').innerHTML=state.recent.map(x=>`<div class="recent-item"><span class="recent-dot ${x.cls}"></span><div class="recent-main"><b>${x.type==='unique_label'?'Etiqueta Única '+esc(x.label):'NF '+esc(x.note)} • Volume ${esc(x.vol)}/${esc(x.total)}</b><small>${esc(x.desc)}</small></div><span class="recent-time">${x.time}</span></div>`).join('')}
 
+    let enhancedCameraTrack=null,enhancedCameraCaps=null,enhancedCameraTorch=false,enhancedCameraZoom=1,enhancedCameraZoomMin=1,enhancedCameraZoomMax=1,enhancedCameraZoomStep=.25;
+    function resetEnhancedCameraUi(){
+      enhancedCameraTrack=null;enhancedCameraCaps=null;enhancedCameraTorch=false;enhancedCameraZoom=1;enhancedCameraZoomMin=1;enhancedCameraZoomMax=1;enhancedCameraZoomStep=.25;
+      $('#cameraTools').classList.add('hidden');$('#cameraZoomTools').classList.add('hidden');$('#cameraTorchBtn').classList.add('hidden');$('#cameraTorchBtn').classList.remove('active');$('#cameraTorchBtn').setAttribute('aria-label','Ligar lanterna');$('#cameraZoomLabel').textContent='1,0×';
+    }
+    function currentCameraTrack(){
+      const video=$('#reader video');return video?.srcObject?.getVideoTracks?.()[0]||null;
+    }
+    async function applyTrackFeature(feature,value){
+      if(!enhancedCameraTrack?.applyConstraints)return false;
+      try{await enhancedCameraTrack.applyConstraints({advanced:[{[feature]:value}]});return true}catch(e){console.debug('Recurso de câmera não aplicado:',feature,e);return false}
+    }
+    async function setupEnhancedCamera(){
+      resetEnhancedCameraUi();
+      // Aguarda o elemento <video> criado pelo html5-qrcode estar associado ao MediaStream.
+      for(let i=0;i<8&&!enhancedCameraTrack;i++){enhancedCameraTrack=currentCameraTrack();if(!enhancedCameraTrack)await new Promise(r=>setTimeout(r,80))}
+      if(!enhancedCameraTrack)return;
+      try{enhancedCameraCaps=enhancedCameraTrack.getCapabilities?.()||{}}catch{enhancedCameraCaps={}}
+      let settings={};try{settings=enhancedCameraTrack.getSettings?.()||{}}catch{}
+
+      // Potencialização automática: foco, exposição e balanço de branco contínuos quando o aparelho oferece suporte.
+      const continuous={};
+      if(Array.isArray(enhancedCameraCaps.focusMode)&&enhancedCameraCaps.focusMode.includes('continuous'))continuous.focusMode='continuous';
+      if(Array.isArray(enhancedCameraCaps.exposureMode)&&enhancedCameraCaps.exposureMode.includes('continuous'))continuous.exposureMode='continuous';
+      if(Array.isArray(enhancedCameraCaps.whiteBalanceMode)&&enhancedCameraCaps.whiteBalanceMode.includes('continuous'))continuous.whiteBalanceMode='continuous';
+      if(Object.keys(continuous).length){try{await enhancedCameraTrack.applyConstraints({advanced:[continuous]})}catch(e){console.debug('Ajustes contínuos da câmera não disponíveis.',e)}}
+
+      const z=enhancedCameraCaps.zoom;
+      if(z&&Number.isFinite(Number(z.min))&&Number.isFinite(Number(z.max))&&Number(z.max)>Number(z.min)){
+        enhancedCameraZoomMin=Number(z.min);enhancedCameraZoomMax=Number(z.max);enhancedCameraZoomStep=Math.max(Number(z.step)||.1,.25);
+        const actual=Number(settings.zoom);enhancedCameraZoom=Number.isFinite(actual)?Math.min(enhancedCameraZoomMax,Math.max(enhancedCameraZoomMin,actual)):Math.max(enhancedCameraZoomMin,1);
+        $('#cameraZoomLabel').textContent=enhancedCameraZoom.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'×';$('#cameraZoomTools').classList.remove('hidden');
+      }
+      if(enhancedCameraCaps.torch===true){$('#cameraTorchBtn').classList.remove('hidden')}
+      if(!$('#cameraZoomTools').classList.contains('hidden')||!$('#cameraTorchBtn').classList.contains('hidden'))$('#cameraTools').classList.remove('hidden');
+    }
+    async function changeCameraZoom(direction){
+      if(!enhancedCameraTrack||!enhancedCameraCaps?.zoom)return;
+      const next=Math.min(enhancedCameraZoomMax,Math.max(enhancedCameraZoomMin,enhancedCameraZoom+direction*enhancedCameraZoomStep));
+      if(Math.abs(next-enhancedCameraZoom)<.001)return;
+      if(await applyTrackFeature('zoom',next)){enhancedCameraZoom=next;$('#cameraZoomLabel').textContent=enhancedCameraZoom.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'×'}
+    }
+    async function toggleCameraTorch(){
+      if(!enhancedCameraTrack||enhancedCameraCaps?.torch!==true)return;
+      const next=!enhancedCameraTorch;if(await applyTrackFeature('torch',next)){enhancedCameraTorch=next;$('#cameraTorchBtn').classList.toggle('active',next);$('#cameraTorchBtn').setAttribute('aria-label',next?'Desligar lanterna':'Ligar lanterna')}
+    }
+
     async function startScanner(){
       if(!$('#locationSelect').value){toast('Selecione o local antes de abrir a câmera.','warn');return}
       if(!window.Html5Qrcode){toast('Leitor de câmera não carregou. Use a entrada manual.','bad');return}
       unlockScanAudio();
-      if(state.scannerRunning)return;$('#reader').classList.remove('hidden');state.scanner=new Html5Qrcode('reader');
+      if(state.scannerRunning)return;resetEnhancedCameraUi();$('#readerWrap').classList.remove('hidden');
+      const ctorCfg=window.Html5QrcodeSupportedFormats?{formatsToSupport:[window.Html5QrcodeSupportedFormats.QR_CODE]}:undefined;
+      state.scanner=ctorCfg?new Html5Qrcode('reader',ctorCfg):new Html5Qrcode('reader');
       try{
-        // Sem qrbox: o html5-qrcode utiliza toda a área do vídeo para detectar o QR.
-        // O tamanho visual da câmera continua controlado pelo CSS (175 px no celular).
-        await state.scanner.start({facingMode:'environment'},{fps:12,aspectRatio:1.0},async decoded=>{if(state._scanLock)return;state._scanLock=true;await processCode(decoded);setTimeout(()=>state._scanLock=false,2200)},()=>{});
-        state.scannerRunning=true;$('#startScanBtn').disabled=true;$('#stopScanBtn').disabled=false;$('#scannerState').textContent='Câmera ativa';
-      }catch(e){$('#reader').classList.add('hidden');state.scanner=null;toast('Não foi possível abrir a câmera. Verifique permissão e HTTPS.','bad')}
+        // Mantém toda a área visível como área de captura (sem qrbox), mas solicita ao celular
+        // uma imagem interna de alta resolução para aumentar o detalhe disponível ao decodificador.
+        const cameraConstraints={facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30}};
+        const scanConfig={fps:15,disableFlip:true,experimentalFeatures:{useBarCodeDetectorIfSupported:true}};
+        await state.scanner.start(cameraConstraints,scanConfig,async decoded=>{if(state._scanLock)return;state._scanLock=true;await processCode(decoded);setTimeout(()=>state._scanLock=false,2200)},()=>{});
+        state.scannerRunning=true;$('#startScanBtn').disabled=true;$('#stopScanBtn').disabled=false;$('#scannerState').textContent='Câmera ativa • leitura reforçada';
+        await setupEnhancedCamera();
+      }catch(e){$('#readerWrap').classList.add('hidden');resetEnhancedCameraUi();state.scanner=null;toast('Não foi possível abrir a câmera. Verifique permissão e HTTPS.','bad')}
     }
-    async function stopScanner(){if(state.scanner&&state.scannerRunning){try{await state.scanner.stop();await state.scanner.clear()}catch{} }state.scanner=null;state.scannerRunning=false;$('#reader').classList.add('hidden');$('#startScanBtn').disabled=false;$('#stopScanBtn').disabled=true;$('#scannerState').textContent='Câmera parada'}
+    async function stopScanner(){
+      if(enhancedCameraTrack&&enhancedCameraTorch){try{await applyTrackFeature('torch',false)}catch{}}
+      if(state.scanner&&state.scannerRunning){try{await state.scanner.stop();await state.scanner.clear()}catch{}}
+      state.scanner=null;state.scannerRunning=false;resetEnhancedCameraUi();$('#readerWrap').classList.add('hidden');$('#startScanBtn').disabled=false;$('#stopScanBtn').disabled=true;$('#scannerState').textContent='Câmera parada';
+    }
 
     function demoSummary(){
       const directOk=new Map(state.demoItems.map(i=>[i.id,0]));state.demoScans.filter(s=>s.status==='ok'&&s.item_id).forEach(s=>directOk.set(s.item_id,(directOk.get(s.item_id)||0)+1));
@@ -1089,6 +1167,7 @@
     $('#openUsersAdminBtn').addEventListener('click',()=>navigate('users'));$('#refreshUsersBtn').addEventListener('click',loadUsers);$('#usersReloadBtn').addEventListener('click',loadUsers);$('#usersSearch').addEventListener('input',applyUsersFilters);$('#usersStatusFilter').addEventListener('change',applyUsersFilters);
     $('#createUserForm').addEventListener('submit',e=>{e.preventDefault();createManagedUser()});$('#editUserForm').addEventListener('submit',e=>{e.preventDefault();saveManagedUser()});$('#deleteUserBtn').addEventListener('click',deleteManagedUser);$('#userEditClose').addEventListener('click',()=>$('#userEditModal').classList.add('hidden'));$('#userEditModal').addEventListener('click',e=>{if(e.target.id==='userEditModal')$('#userEditModal').classList.add('hidden')});$('#usersBody').addEventListener('click',e=>{const edit=e.target.closest('.user-edit-btn');if(edit)return openUserEdit(edit.dataset.userId);const tog=e.target.closest('.user-toggle-btn');if(tog&&!tog.disabled)toggleManagedUser(tog.dataset.userId,tog.dataset.userActive==='true')});
     $('#locationSelect').addEventListener('change',e=>localStorage.setItem('inventory_location',e.target.value));$('#startScanBtn').addEventListener('click',startScanner);$('#stopScanBtn').addEventListener('click',stopScanner);
+    $('#cameraZoomOut').addEventListener('click',()=>changeCameraZoom(-1));$('#cameraZoomIn').addEventListener('click',()=>changeCameraZoom(1));$('#cameraTorchBtn').addEventListener('click',toggleCameraTorch);
     $('#scanResult').addEventListener('click',e=>{if(e.target.closest('.scan-result-close'))$('#scanResult').classList.add('hidden')});
     $('#manualSubmit').addEventListener('click',()=>{unlockScanAudio();const v=$('#manualCode').value.trim();if(v){processCode(v);$('#manualCode').value=''}});$('#manualCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#manualSubmit').click()}});
     $('#refreshDashboard').addEventListener('click',refreshDashboard);$('#pendingNotesBtn').addEventListener('click',loadPendingNotes);$('#createInventoryBtn').addEventListener('click',createInventory);$('#saveInventoryTypeBtn').addEventListener('click',saveInventoryType);$('#closeInventoryBtn').addEventListener('click',closeInventory);
