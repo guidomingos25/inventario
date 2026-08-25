@@ -140,9 +140,11 @@
     .scan-feedback.ok .scan-feedback-card{background:#15803d}.scan-feedback.warn .scan-feedback-card{background:#b45309}.scan-feedback.bad .scan-feedback-card{background:#b91c1c}
     .scan-feedback-icon{font-size:46px;line-height:1;margin-bottom:9px;font-weight:900}.scan-feedback-title{font-size:30px;line-height:1.08;font-weight:1000;letter-spacing:.25px;text-transform:uppercase}
     .scan-feedback-detail{margin-top:12px;font-size:17px;font-weight:800;line-height:1.35;opacity:.98}
-    .scan-missing{margin-top:10px;border-radius:13px;padding:10px 12px;background:rgba(255,255,255,.72);border:1px solid rgba(0,0,0,.08)}
-    .scan-missing span{display:block;font-size:10px;text-transform:uppercase;font-weight:900;letter-spacing:.45px;color:#4b5563;margin-bottom:3px}
-    .scan-missing b{display:block;font-size:14px;line-height:1.35;overflow-wrap:anywhere}
+    .scan-info-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(118px,1fr);gap:8px;margin-top:10px}
+    .scan-missing,.scan-storage{margin-top:0;border-radius:13px;padding:10px 12px;background:rgba(255,255,255,.72);border:1px solid rgba(0,0,0,.08);min-width:0}
+    .scan-missing span,.scan-storage span{display:block;font-size:10px;text-transform:uppercase;font-weight:900;letter-spacing:.45px;color:#4b5563;margin-bottom:3px}
+    .scan-missing b,.scan-storage b{display:block;font-size:14px;line-height:1.35;overflow-wrap:anywhere}
+    .scan-storage b.stored{color:#166534}.scan-storage b.not-stored{color:#991b1b}
     .scan-critical-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
     .scan-critical{background:rgba(255,255,255,.62);border:1px solid rgba(0,0,0,.07);border-radius:11px;padding:8px;min-width:0}
     .scan-critical span{display:block;font-size:9px;text-transform:uppercase;color:#6b7280;font-weight:900;letter-spacing:.35px}
@@ -197,8 +199,9 @@
       #scanResult .nf-progress{margin-top:8px;padding-top:8px}
       #scanResult .nf-progress strong{font-size:19px}
       #scanResult .progress{height:7px}
-      #scanResult .scan-missing{margin-top:7px;padding:7px 9px}
-      #scanResult .scan-missing b{font-size:12px}
+      #scanResult .scan-info-row{margin-top:7px;gap:5px;grid-template-columns:minmax(0,2fr) minmax(106px,1fr)}
+      #scanResult .scan-missing,#scanResult .scan-storage{padding:7px 9px}
+      #scanResult .scan-missing b,#scanResult .scan-storage b{font-size:12px}
       #scanResult .scan-critical-grid{margin-top:7px;gap:5px}
       #scanResult .scan-critical{padding:6px}
       #scanResult .scan-critical b{font-size:11px}
@@ -487,6 +490,7 @@
       if(validContext){const missing=missingVolumeText(result,p,true);if(missing)first+=' '+missing+'.'}
       else if(result.result==='divergent_not_in_report')first+=' Não consta no relatório.';
       else if(result.message)first+=' '+result.message;
+      if(result.storage_status)first+=' '+result.storage_status+'.';
       return first;
     }
     function showScanFeedback(result,p){const v=resultVisual(result),el=$('#scanFeedback');clearTimeout(scanFeedbackTimer);$('#scanFeedbackIcon').textContent=v.icon;$('#scanFeedbackTitle').textContent=v.title;$('#scanFeedbackDetail').textContent=feedbackDetail(result,p);el.className='scan-feedback '+v.cls+' show';playScanSound(v.cls);scanFeedbackTimer=setTimeout(()=>el.classList.remove('show'),2200)}
@@ -671,7 +675,7 @@
         }
         let item=null,scans=[];
         if(configured){
-          const {data:itemData,error:itemError}=await db.from('inventory_items').select('id,note,note_padded,expected_volumes,supplier,client,recipient,destination,destination_uf,warehouse,merchandise,oef,collection').eq('inventory_id',state.inventory.id).eq('note_padded',p.notePadded).eq('series',p.series).eq('cnpj_supplier',p.cnpj).eq('collection_padded',p.collectionPadded).limit(1).maybeSingle();
+          const {data:itemData,error:itemError}=await db.from('inventory_items').select('id,note,note_padded,expected_volumes,supplier,client,recipient,destination,destination_uf,warehouse,wms_address,merchandise,oef,collection').eq('inventory_id',state.inventory.id).eq('note_padded',p.notePadded).eq('series',p.series).eq('cnpj_supplier',p.cnpj).eq('collection_padded',p.collectionPadded).limit(1).maybeSingle();
           if(!itemError&&itemData)item=itemData;
           if(item){
             const {data:scanData,error:scanError}=await db.from('inventory_scans').select('volume_no,status').eq('inventory_id',state.inventory.id).eq('item_id',item.id);
@@ -690,6 +694,8 @@
           out.destination=out.destination||item.destination||'';
           out.destination_uf=out.destination_uf||item.destination_uf||'';
           out.warehouse=out.warehouse||item.warehouse||'';
+          out.wms_address=String(out.wms_address??item.wms_address??'').trim();
+          out.storage_status=out.wms_address?'Armazenado':'Não armazenado';
           out.merchandise=out.merchandise||item.merchandise||'';
           out.oef=out.oef||item.oef||item.collection||'';
           setMissing(out.expected_volumes,scans);
@@ -705,7 +711,7 @@
       const item=state.demoItems.find(x=>x.lookupKey===p.lookupKey);let status='ok';if(!item)status='divergent_not_in_report';else if(p.volume<1||p.volume>item.expected_volumes)status='divergent_volume_out_of_range';else if(p.total!==item.expected_volumes)status='divergent_total_mismatch';
       const scan={id:'scan-'+Date.now()+'-'+Math.random().toString(36).slice(2),scan_type:'nf',canonical_volume_key:p.canonicalVolumeKey,item_id:item?.id||null,status,user_id:state.profile.id,user_name:state.profile.name,location_id:locationId,location:loc?.name||'',scanned_at:new Date().toISOString(),raw_code:p.raw,note_padded:p.notePadded,series:p.series,cnpj_supplier:p.cnpj,collection_padded:p.collectionPadded,item_code:p.item,volume_no:p.volume,total_volumes_qr:p.total};state.demoScans.push(scan);state.demoAttempts.push({id:Date.now(),result:status,user_id:state.profile.id,location_id:locationId,attempted_at:new Date().toISOString(),canonical_volume_key:p.canonicalVolumeKey,raw_code:p.raw});saveDemo();
       const count=item?state.demoScans.filter(s=>s.item_id===item.id&&s.status==='ok').length:0;
-      return {result:status,scan_type:'nf',note:item?.note||p.notePadded,note_padded:p.notePadded,supplier:item?.supplier||'',client:item?.client||'',recipient:item?.recipient||'',destination:item?.destination||'',destination_uf:item?.destination_uf||'',warehouse:item?.warehouse||'',merchandise:item?.merchandise||'',order_number:item?.order_number||'',oef:item?.oef||'',expected_volumes:item?.expected_volumes||null,scanned_volumes:count,nf_complete:Boolean(item&&count===item.expected_volumes),volume_no:p.volume,total_volumes_qr:p.total,location:loc?.name||''};
+      return {result:status,scan_type:'nf',note:item?.note||p.notePadded,note_padded:p.notePadded,supplier:item?.supplier||'',client:item?.client||'',recipient:item?.recipient||'',destination:item?.destination||'',destination_uf:item?.destination_uf||'',warehouse:item?.warehouse||'',wms_address:item?.wms_address||'',storage_status:String(item?.wms_address||'').trim()?'Armazenado':'Não armazenado',merchandise:item?.merchandise||'',order_number:item?.order_number||'',oef:item?.oef||'',expected_volumes:item?.expected_volumes||null,scanned_volumes:count,nf_complete:Boolean(item&&count===item.expected_volumes),volume_no:p.volume,total_volumes_qr:p.total,location:loc?.name||''};
     }
     function registerDemoUniqueLabelScan(p,locationId){
       const existing=state.demoUniqueScans.find(s=>s.canonical_volume_key===p.canonicalVolumeKey),loc=state.locations.find(l=>l.id===locationId);
@@ -750,6 +756,8 @@
       const volumeText=`${result.volume_no??p?.volume??'-'} / ${result.total_volumes_qr??p?.total??'-'}`;
       const progressBlock=expected>0?`<div class="nf-progress"><div class="nf-progress-row"><div><span class="kpi-label">${unique?'Etiqueta Única '+esc(result.unique_label||p?.uniqueLabel||'-'):'NF '+esc(result.note||p?.notePadded||'-')}</span><br><strong>${scanned}/${expected}</strong></div><b>${progress}%</b></div><div class="progress" style="margin-top:6px"><span style="width:${progress}%"></span></div></div>`:'';
       const missingBlock=missingText?`<div class="scan-missing"><span>Volumes pendentes</span><b>${esc(missingText)}</b></div>`:'';
+      const storageBlock=result.storage_status?`<div class="scan-storage"><span>Armazenamento</span><b class="${result.storage_status==='Armazenado'?'stored':'not-stored'}">${esc(result.storage_status)}</b></div>`:'';
+      const infoRow=(!unique&&(missingBlock||storageBlock))?`<div class="scan-info-row">${missingBlock}${storageBlock}</div>`:missingBlock;
       if(unique){
         const label=esc(result.unique_label||p?.uniqueLabel||'-');
         el.innerHTML=`<button class="scan-result-close" type="button" aria-label="Fechar resultado" title="Fechar">×</button><div class="result-top"><div class="status-icon">${v.icon}</div><div><p class="result-title">${v.title}</p><p class="result-message">${esc(v.msg)}</p></div></div>
@@ -760,7 +768,7 @@
       }
       const note=esc(result.note||p?.notePadded||'-');
       el.innerHTML=`<button class="scan-result-close" type="button" aria-label="Fechar resultado" title="Fechar">×</button><div class="result-top"><div class="status-icon">${v.icon}</div><div><p class="result-title">${v.title}</p><p class="result-message">${esc(v.msg)}</p></div></div>
-      ${progressBlock}${missingBlock}
+      ${progressBlock}${infoRow}
       <div class="scan-critical-grid"><div class="scan-critical"><span>NF</span><b>${note}</b></div><div class="scan-critical"><span>Volume lido</span><b>${esc(volumeText)}</b></div><div class="scan-critical"><span>Local</span><b>${esc(result.location||result.existing_location||'-')}</b></div></div>
       <div class="detail-grid scan-secondary-details"><div class="detail"><span>Fornecedor</span><b>${esc(result.supplier||'-')}</b></div><div class="detail"><span>Cliente</span><b>${esc(result.client||'-')}</b></div><div class="detail"><span>Destino</span><b>${esc([result.destination,result.destination_uf].filter(Boolean).join(' - ')||'-')}</b></div><div class="detail"><span>OEF / Coleta</span><b>${esc(result.oef||p?.collection||'-')}</b></div><div class="detail"><span>Mercadoria</span><b>${esc(result.merchandise||'-')}</b></div><div class="detail"><span>Conferente</span><b>${esc(result.existing_user||state.profile?.name||'-')}</b></div></div>
       ${p?.warnings?.length?`<div class="notice warn">${esc(p.warnings.join(' '))}</div>`:''}`;
