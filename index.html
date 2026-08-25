@@ -89,18 +89,13 @@
     .reader-wrap{position:relative;width:100%;background:#0b1020;overflow:hidden}
     #reader{width:100%;background:#0b1020;min-height:0}
     #reader video{border-radius:0!important}
+    .scan-guide{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;width:min(72%,460px);aspect-ratio:2.2/1;border:2px solid rgba(255,255,255,.95);border-radius:10px;box-shadow:0 0 0 1px rgba(15,23,42,.28),0 4px 16px rgba(0,0,0,.18);pointer-events:none}
     .camera-tools{position:absolute;right:8px;bottom:8px;z-index:8;display:flex;align-items:center;gap:5px;pointer-events:auto}
     .camera-zoom-tools{display:flex;align-items:center;gap:4px;background:rgba(15,23,42,.68);backdrop-filter:blur(4px);border-radius:999px;padding:4px}
     .camera-tool-btn{border:1px solid rgba(255,255,255,.22);background:rgba(15,23,42,.76);color:#fff;border-radius:999px;min-width:34px;height:34px;min-height:34px;padding:0 9px;font-size:13px;font-weight:900;display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.22)}
     .camera-tool-btn.icon{width:36px;padding:0;font-size:17px}
     .camera-tool-btn.active{background:#f59e0b;color:#111827;border-color:#fbbf24}
     .camera-zoom-label{min-width:46px;text-align:center;color:#fff;font-size:11px;font-weight:900}
-    .scan-guide{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;width:min(78%,500px);aspect-ratio:2.25/1;border:2px solid rgba(255,255,255,.92);border-radius:12px;box-shadow:0 0 0 1px rgba(15,23,42,.24),0 4px 18px rgba(0,0,0,.16);pointer-events:none}
-    .scan-guide::before,.scan-guide::after{content:'';position:absolute;width:26px;height:26px;border-color:#60a5fa;border-style:solid}
-    .scan-guide::before{left:-3px;top:-3px;border-width:4px 0 0 4px;border-radius:11px 0 0 0}.scan-guide::after{right:-3px;bottom:-3px;border-width:0 4px 4px 0;border-radius:0 0 11px 0}
-    .scan-guide-label{position:absolute;left:50%;top:7px;transform:translateX(-50%);max-width:90%;padding:4px 8px;border-radius:999px;background:rgba(15,23,42,.68);color:#fff;font-size:10px;font-weight:900;line-height:1.2;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .scan-orientation-hint{position:absolute;left:8px;bottom:8px;z-index:7;max-width:calc(100% - 155px);padding:7px 10px;border-radius:11px;background:rgba(15,23,42,.82);color:#fff;font-size:11px;font-weight:900;line-height:1.25;box-shadow:0 5px 18px rgba(0,0,0,.24);opacity:0;visibility:hidden;transform:translateY(5px);transition:opacity .18s ease,transform .18s ease,visibility .18s ease;pointer-events:none}
-    .scan-orientation-hint.show{opacity:1;visibility:visible;transform:translateY(0)}
     .scan-actions{padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid var(--line)}
     .scan-main{min-height:56px;font-size:17px}
     .manual-box{padding:0 14px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
@@ -194,14 +189,10 @@
       #page-scanner .scanner-head{padding:7px 10px 6px}
       #page-scanner .scanner-head h2{font-size:14px}
       #page-scanner .scanner-state{font-size:9px}
-      /* Câmera compacta: margem superior da moldura acompanha visualmente a margem lateral.
-         A faixa inferior fica reservada somente para zoom/lanterna. */
-      #page-scanner #readerWrap{height:calc(45.333vw + 34px);overflow:hidden}
-      #page-scanner #reader{position:absolute;inset:0;width:100%;height:100%;overflow:hidden}
-      #page-scanner #reader video{width:100%!important;height:100%!important;max-height:none!important;object-fit:cover!important}
-      #page-scanner .scan-guide{width:84%;aspect-ratio:2.25/1;top:calc(8vw - 2px);transform:translateX(-50%)}
-      #page-scanner .scan-guide-label{font-size:9px;padding:4px 7px}
-      #page-scanner .camera-tools{left:50%;right:auto;bottom:5px;transform:translateX(-50%);gap:4px}
+      #page-scanner #readerWrap{height:175px;max-height:175px;overflow:hidden}
+      #page-scanner #reader{height:175px;max-height:175px;overflow:hidden}
+      #page-scanner #reader video{width:100%!important;height:175px!important;max-height:175px!important;object-fit:cover!important}
+      #page-scanner .camera-tools{right:6px;bottom:6px;gap:4px}
       #page-scanner .camera-tool-btn{min-width:32px;height:32px;min-height:32px;padding:0 8px;font-size:12px}
       #page-scanner .camera-tool-btn.icon{width:34px;font-size:16px}
       #page-scanner .camera-zoom-label{min-width:42px;font-size:10px}
@@ -229,30 +220,6 @@
       #scanResult .scan-critical b{font-size:11px}
       #scanResult .scan-secondary-details{display:none}
       .scan-feedback-card{padding:24px 15px;border-radius:22px}.scan-feedback-icon{font-size:40px}.scan-feedback-title{font-size:24px}.scan-feedback-detail{font-size:15px;margin-top:9px}
-    }
-    @media(max-width:900px) and (orientation:landscape) and (max-height:600px){
-      #page-scanner .scanner-shell{max-width:100%}
-      #page-scanner .inventory-strip{gap:5px;margin-bottom:5px}
-      #page-scanner .inventory-strip .pill{padding:4px 7px;font-size:9px}
-      #page-scanner .location-card{padding:6px 9px;margin-bottom:5px;border-radius:10px}
-      #page-scanner .location-card label{font-size:9px;margin-bottom:3px}
-      #page-scanner .location-card select{min-height:34px;padding:5px 8px;font-size:13px;border-radius:8px}
-      #page-scanner .scan-panel{border-radius:12px}
-      #page-scanner .scanner-head{padding:5px 9px 4px}
-      #page-scanner .scanner-head h2{font-size:13px}
-      #page-scanner .scanner-state{font-size:8px}
-      #page-scanner #readerWrap{height:min(56vh,250px);max-height:250px;overflow:hidden}
-      #page-scanner #reader{height:min(56vh,250px);max-height:250px;overflow:hidden}
-      #page-scanner #reader video{width:100%!important;height:min(56vh,250px)!important;max-height:250px!important;object-fit:cover!important}
-      #page-scanner .scan-guide{width:auto;height:78%;aspect-ratio:1/1.8}
-      #page-scanner .scan-guide-label{top:5px;font-size:9px;white-space:normal;min-width:110px}
-      #page-scanner .scan-actions{padding:5px;grid-template-columns:1fr 1fr;gap:5px}
-      #page-scanner .scan-main{min-height:35px;font-size:12px;padding:5px 8px}
-      #page-scanner .manual-box{padding:0 5px 5px;grid-template-columns:minmax(0,1fr) auto;gap:5px}
-      #page-scanner .manual-box input{min-height:34px;padding:5px 8px;font-size:12px}
-      #page-scanner .manual-box .btn{min-height:34px;padding:5px 9px;font-size:11px}
-      #page-scanner .camera-tools{right:6px;bottom:6px}
-      #page-scanner .scan-orientation-hint{display:none!important}
     }
   </style>
 </head>
@@ -308,7 +275,7 @@
               <div class="scanner-head"><div><h2>Leitor de QR Code</h2><div id="scannerState" class="scanner-state">Câmera parada</div></div><span class="pill">QR</span></div>
               <div id="readerWrap" class="reader-wrap hidden">
                 <div id="reader"></div>
-                <div id="scanGuide" class="scan-guide" aria-hidden="true"><span class="scan-guide-label">Aproxime o código até preencher a moldura</span></div>
+                <div class="scan-guide" aria-hidden="true"></div>
                 <div id="cameraTools" class="camera-tools hidden" aria-label="Controles da câmera">
                   <div id="cameraZoomTools" class="camera-zoom-tools hidden">
                     <button id="cameraZoomOut" class="camera-tool-btn" type="button" aria-label="Diminuir zoom" title="Diminuir zoom">−</button>
@@ -833,25 +800,6 @@
     }
     function addRecent(result,p){const v=resultVisual(result),unique=result.scan_type==='unique_label'||p?.type==='unique_label';state.recent.unshift({cls:v.cls,type:unique?'unique_label':'nf',label:result.unique_label||p?.uniqueLabel||'',note:result.note||p?.notePadded||'-',vol:result.volume_no??p?.volume??'-',total:result.total_volumes_qr??p?.total??'-',desc:v.title,time:nowTime()});state.recent=state.recent.slice(0,12);$('#recentList').innerHTML=state.recent.map(x=>`<div class="recent-item"><span class="recent-dot ${x.cls}"></span><div class="recent-main"><b>${x.type==='unique_label'?'Etiqueta Única '+esc(x.label):'NF '+esc(x.note)} • Volume ${esc(x.vol)}/${esc(x.total)}</b><small>${esc(x.desc)}</small></div><span class="recent-time">${x.time}</span></div>`).join('')}
 
-    let scannerDifficultyTimer=null,scannerLastRecognitionAt=0;
-    function scannerIsPortrait(){try{return window.matchMedia?window.matchMedia('(orientation: portrait)').matches:innerHeight>=innerWidth}catch{return innerHeight>=innerWidth}}
-    function hideScannerRotateHint(){const el=$('#scannerRotateHint');if(el)el.classList.remove('show')}
-    function clearScannerDifficultyHint(){if(scannerDifficultyTimer){clearTimeout(scannerDifficultyTimer);scannerDifficultyTimer=null}hideScannerRotateHint()}
-    function scheduleScannerDifficultyHint(delay=1900){
-      if(scannerDifficultyTimer)clearTimeout(scannerDifficultyTimer);hideScannerRotateHint();
-      if(!state.scannerRunning||!scannerIsPortrait())return;
-      scannerDifficultyTimer=setTimeout(()=>{
-        scannerDifficultyTimer=null;
-        if(state.scannerRunning&&scannerIsPortrait()&&Date.now()-scannerLastRecognitionAt>=delay){const el=$('#scannerRotateHint');if(el)el.classList.add('show')}
-      },delay);
-    }
-    function markScannerRecognition(){scannerLastRecognitionAt=Date.now();hideScannerRotateHint();if(scannerDifficultyTimer){clearTimeout(scannerDifficultyTimer);scannerDifficultyTimer=null}if(state.scannerRunning)scheduleScannerDifficultyHint(3000)}
-    function updateScannerOrientationUi(){
-      const wrap=$('#readerWrap');if(!wrap)return;const portrait=scannerIsPortrait();wrap.classList.toggle('orientation-portrait',portrait);wrap.classList.toggle('orientation-landscape',!portrait);
-      if(!portrait)clearScannerDifficultyHint();else if(state.scannerRunning)scheduleScannerDifficultyHint(1900);
-    }
-    addEventListener('orientationchange',()=>setTimeout(updateScannerOrientationUi,120));addEventListener('resize',()=>{if(state.scannerRunning)updateScannerOrientationUi()});
-
     let enhancedCameraTrack=null,enhancedCameraCaps=null,enhancedCameraTorch=false,enhancedCameraZoom=1,enhancedCameraZoomMin=1,enhancedCameraZoomMax=1,enhancedCameraZoomStep=.25;
     function resetEnhancedCameraUi(){
       enhancedCameraTrack=null;enhancedCameraCaps=null;enhancedCameraTorch=false;enhancedCameraZoom=1;enhancedCameraZoomMin=1;enhancedCameraZoomMax=1;enhancedCameraZoomStep=.25;
@@ -950,7 +898,7 @@
           if(!found?.data){const enhanced=reinforcedGrayContrast(frame.data,1.55);found=tryJsQrPixels(enhanced,w,h)}
         }
         if(found?.data&&!state._scanLock){
-          state._scanLock=true;markScannerRecognition();
+          state._scanLock=true;
           await processCode(found.data);
           setTimeout(()=>state._scanLock=false,2200);
         }
@@ -969,8 +917,8 @@
       if(!window.Html5Qrcode){toast('Leitor de câmera não carregou. Use a entrada manual.','bad');return}
       unlockScanAudio();
       if(state.scannerRunning)return;
-      resetEnhancedCameraUi();clearScannerDifficultyHint();scannerLastRecognitionAt=0;
-      $('#readerWrap').classList.remove('hidden');updateScannerOrientationUi();
+      resetEnhancedCameraUi();
+      $('#readerWrap').classList.remove('hidden');
       // IMPORTANTE: usa exatamente o decoder/configuração que já estava comprovadamente lendo os QRs.
       // Sem formatsToSupport, BarcodeDetector experimental, disableFlip ou resolução forçada.
       state.scanner=new Html5Qrcode('reader');
@@ -978,13 +926,12 @@
         await state.scanner.start(
           {facingMode:'environment'},
           {fps:12,aspectRatio:1.0},
-          async decoded=>{if(state._scanLock)return;state._scanLock=true;markScannerRecognition();await processCode(decoded);setTimeout(()=>state._scanLock=false,2200)},
+          async decoded=>{if(state._scanLock)return;state._scanLock=true;await processCode(decoded);setTimeout(()=>state._scanLock=false,2200)},
           ()=>{}
         );
         state.scannerRunning=true;
         $('#startScanBtn').disabled=true;$('#stopScanBtn').disabled=false;
         $('#scannerState').textContent='Câmera ativa • leitura otimizada';
-        scannerLastRecognitionAt=Date.now();updateScannerOrientationUi();scheduleScannerDifficultyHint(1900);
         // Recursos extras são aplicados depois da câmera abrir e não alteram o motor de decodificação.
         try{await setupEnhancedCamera()}catch(e){console.debug('Recursos extras da câmera indisponíveis.',e)}
         // Mantém o leitor principal intacto e adiciona um segundo caminho de software somente como fallback.
@@ -992,7 +939,7 @@
       }catch(e){
         console.error('Não foi possível iniciar a câmera.',e);
         try{await state.scanner?.clear()}catch{}
-        state.scanner=null;resetEnhancedCameraUi();clearScannerDifficultyHint();$('#readerWrap').classList.add('hidden');
+        state.scanner=null;resetEnhancedCameraUi();$('#readerWrap').classList.add('hidden');
         toast('Não foi possível abrir a câmera. Verifique a permissão da câmera no navegador.','bad');
       }
     }
@@ -1000,7 +947,7 @@
       stopReinforcedReader();
       if(enhancedCameraTrack&&enhancedCameraTorch){try{await applyTrackFeature('torch',false)}catch{}}
       if(state.scanner&&state.scannerRunning){try{await state.scanner.stop();await state.scanner.clear()}catch{}}
-      state.scanner=null;state.scannerRunning=false;resetEnhancedCameraUi();clearScannerDifficultyHint();$('#readerWrap').classList.add('hidden');$('#startScanBtn').disabled=false;$('#stopScanBtn').disabled=true;$('#scannerState').textContent='Câmera parada';
+      state.scanner=null;state.scannerRunning=false;resetEnhancedCameraUi();$('#readerWrap').classList.add('hidden');$('#startScanBtn').disabled=false;$('#stopScanBtn').disabled=true;$('#scannerState').textContent='Câmera parada';
     }
 
     function demoSummary(){
