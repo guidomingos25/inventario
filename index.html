@@ -194,12 +194,14 @@
       #page-scanner .scanner-head{padding:7px 10px 6px}
       #page-scanner .scanner-head h2{font-size:14px}
       #page-scanner .scanner-state{font-size:9px}
-      #page-scanner #readerWrap{height:300px;max-height:300px;overflow:hidden}
-      #page-scanner #reader{height:300px;max-height:300px;overflow:hidden}
-      #page-scanner #reader video{width:100%!important;height:300px!important;max-height:300px!important;object-fit:cover!important}
-      #page-scanner .scan-guide{width:84%;aspect-ratio:2.25/1}
+      /* Câmera compacta: margem superior da moldura acompanha visualmente a margem lateral.
+         A faixa inferior fica reservada somente para zoom/lanterna. */
+      #page-scanner #readerWrap{height:calc(45.333vw + 34px);overflow:hidden}
+      #page-scanner #reader{position:absolute;inset:0;width:100%;height:100%;overflow:hidden}
+      #page-scanner #reader video{width:100%!important;height:100%!important;max-height:none!important;object-fit:cover!important}
+      #page-scanner .scan-guide{width:84%;aspect-ratio:2.25/1;top:calc(8vw - 2px);transform:translateX(-50%)}
       #page-scanner .scan-guide-label{font-size:9px;padding:4px 7px}
-      #page-scanner .camera-tools{right:6px;bottom:6px;gap:4px}
+      #page-scanner .camera-tools{left:50%;right:auto;bottom:5px;transform:translateX(-50%);gap:4px}
       #page-scanner .camera-tool-btn{min-width:32px;height:32px;min-height:32px;padding:0 8px;font-size:12px}
       #page-scanner .camera-tool-btn.icon{width:34px;font-size:16px}
       #page-scanner .camera-zoom-label{min-width:42px;font-size:10px}
@@ -307,7 +309,6 @@
               <div id="readerWrap" class="reader-wrap hidden">
                 <div id="reader"></div>
                 <div id="scanGuide" class="scan-guide" aria-hidden="true"><span class="scan-guide-label">Aproxime o código até preencher a moldura</span></div>
-                <div id="scannerRotateHint" class="scan-orientation-hint" aria-hidden="true">↻ Leitura difícil? Gire o celular para horizontal</div>
                 <div id="cameraTools" class="camera-tools hidden" aria-label="Controles da câmera">
                   <div id="cameraZoomTools" class="camera-zoom-tools hidden">
                     <button id="cameraZoomOut" class="camera-tool-btn" type="button" aria-label="Diminuir zoom" title="Diminuir zoom">−</button>
