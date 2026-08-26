@@ -1127,6 +1127,13 @@
       m=raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/);if(m)return `${String(Number(m[3])).padStart(2,'0')}/${String(Number(m[2])).padStart(2,'0')}/${m[1].slice(-2)}`;
       const d=new Date(raw);if(!Number.isNaN(d.getTime()))return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'});return raw;
     }
+    function pdfDeliveryDate(value){
+      if(value===null||value===undefined||String(value).trim()==='')return '';
+      const raw=String(value).trim();let m=raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})(?:\s+.*)?$/);
+      if(m){let a=Number(m[1]),b=Number(m[2]),y=Number(m[3]);if(y<100)y+=y>=70?1900:2000;let day=a,month=b;if(b>12&&a<=12){day=b;month=a}if(day>=1&&day<=31&&month>=1&&month<=12)return `${String(day).padStart(2,'0')}/${String(month).padStart(2,'0')}/${String(y).padStart(4,'0')}`}
+      m=raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/);if(m)return `${String(Number(m[3])).padStart(2,'0')}/${String(Number(m[2])).padStart(2,'0')}/${m[1]}`;
+      const d=new Date(raw);if(!Number.isNaN(d.getTime()))return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});return raw;
+    }
     function pdfVocativo(row){return pdfText(row.item?.warehouse||'')||'SEM VOCATIVO'}
     function pdfBp(row){return pdfText(pdfRaw(row.item,'BP Destino',''))||'-'}
     function pdfRowData(row){
@@ -1150,7 +1157,7 @@
         pdfText(pdfRaw(i,'Almoxarifado',i.warehouse||'')),
         pdfText(pdfRaw(i,'Mercadoria',i.merchandise||'')),
         pdfDate(pdfRaw(i,'Dt Limite Embarque','')),
-        pdfDate(pdfRaw(i,'Dt Final Entrega','')),
+        pdfDeliveryDate(pdfRaw(i,'Dt Final Entrega','')),
         pdfDate(pdfRaw(i,'Data Inventario','')),
         pdfText(pdfRaw(i,'End. WMS',i.wms_address||''))
       ];
@@ -1163,7 +1170,7 @@
       try{
         const doc=new jsPDFCtor({orientation:'landscape',unit:'mm',format:'a4',compress:true});
         if(typeof doc.autoTable!=='function')throw new Error('Componente de tabela PDF não carregado.');
-        const pageW=doc.internal.pageSize.getWidth(),pageH=doc.internal.pageSize.getHeight(),left=8,right=8;
+        const pageW=doc.internal.pageSize.getWidth(),pageH=doc.internal.pageSize.getHeight(),left=4,right=4;
         const clientFilter=$('#reportClientFilter').value,vocativoFilter=$('#reportVocativoFilter').value;
         const filterLabel=vocativoFilter!=='all'?`Vocativo: ${vocativoFilter}`:clientFilter!=='all'?`Cliente: ${clientFilter}`:'Registros filtrados';
         const totalWeight=rows.reduce((sum,r)=>sum+pdfNumber(pdfRaw(r.item,'Peso',r.item?.weight??0)),0);
@@ -1184,8 +1191,8 @@
           const part=chunk.slice(c*perCol,(c+1)*perCol);if(!part.length)continue;
           doc.autoTable({startY:27,margin:{left:left+c*(colW+gap),right:pageW-(left+c*(colW+gap)+colW)},tableWidth:colW,
             head:[['BP','Qtd Notas','Vocativo']],body:part.map(x=>[x.bp,String(x.count),x.v]),theme:'grid',
-            styles:{font:'helvetica',fontSize:5.6,cellPadding:0.85,textColor:0,lineColor:[125,125,125],lineWidth:0.12,halign:'center',valign:'middle',overflow:'ellipsize'},
-            headStyles:{fillColor:[0,0,0],textColor:255,fontStyle:'bold',fontSize:5.4},
+            styles:{font:'helvetica',fontSize:6.1,cellPadding:0.78,textColor:0,lineColor:[125,125,125],lineWidth:0.12,halign:'center',valign:'middle',overflow:'ellipsize'},
+            headStyles:{fillColor:[0,0,0],textColor:255,fontStyle:'bold',fontSize:5.9},
             columnStyles:{0:{cellWidth:colW*.27},1:{cellWidth:colW*.18},2:{cellWidth:colW*.55}}});
           summaryEndY=Math.max(summaryEndY,doc.lastAutoTable.finalY||27);
         }
@@ -1195,7 +1202,7 @@
             const sub=remaining.slice(offset,offset+60),pc=Math.max(1,Math.ceil(sub.length/3));let end=14;
             for(let c=0;c<3;c++){
               const part=sub.slice(c*pc,(c+1)*pc);if(!part.length)continue;
-              doc.autoTable({startY:14,margin:{left:left+c*(colW+gap),right:pageW-(left+c*(colW+gap)+colW)},tableWidth:colW,head:[['BP','Qtd Notas','Vocativo']],body:part.map(x=>[x.bp,String(x.count),x.v]),theme:'grid',styles:{font:'helvetica',fontSize:5.6,cellPadding:0.85,textColor:0,lineColor:[125,125,125],lineWidth:0.12,halign:'center',valign:'middle',overflow:'ellipsize'},headStyles:{fillColor:[0,0,0],textColor:255,fontStyle:'bold',fontSize:5.4},columnStyles:{0:{cellWidth:colW*.27},1:{cellWidth:colW*.18},2:{cellWidth:colW*.55}}});end=Math.max(end,doc.lastAutoTable.finalY||14);
+              doc.autoTable({startY:14,margin:{left:left+c*(colW+gap),right:pageW-(left+c*(colW+gap)+colW)},tableWidth:colW,head:[['BP','Qtd Notas','Vocativo']],body:part.map(x=>[x.bp,String(x.count),x.v]),theme:'grid',styles:{font:'helvetica',fontSize:6.1,cellPadding:0.78,textColor:0,lineColor:[125,125,125],lineWidth:0.12,halign:'center',valign:'middle',overflow:'ellipsize'},headStyles:{fillColor:[0,0,0],textColor:255,fontStyle:'bold',fontSize:5.9},columnStyles:{0:{cellWidth:colW*.27},1:{cellWidth:colW*.18},2:{cellWidth:colW*.55}}});end=Math.max(end,doc.lastAutoTable.finalY||14);
             }
             summaryEndY=end;
           }
@@ -1206,11 +1213,11 @@
         for(const [vocativo,gRows] of groups){
           const weight=gRows.reduce((sum,r)=>sum+pdfNumber(pdfRaw(r.item,'Peso',r.item?.weight??0)),0);
           if(y>pageH-25){doc.addPage();y=10}
-          doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(0);
-          doc.text(`ENTREGA DIRETA - ${vocativo} - Peso: ${weight.toFixed(2)} KG - Notas: ${gRows.length}`,pageW/2,y,{align:'center'});y+=3.5;
-          doc.autoTable({startY:y,head:[headers],body:gRows.map(pdfRowData),theme:'grid',showHead:'everyPage',margin:{left,right,top:8,bottom:8},
-            styles:{font:'helvetica',fontSize:4.15,cellPadding:0.65,textColor:0,lineColor:[105,105,105],lineWidth:0.1,valign:'middle',overflow:'ellipsize',minCellHeight:3.4},
-            headStyles:{fillColor:[0,0,0],textColor:255,fontStyle:'normal',fontSize:4.15,halign:'center',cellPadding:0.7},columnStyles:colStyles,
+          doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(0);
+          doc.text(`${vocativo} - Peso: ${weight.toFixed(2)} KG - Notas: ${gRows.length}`,pageW/2,y,{align:'center'});y+=3.8;
+          doc.autoTable({startY:y,head:[headers],body:gRows.map(pdfRowData),theme:'grid',showHead:'everyPage',margin:{left,right,top:5,bottom:5},
+            styles:{font:'helvetica',fontSize:5.05,cellPadding:0.48,textColor:0,lineColor:[105,105,105],lineWidth:0.1,valign:'middle',overflow:'ellipsize',minCellHeight:3.55},
+            headStyles:{fillColor:[0,0,0],textColor:255,fontStyle:'normal',fontSize:4.9,halign:'center',cellPadding:0.52},columnStyles:colStyles,
             didDrawPage:data=>{if(data.pageNumber>1){doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(0);doc.text(vocativo,pageW/2,5.5,{align:'center'})}}});
           y=(doc.lastAutoTable.finalY||y)+7;
         }
