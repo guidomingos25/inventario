@@ -136,9 +136,10 @@
     .multi-filter>summary::after{content:'▾';position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#6b7280;font-size:13px}
     .multi-filter[open]>summary{border-color:#60a5fa;box-shadow:0 0 0 3px #dbeafe}
     .multi-filter-menu{position:absolute;z-index:45;left:0;right:0;top:calc(100% + 5px);max-height:260px;overflow:auto;background:#fff;border:1px solid #d1d5db;border-radius:12px;box-shadow:0 14px 34px rgba(15,23,42,.18);padding:7px}
-    .multi-filter-option{display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:9px;font-size:13px;cursor:pointer;line-height:1.2}
+    .multi-filter-option{display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:9px;font-size:13px;font-weight:400;cursor:pointer;line-height:1.2}
+    .multi-filter>summary{font-weight:400}
     .multi-filter-option:hover{background:#f3f4f6}
-    .multi-filter-option.all{font-weight:900;border-bottom:1px solid var(--line);border-radius:8px 8px 0 0;margin-bottom:4px;padding-bottom:10px}
+    .multi-filter-option.all{font-weight:400;border-bottom:1px solid var(--line);border-radius:8px 8px 0 0;margin-bottom:4px;padding-bottom:10px}
     .multi-filter-option input{width:17px;height:17px;min-height:0;margin:0;padding:0;border:0;box-shadow:none;background:transparent;appearance:auto;flex:0 0 auto;accent-color:#2563eb}
     .multi-filter-summary{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .report-status{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900;white-space:nowrap}
@@ -1285,16 +1286,36 @@
         }
         let y=(summaries.length>60)?summaryEndY+8:summaryEndY+8;
         const headers=['Data de Check in','Data de Entrada da Nota','Data Resolução Ocorrencia','Nota','Numero OEF','Fornecedor','Almoxarifado','ONU','End. WMS','Peso','Volumes','Mercadoria','Status','Volumes conferidos','Volumes faltantes'];
-        const colStyles={0:{cellWidth:15},1:{cellWidth:15},2:{cellWidth:18},3:{cellWidth:14,overflow:'linebreak'},4:{cellWidth:16,overflow:'linebreak'},5:{cellWidth:27,overflow:'linebreak'},6:{cellWidth:30,overflow:'linebreak'},7:{cellWidth:9},8:{cellWidth:24,overflow:'linebreak'},9:{cellWidth:11},10:{cellWidth:10},11:{cellWidth:28,overflow:'linebreak'},12:{cellWidth:14,overflow:'linebreak'},13:{cellWidth:13},14:{cellWidth:13}};
+        // A tabela detalhada ocupa toda a largura útil da folha. As colunas operacionais
+        // abaixo são dimensionadas pelo maior conteúdo real (não pelo cabeçalho), evitando
+        // corte e quebra de linha. Fornecedor e Mercadoria preservam larguras confortáveis
+        // e podem usar reticências quando o texto exceder a célula.
+        const pdfBodyRows=rows.map(pdfRowData),usableTableW=pageW-left-right;
+        const protectedCols=new Set([0,1,2,3,4,6,7,8,9,10,12,13,14]);
+        const minWidths={0:18,1:18,2:18,3:13,4:15,6:29,7:9,8:24,9:11,10:10,12:15,13:13,14:13};
+        doc.setFont('helvetica','normal');doc.setFontSize(6.3);
+        const measureCol=(idx,minW)=>{let w=minW;for(const r of pdfBodyRows){const v=pdfText(r[idx]);if(v)w=Math.max(w,doc.getTextWidth(v)+1.8)}return w};
+        const widths={};protectedCols.forEach(i=>{widths[i]=measureCol(i,minWidths[i]||10)});
+        widths[5]=27;widths[11]=28;
+        let totalWidth=Object.values(widths).reduce((a,b)=>a+b,0);
+        if(totalWidth<usableTableW){const extra=usableTableW-totalWidth;widths[5]+=extra*.5;widths[11]+=extra*.5;totalWidth=usableTableW}
+        else if(totalWidth>usableTableW){
+          // O conteúdo das colunas protegidas nunca é cortado. Em bases excepcionais,
+          // reduzimos somente Fornecedor/Mercadoria até um mínimo legível antes de usar
+          // a largura natural necessária.
+          let excess=totalWidth-usableTableW;for(const i of [5,11]){const floor=22,cut=Math.min(excess,Math.max(0,widths[i]-floor));widths[i]-=cut;excess-=cut}
+          totalWidth=Object.values(widths).reduce((a,b)=>a+b,0);
+        }
+        const colStyles={};for(let i=0;i<headers.length;i++)colStyles[i]={cellWidth:widths[i],overflow:protectedCols.has(i)?'visible':'ellipsize'};
         for(const [vocativo,gRows] of groups){
           const weight=gRows.reduce((sum,r)=>sum+pdfNumber(pdfRaw(r.item,'Peso',r.item?.weight??0)),0);
           if(y>pageH-25){doc.addPage();y=10}
           doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(0);
           doc.text(`${vocativo} - Peso: ${weight.toFixed(2)} KG - Notas: ${gRows.length}`,pageW/2,y,{align:'center'});y+=3.8;
-          doc.autoTable({startY:y,head:[headers],body:gRows.map(pdfRowData),theme:'grid',showHead:'firstPage',margin:{left,right,top:5,bottom:5},
-            styles:{font:'helvetica',fontSize:6.3,cellPadding:0.54,textColor:0,lineColor:[105,105,105],lineWidth:0.1,valign:'middle',overflow:'ellipsize',minCellHeight:3.9},
-            headStyles:{fillColor:[0,0,0],textColor:255,fontStyle:'normal',fontSize:6.0,halign:'center',cellPadding:0.58},columnStyles:colStyles,
-            didParseCell:data=>{if([3,4,5,6,8,11,12].includes(data.column.index)){data.cell.styles.overflow='linebreak'}}});
+          doc.autoTable({startY:y,head:[headers],body:gRows.map(pdfRowData),theme:'grid',showHead:'firstPage',margin:{left,right,top:5,bottom:5},tableWidth:Math.min(usableTableW,totalWidth),
+            styles:{font:'helvetica',fontSize:6.3,cellPadding:0.54,textColor:0,lineColor:[105,105,105],lineWidth:0.1,valign:'middle',overflow:'ellipsize',minCellHeight:3.9,cellWidth:'wrap'},
+            headStyles:{fillColor:[0,0,0],textColor:255,fontStyle:'normal',fontSize:6.0,halign:'center',cellPadding:0.58,overflow:'ellipsize'},columnStyles:colStyles,
+            didParseCell:data=>{if(data.section==='body'&&protectedCols.has(data.column.index)){data.cell.styles.overflow='visible';data.cell.styles.fontStyle='normal'}else if(data.section==='body'){data.cell.styles.overflow='ellipsize'}}});
           y=(doc.lastAutoTable.finalY||y)+7;
         }
         const inv=state.reportInventories.find(x=>x.id===state.reportInventoryId)||state.inventory||{};
