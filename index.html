@@ -1146,6 +1146,39 @@
       if(m){let a=Number(m[1]),b=Number(m[2]),y=Number(m[3]);if(y<100)y+=y>=70?1900:2000;let day=a,month=b;if(b>12&&a<=12){day=b;month=a}if(day>=1&&day<=31&&month>=1&&month<=12)return `${String(day).padStart(2,'0')}/${String(month).padStart(2,'0')}/${String(y).padStart(4,'0')}`}
       return raw;
     }
+    function pdfShipmentLimitDate(value){
+      if(value===null||value===undefined||String(value).trim()==='')return '';
+      const raw=String(value).trim();
+      let normalized=value;
+      // Dt Limite Embarque pode vir do Excel como serial numérico (inclusive texto numérico).
+      // Converte o serial Excel antes de formatar, evitando datas incorretas como 01/01/59.
+      if(typeof value!=='number'&&/^[-+]?\d+(?:[.,]\d+)?$/.test(raw)){
+        const n=Number(raw.replace(',','.'));
+        if(Number.isFinite(n)&&n>1&&n<100000)normalized=n;
+      }
+      if(typeof normalized==='number'&&Number.isFinite(normalized)&&normalized>1&&normalized<100000){
+        const dc=XLSX.SSF.parse_date_code(normalized);
+        if(dc){
+          const d=new Date(dc.y,dc.m-1,dc.d);
+          return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).padStart(4,'0')}`;
+        }
+      }
+      // Valores textuais da coluna Dt Limite Embarque são tratados como dia/mês/ano.
+      let m=raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2}|\d{4})(?:\s+.*)?$/);
+      if(m){
+        let day=Number(m[1]),month=Number(m[2]),year=Number(m[3]);
+        if(year<100)year+=year>=70?1900:2000;
+        if(day>=1&&day<=31&&month>=1&&month<=12)return `${String(day).padStart(2,'0')}/${String(month).padStart(2,'0')}/${String(year).padStart(4,'0')}`;
+      }
+      m=raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/);
+      if(m)return `${String(Number(m[3])).padStart(2,'0')}/${String(Number(m[2])).padStart(2,'0')}/${String(Number(m[1])).padStart(4,'0')}`;
+      const parsed=parseExcelExportDate(normalized,'Dt Limite Embarque');
+      if(parsed?.date&&!Number.isNaN(parsed.date.getTime())){
+        const d=parsed.date;
+        return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).padStart(4,'0')}`;
+      }
+      return raw;
+    }
     function pdfVocativo(row){return pdfText(row.item?.warehouse||'')||'SEM VOCATIVO'}
     function pdfBp(row){return pdfText(pdfRaw(row.item,'BP Destino',''))||'-'}
     function pdfRowData(row){
@@ -1168,7 +1201,7 @@
         pdfText(pdfRaw(i,'Fornecedor',i.supplier||row.supplier||'')),
         pdfText(pdfRaw(i,'Almoxarifado',i.warehouse||'')),
         pdfText(pdfRaw(i,'Mercadoria',i.merchandise||'')),
-        pdfDate(pdfRaw(i,'Dt Limite Embarque','')),
+        pdfShipmentLimitDate(pdfRaw(i,'Dt Limite Embarque','')),
         pdfDeliveryDate(pdfRaw(i,'Dt Final Entrega','')),
         pdfDate(pdfRaw(i,'Data Inventario','')),
         pdfText(pdfRaw(i,'End. WMS',i.wms_address||''))
