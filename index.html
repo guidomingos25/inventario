@@ -130,6 +130,17 @@
     .mini span{font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase}.mini b{display:block;font-size:21px;margin-top:4px}
     .report-toolbar{display:grid;grid-template-columns:minmax(210px,1.35fr) repeat(5,minmax(150px,1fr));gap:10px;align-items:end}
     .report-toolbar .field{margin:0}.report-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .multi-filter{position:relative;width:100%}
+    .multi-filter>summary{list-style:none;min-height:46px;border:1px solid #d1d5db;border-radius:12px;padding:10px 34px 10px 12px;background:#fff;color:var(--ink);font-size:14px;display:flex;align-items:center;cursor:pointer;position:relative;user-select:none}
+    .multi-filter>summary::-webkit-details-marker{display:none}
+    .multi-filter>summary::after{content:'▾';position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#6b7280;font-size:13px}
+    .multi-filter[open]>summary{border-color:#60a5fa;box-shadow:0 0 0 3px #dbeafe}
+    .multi-filter-menu{position:absolute;z-index:45;left:0;right:0;top:calc(100% + 5px);max-height:260px;overflow:auto;background:#fff;border:1px solid #d1d5db;border-radius:12px;box-shadow:0 14px 34px rgba(15,23,42,.18);padding:7px}
+    .multi-filter-option{display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:9px;font-size:13px;cursor:pointer;line-height:1.2}
+    .multi-filter-option:hover{background:#f3f4f6}
+    .multi-filter-option.all{font-weight:900;border-bottom:1px solid var(--line);border-radius:8px 8px 0 0;margin-bottom:4px;padding-bottom:10px}
+    .multi-filter-option input{width:17px;height:17px;min-height:0;margin:0;padding:0;border:0;box-shadow:none;background:transparent;appearance:auto;flex:0 0 auto;accent-color:#2563eb}
+    .multi-filter-summary{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .report-status{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900;white-space:nowrap}
     .report-status.complete{background:var(--okbg);color:#166534}.report-status.partial{background:var(--warnbg);color:#92400e}.report-status.pending{background:#f3f4f6;color:#4b5563}.report-status.offreport{background:var(--badbg);color:#991b1b}
     .report-kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important}.report-kpi .kpi-value{font-size:25px}
@@ -334,10 +345,10 @@
             <div class="report-toolbar">
               <div class="field"><label for="reportInventorySelect">Inventário</label><select id="reportInventorySelect"><option value="">Selecione...</option></select></div>
               <div class="field"><label for="reportSearch">Pesquisar</label><input id="reportSearch" placeholder="NF, OEF, fornecedor, cliente..."></div>
-              <div class="field"><label for="reportStatusFilter">Status da NF</label><select id="reportStatusFilter"><option value="all">Todos</option><option value="complete">Conferida</option><option value="partial">Parcial</option><option value="not_started">Não conferida</option><option value="off_report">Fora do relatório</option></select></div>
-              <div class="field"><label for="reportDivergenceFilter">Divergência</label><select id="reportDivergenceFilter"><option value="all">Todas</option><option value="none">Sem divergência</option><option value="any">Com qualquer divergência</option><option value="divergent_not_in_report">Não consta no relatório</option><option value="divergent_total_mismatch">Total diferente</option><option value="divergent_volume_out_of_range">Volume fora da faixa</option><option value="duplicate">Duplicidade</option></select></div>
-              <div class="field"><label for="reportClientFilter">Cliente</label><select id="reportClientFilter"><option value="all">Todos os clientes</option></select></div>
-              <div class="field"><label for="reportVocativoFilter">Vocativo</label><select id="reportVocativoFilter"><option value="all">Todos os vocativos</option></select></div>
+              <div class="field"><label>Status da NF</label><details id="reportStatusFilter" class="multi-filter"><summary><span class="multi-filter-summary">Todos</span></summary><div class="multi-filter-menu"><label class="multi-filter-option all"><input type="checkbox" data-all checked>Selecionar todos</label><label class="multi-filter-option"><input type="checkbox" data-value="complete" checked>Conferida</label><label class="multi-filter-option"><input type="checkbox" data-value="partial" checked>Parcial</label><label class="multi-filter-option"><input type="checkbox" data-value="not_started" checked>Não conferida</label><label class="multi-filter-option"><input type="checkbox" data-value="off_report" checked>Fora do relatório</label></div></details></div>
+              <div class="field"><label>Divergência</label><details id="reportDivergenceFilter" class="multi-filter"><summary><span class="multi-filter-summary">Todas</span></summary><div class="multi-filter-menu"><label class="multi-filter-option all"><input type="checkbox" data-all checked>Selecionar todos</label><label class="multi-filter-option"><input type="checkbox" data-value="none" checked>Sem divergência</label><label class="multi-filter-option"><input type="checkbox" data-value="any" checked>Com qualquer divergência</label><label class="multi-filter-option"><input type="checkbox" data-value="divergent_not_in_report" checked>Não consta no relatório</label><label class="multi-filter-option"><input type="checkbox" data-value="divergent_total_mismatch" checked>Total diferente</label><label class="multi-filter-option"><input type="checkbox" data-value="divergent_volume_out_of_range" checked>Volume fora da faixa</label><label class="multi-filter-option"><input type="checkbox" data-value="duplicate" checked>Duplicidade</label></div></details></div>
+              <div class="field"><label>Cliente</label><details id="reportClientFilter" class="multi-filter"><summary><span class="multi-filter-summary">Todos os clientes</span></summary><div class="multi-filter-menu"><label class="multi-filter-option all"><input type="checkbox" data-all checked>Selecionar todos</label></div></details></div>
+              <div class="field"><label>Vocativo</label><details id="reportVocativoFilter" class="multi-filter"><summary><span class="multi-filter-summary">Todos os vocativos</span></summary><div class="multi-filter-menu"><label class="multi-filter-option all"><input type="checkbox" data-all checked>Selecionar todos</label></div></details></div>
             </div>
           </div>
           <div class="grid kpis report-kpis">
@@ -1066,18 +1077,46 @@
       state.reportUniqueScans.filter(x=>x.status==='divergent_not_in_report').forEach(sc=>{const label=normalizeUniqueLabel(sc.unique_label);if(!offUniqueGroups.has(label))offUniqueGroups.set(label,[]);offUniqueGroups.get(label).push(sc)});
       offUniqueGroups.forEach((scans,label)=>{const first=scans[0],locations=uniq(scans.map(scanLocationName)),users=uniq(scans.map(scanUserName));rows.push({key:'offu:'+label,recordType:'off_report_unique',item:null,status:'off_report',nf:'-',uniqueLabel:label,uniqueMode:true,series:'',oef:'',supplier:'',client:'',destination:'',expected:Number(first.total_volumes_qr||0)||null,ok:0,missing:[],missingDisplay:[],scans:[],uniqueScans:scans,effectiveScans:scans,okScans:[],divScans:scans,divTypes:['divergent_not_in_report'],duplicateCount:dupsByUnique.get(label)||0,locations,users,searchText:['etiqueta única',label].join(' ').toLowerCase()})});
       state.reportRows=rows;state.reportPage=1;renderReportKpis();
-      const clientSel=$('#reportClientFilter'),vocativoSel=$('#reportVocativoFilter'),currentClient=clientSel.value||'all',currentVocativo=vocativoSel.value||'all';
       const clients=uniq(rows.filter(r=>r.recordType==='base').map(r=>r.client)).sort((a,b)=>a.localeCompare(b,'pt-BR'));
       const vocativos=uniq(rows.filter(r=>r.recordType==='base').map(r=>r.item?.warehouse||'')).sort((a,b)=>a.localeCompare(b,'pt-BR'));
-      clientSel.innerHTML='<option value="all">Todos os clientes</option>'+clients.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
-      vocativoSel.innerHTML='<option value="all">Todos os vocativos</option>'+vocativos.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
-      if(clients.includes(currentClient))clientSel.value=currentClient;if(vocativos.includes(currentVocativo))vocativoSel.value=currentVocativo;
+      setReportMultiFilterOptions('reportClientFilter',clients,'Todos os clientes');
+      setReportMultiFilterOptions('reportVocativoFilter',vocativos,'Todos os vocativos');
+    }
+    function reportMultiFilterState(id){
+      const el=$('#'+id);if(!el)return {all:true,values:[]};
+      const all=el.querySelector('input[data-all]');
+      const values=[...el.querySelectorAll('input[data-value]:checked')].map(x=>x.dataset.value);
+      return {all:Boolean(all?.checked),values};
+    }
+    function reportMultiFilterSummary(id){
+      const el=$('#'+id);if(!el)return '';
+      const all=el.querySelector('input[data-all]'),items=[...el.querySelectorAll('input[data-value]')],checked=items.filter(x=>x.checked),summary=el.querySelector('.multi-filter-summary');
+      const allText=id==='reportClientFilter'?'Todos os clientes':id==='reportVocativoFilter'?'Todos os vocativos':id==='reportDivergenceFilter'?'Todas':'Todos';
+      let text='Nenhum selecionado';
+      if(all?.checked)text=allText;else if(checked.length===1)text=checked[0].parentElement?.textContent?.trim()||checked[0].dataset.value;else if(checked.length>1)text=`${checked.length} selecionados`;
+      if(summary)summary.textContent=text;return text;
+    }
+    function setReportMultiFilterOptions(id,values,allText){
+      const el=$('#'+id);if(!el)return;
+      const oldAll=el.querySelector('input[data-all]'),first=!el.dataset.initialized,wasAll=first?true:Boolean(oldAll?.checked),previous=new Set([...el.querySelectorAll('input[data-value]:checked')].map(x=>x.dataset.value));
+      const menu=el.querySelector('.multi-filter-menu');if(!menu)return;
+      menu.innerHTML=`<label class="multi-filter-option all"><input type="checkbox" data-all ${wasAll?'checked':''}>Selecionar todos</label>`+values.map(v=>`<label class="multi-filter-option"><input type="checkbox" data-value="${esc(v)}" ${(wasAll||previous.has(v))?'checked':''}>${esc(v)}</label>`).join('');
+      el.dataset.initialized='1';const items=[...menu.querySelectorAll('input[data-value]')],all=menu.querySelector('input[data-all]');if(all)all.checked=items.length?items.every(x=>x.checked):true;
+      const s=el.querySelector('.multi-filter-summary');if(s&&all?.checked)s.textContent=allText;else reportMultiFilterSummary(id);
+    }
+    function handleReportMultiFilterChange(e){
+      const input=e.target.closest('.multi-filter input[type="checkbox"]');if(!input)return;const el=input.closest('.multi-filter'),all=el.querySelector('input[data-all]'),items=[...el.querySelectorAll('input[data-value]')];
+      if(input.hasAttribute('data-all'))items.forEach(x=>x.checked=input.checked);else if(all)all.checked=items.length>0&&items.every(x=>x.checked);reportMultiFilterSummary(el.id);applyReportFilters();
     }
     function renderReportKpis(){const base=state.reportRows.filter(r=>r.recordType==='base');$('#rExpectedNotes').textContent=fmtNum(base.length);$('#rCompleteNotes').textContent=fmtNum(base.filter(r=>r.status==='complete').length);$('#rPartialNotes').textContent=fmtNum(base.filter(r=>r.status==='partial').length);$('#rNotStartedNotes').textContent=fmtNum(base.filter(r=>r.status==='not_started').length);$('#rOffReport').textContent=fmtNum(state.reportRows.filter(r=>r.recordType.startsWith('off_report')).length);$('#rDuplicates').textContent=fmtNum(state.reportAttempts.length)}
     function rowHasDivergence(row,type){if(type==='duplicate')return row.duplicateCount>0;if(type==='divergent_not_in_report')return row.recordType.startsWith('off_report')||row.divTypes.includes(type);return row.divTypes.includes(type)}
     function applyReportFilters(){
-      const q=$('#reportSearch').value.trim().toLowerCase(),status=$('#reportStatusFilter').value,div=$('#reportDivergenceFilter').value,client=$('#reportClientFilter').value,vocativo=$('#reportVocativoFilter').value;
-      state.reportFiltered=state.reportRows.filter(r=>{if(q&&!r.searchText.includes(q))return false;if(status!=='all'&&r.status!==status)return false;if(client!=='all'&&r.client!==client)return false;if(vocativo!=='all'&&(r.item?.warehouse||'')!==vocativo)return false;const anyDiv=r.divTypes.length>0||r.duplicateCount>0;if(div==='none'&&anyDiv)return false;if(div==='any'&&!anyDiv)return false;if(!['all','none','any'].includes(div)&&!rowHasDivergence(r,div))return false;return true});state.reportPage=1;renderReport();
+      const q=$('#reportSearch').value.trim().toLowerCase(),status=reportMultiFilterState('reportStatusFilter'),div=reportMultiFilterState('reportDivergenceFilter'),client=reportMultiFilterState('reportClientFilter'),vocativo=reportMultiFilterState('reportVocativoFilter');
+      state.reportFiltered=state.reportRows.filter(r=>{
+        if(q&&!r.searchText.includes(q))return false;if(!status.all&&!status.values.includes(r.status))return false;if(!client.all&&!client.values.includes(r.client||''))return false;if(!vocativo.all&&!vocativo.values.includes(r.item?.warehouse||''))return false;
+        if(!div.all){const anyDiv=r.divTypes.length>0||r.duplicateCount>0;const matches=div.values.some(v=>v==='none'?!anyDiv:v==='any'?anyDiv:rowHasDivergence(r,v));if(!matches)return false}
+        return true
+      });state.reportPage=1;renderReport();
     }
     function divergenceText(row){const parts=row.divTypes.map(x=>divergenceLabels[x]||x);if(row.duplicateCount)parts.push(`${row.duplicateCount} duplicidade${row.duplicateCount===1?'':'s'}`);return parts.length?parts.join(' • '):'-'}
     function renderReport(){
@@ -1181,31 +1220,23 @@
     }
     function pdfVocativo(row){return pdfText(row.item?.warehouse||'')||'SEM VOCATIVO'}
     function pdfBp(row){return pdfText(pdfRaw(row.item,'BP Destino',''))||'-'}
+    function pdfReportDateBr(value){
+      if(value===null||value===undefined||String(value).trim()==='')return '';const raw=String(value).trim();let normalized=value;
+      if(typeof value!=='number'&&/^[-+]?\d+(?:[.,]\d+)?$/.test(raw)){const n=Number(raw.replace(',','.'));if(Number.isFinite(n)&&n>1&&n<100000)normalized=n}
+      if(typeof normalized==='number'&&Number.isFinite(normalized)&&normalized>1&&normalized<100000){const dc=XLSX.SSF.parse_date_code(normalized);if(dc)return `${String(dc.d).padStart(2,'0')}/${String(dc.m).padStart(2,'0')}/${String(dc.y).padStart(4,'0')}`}
+      let m=raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2}|\d{4})(?:\s+.*)?$/);if(m){let a=Number(m[1]),b=Number(m[2]),y=Number(m[3]);if(y<100)y+=y>=70?1900:2000;let day=a,month=b;if(b>12&&a<=12){day=b;month=a}if(day>=1&&day<=31&&month>=1&&month<=12)return `${String(day).padStart(2,'0')}/${String(month).padStart(2,'0')}/${String(y).padStart(4,'0')}`}
+      m=raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/);if(m)return `${String(Number(m[3])).padStart(2,'0')}/${String(Number(m[2])).padStart(2,'0')}/${String(Number(m[1])).padStart(4,'0')}`;const d=new Date(raw);if(!Number.isNaN(d.getTime()))return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});return raw;
+    }
+    function pdfVolumeCountText(value){const n=Number(value);if(!Number.isFinite(n))return '';const rounded=Math.round(n);return Math.abs(n-rounded)<1e-9?String(rounded):n.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:2})}
+    function pdfEffectiveVolumeCounts(row){
+      if(!row.item){const total=Number(row.expected||0),ok=Number(row.ok||0);return {total:total||'',ok,missing:total?Math.max(total-ok,0):''}}
+      let total=pdfNumber(pdfRaw(row.item,'Volumes',row.item.expected_volumes??row.expected??0));if(!total)total=Number(row.item.expected_volumes||row.expected||0);let ok=0;
+      if(row.uniqueMode&&Number(row.expected||0)>0)ok=total*Math.min(Number(row.ok||0),Number(row.expected||0))/Number(row.expected||0);else ok=Math.min(Number(row.ok||0),total||Number(row.expected||0));ok=Math.max(0,Math.min(ok,total||ok));return {total:total||'',ok,missing:total?Math.max(total-ok,0):''};
+    }
     function pdfRowData(row){
-      const i=row.item,sc=row.scans?.[0]||row.uniqueScans?.[0]||null;
-      if(!i)return [
-        '',pdfText(row.nf),pdfText(row.uniqueLabel),'',pdfText(row.oef),'','','',pdfText(row.expected??''),'','','',pdfVocativo(row),'','','','',''
-      ];
-      return [
-        pdfDate(pdfRaw(i,'Data de Entrada da Nota',pdfRaw(i,'Data de Check in',''))),
-        pdfText(pdfRaw(i,'Nota',row.nf)),
-        pdfText(pdfRaw(i,'Etiqueta Unica',i.unique_label||'')),
-        pdfText(pdfRaw(i,'CTE','')),
-        pdfText(pdfRaw(i,'Numero OEF',i.oef||row.oef||'')),
-        pdfText(pdfRaw(i,'Pesado','')),
-        pdfText(pdfRaw(i,'Janela de Emissao','')),
-        pdfText(pdfRaw(i,'Peso',i.weight??'')),
-        pdfText(pdfRaw(i,'Volumes',row.expected??'')),
-        pdfText(pdfRaw(i,'Prioridade','')),
-        pdfText(pdfRaw(i,'ONU','')),
-        pdfText(pdfRaw(i,'Fornecedor',i.supplier||row.supplier||'')),
-        pdfText(pdfRaw(i,'Almoxarifado',i.warehouse||'')),
-        pdfText(pdfRaw(i,'Mercadoria',i.merchandise||'')),
-        pdfShipmentLimitDate(pdfRaw(i,'Dt Limite Embarque','')),
-        pdfDeliveryDate(pdfRaw(i,'Dt Final Entrega','')),
-        pdfDate(pdfRaw(i,'Data Inventario','')),
-        pdfText(pdfRaw(i,'End. WMS',i.wms_address||''))
-      ];
+      const i=row.item,counts=pdfEffectiveVolumeCounts(row);
+      if(!i)return ['', '', '',pdfText(row.nf),pdfText(row.oef),'','','','','',pdfVolumeCountText(counts.total),'',statusLabels[row.status]||row.status,pdfVolumeCountText(counts.ok),pdfVolumeCountText(counts.missing)];
+      return [pdfReportDateBr(pdfRaw(i,'Data de Check in','')),pdfReportDateBr(pdfRaw(i,'Data de Entrada da Nota','')),pdfReportDateBr(pdfRaw(i,'Data Resolução Ocorrencia','')),pdfText(pdfRaw(i,'Nota',row.nf)),pdfText(pdfRaw(i,'Numero OEF',i.oef||row.oef||'')),pdfText(pdfRaw(i,'Fornecedor',i.supplier||row.supplier||'')),pdfText(pdfRaw(i,'Almoxarifado',i.warehouse||'')),pdfText(pdfRaw(i,'ONU','')),pdfText(pdfRaw(i,'End. WMS',i.wms_address||'')),pdfText(pdfRaw(i,'Peso',i.weight??'')),pdfText(pdfRaw(i,'Volumes',i.expected_volumes??counts.total)),pdfText(pdfRaw(i,'Mercadoria',i.merchandise||'')),statusLabels[row.status]||row.status,pdfVolumeCountText(counts.ok),pdfVolumeCountText(counts.missing)];
     }
     function generateVocativoPdf(){
       const rows=state.reportFiltered||[];
@@ -1216,8 +1247,8 @@
         const doc=new jsPDFCtor({orientation:'landscape',unit:'mm',format:'a4',compress:true});
         if(typeof doc.autoTable!=='function')throw new Error('Componente de tabela PDF não carregado.');
         const pageW=doc.internal.pageSize.getWidth(),pageH=doc.internal.pageSize.getHeight(),left=4,right=4;
-        const clientFilter=$('#reportClientFilter').value,vocativoFilter=$('#reportVocativoFilter').value;
-        const filterLabel=vocativoFilter!=='all'?`Vocativo: ${vocativoFilter}`:clientFilter!=='all'?`Cliente: ${clientFilter}`:'Registros filtrados';
+        const clientState=reportMultiFilterState('reportClientFilter'),vocativoState=reportMultiFilterState('reportVocativoFilter');
+        const filterLabel=!vocativoState.all&&vocativoState.values.length===1?`Vocativo: ${vocativoState.values[0]}`:!clientState.all&&clientState.values.length===1?`Cliente: ${clientState.values[0]}`:'Registros filtrados';
         const totalWeight=rows.reduce((sum,r)=>sum+pdfNumber(pdfRaw(r.item,'Peso',r.item?.weight??0)),0);
         const statusCount={complete:0,partial:0,not_started:0,off_report:0};rows.forEach(r=>{if(Object.prototype.hasOwnProperty.call(statusCount,r.status))statusCount[r.status]++});
         const groups=new Map();rows.forEach(r=>{const v=pdfVocativo(r);if(!groups.has(v))groups.set(v,[]);groups.get(v).push(r)});
@@ -1253,18 +1284,8 @@
           }
         }
         let y=(summaries.length>60)?summaryEndY+8:summaryEndY+8;
-        const headers=['Chegada','Nota','Etq. Unica','CTE','OEF','Pesado','Jan. Emissao','KG','Vol','Prior','ONU','Remetente','Almoxarifado','Mercadoria','Lim. Embarque','Data Entrega','Data Inventario','End. WMS'];
-        const colStyles={
-          0:{cellWidth:12},
-          1:{cellWidth:'wrap',overflow:'linebreak'},       // Nota: nunca cortar conteúdo
-          2:{cellWidth:'wrap',overflow:'linebreak'},       // Etq. Única: nunca cortar conteúdo
-          3:{cellWidth:14},
-          4:{cellWidth:'wrap',overflow:'linebreak'},       // OEF: nunca cortar conteúdo
-          5:{cellWidth:8},6:{cellWidth:11},7:{cellWidth:9},8:{cellWidth:7},9:{cellWidth:10},10:{cellWidth:8},11:{cellWidth:34},
-          12:{cellWidth:'wrap',overflow:'linebreak'},      // Almoxarifado: nunca cortar conteúdo
-          13:{cellWidth:36},14:{cellWidth:12},15:{cellWidth:16},16:{cellWidth:12},
-          17:{cellWidth:'wrap',overflow:'linebreak'}       // End. WMS: nunca cortar conteúdo
-        };
+        const headers=['Data de Check in','Data de Entrada da Nota','Data Resolução Ocorrencia','Nota','Numero OEF','Fornecedor','Almoxarifado','ONU','End. WMS','Peso','Volumes','Mercadoria','Status','Volumes conferidos','Volumes faltantes'];
+        const colStyles={0:{cellWidth:15},1:{cellWidth:15},2:{cellWidth:18},3:{cellWidth:14,overflow:'linebreak'},4:{cellWidth:16,overflow:'linebreak'},5:{cellWidth:27,overflow:'linebreak'},6:{cellWidth:30,overflow:'linebreak'},7:{cellWidth:9},8:{cellWidth:24,overflow:'linebreak'},9:{cellWidth:11},10:{cellWidth:10},11:{cellWidth:28,overflow:'linebreak'},12:{cellWidth:14,overflow:'linebreak'},13:{cellWidth:13},14:{cellWidth:13}};
         for(const [vocativo,gRows] of groups){
           const weight=gRows.reduce((sum,r)=>sum+pdfNumber(pdfRaw(r.item,'Peso',r.item?.weight??0)),0);
           if(y>pageH-25){doc.addPage();y=10}
@@ -1273,7 +1294,7 @@
           doc.autoTable({startY:y,head:[headers],body:gRows.map(pdfRowData),theme:'grid',showHead:'firstPage',margin:{left,right,top:5,bottom:5},
             styles:{font:'helvetica',fontSize:6.3,cellPadding:0.54,textColor:0,lineColor:[105,105,105],lineWidth:0.1,valign:'middle',overflow:'ellipsize',minCellHeight:3.9},
             headStyles:{fillColor:[0,0,0],textColor:255,fontStyle:'normal',fontSize:6.0,halign:'center',cellPadding:0.58},columnStyles:colStyles,
-            didParseCell:data=>{if([1,2,4,12,17].includes(data.column.index)){data.cell.styles.overflow='linebreak'}}});
+            didParseCell:data=>{if([3,4,5,6,8,11,12].includes(data.column.index)){data.cell.styles.overflow='linebreak'}}});
           y=(doc.lastAutoTable.finalY||y)+7;
         }
         const inv=state.reportInventories.find(x=>x.id===state.reportInventoryId)||state.inventory||{};
@@ -1437,7 +1458,7 @@
     $('#manualSubmit').addEventListener('click',()=>{unlockScanAudio();const v=$('#manualCode').value.trim();if(v){processCode(v);$('#manualCode').value=''}});$('#manualCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#manualSubmit').click()}});
     $('#refreshDashboard').addEventListener('click',refreshDashboard);$('#pendingNotesBtn').addEventListener('click',loadPendingNotes);$('#createInventoryBtn').addEventListener('click',createInventory);$('#saveInventoryTypeBtn').addEventListener('click',saveInventoryType);$('#closeInventoryBtn').addEventListener('click',closeInventory);
     $('#pendingNotesClose').addEventListener('click',()=>$('#pendingNotesModal').classList.add('hidden'));$('#pendingNotesModal').addEventListener('click',e=>{if(e.target.id==='pendingNotesModal')$('#pendingNotesModal').classList.add('hidden')});$('#pendingNotesSearch').addEventListener('input',applyPendingNotesFilter);$('#pendingNotesPrev').addEventListener('click',()=>{if(state.pendingPage>1){state.pendingPage--;renderPendingNotes()}});$('#pendingNotesNext').addEventListener('click',()=>{if(state.pendingPage*state.pendingPageSize<state.pendingFiltered.length){state.pendingPage++;renderPendingNotes()}});
-    $('#refreshReportBtn').addEventListener('click',()=>loadReport());$('#reportInventorySelect').addEventListener('change',()=>{state.reportInventoryId=$('#reportInventorySelect').value;loadReport()});['reportSearch','reportStatusFilter','reportDivergenceFilter','reportClientFilter','reportVocativoFilter'].forEach(id=>$('#'+id).addEventListener(id==='reportSearch'?'input':'change',applyReportFilters));
+    $('#refreshReportBtn').addEventListener('click',()=>loadReport());$('#reportInventorySelect').addEventListener('change',()=>{state.reportInventoryId=$('#reportInventorySelect').value;loadReport()});$('#reportSearch').addEventListener('input',applyReportFilters);['reportStatusFilter','reportDivergenceFilter','reportClientFilter','reportVocativoFilter'].forEach(id=>{$('#'+id).addEventListener('change',handleReportMultiFilterChange);reportMultiFilterSummary(id)});
     $('#reportPrevBtn').addEventListener('click',()=>{if(state.reportPage>1){state.reportPage--;renderReport()}});$('#reportNextBtn').addEventListener('click',()=>{if(state.reportPage*state.reportPageSize<state.reportFiltered.length){state.reportPage++;renderReport()}});$('#exportPdfVocativoBtn').addEventListener('click',generateVocativoPdf);$('#exportFullBtn').addEventListener('click',()=>exportReport(false));$('#exportFilteredBtn').addEventListener('click',()=>exportReport(true));
     $('#reportBody').addEventListener('click',e=>{const b=e.target.closest('.report-detail-btn');if(b)openReportDetail(b.dataset.reportKey)});$('#reportModalClose').addEventListener('click',()=>$('#reportModal').classList.add('hidden'));$('#reportModal').addEventListener('click',e=>{if(e.target.id==='reportModal')$('#reportModal').classList.add('hidden')});
 
