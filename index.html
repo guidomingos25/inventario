@@ -1129,12 +1129,19 @@
     }
     function pdfDeliveryDate(value){
       if(value===null||value===undefined||String(value).trim()==='')return '';
-      const parsed=parseExcelExportDate(value,'Dt Final Entrega');
+      let normalized=value;
+      const raw=String(value).trim();
+      // Dt Final Entrega pode vir do Excel como número OU como texto numérico (ex.: 46267.333333).
+      // Converte esse serial antes de qualquer tentativa de interpretar como texto de data.
+      if(typeof value!=='number'&&/^[-+]?\d+(?:[.,]\d+)?$/.test(raw)){
+        const n=Number(raw.replace(',','.'));
+        if(Number.isFinite(n)&&n>1&&n<100000)normalized=n;
+      }
+      const parsed=parseExcelExportDate(normalized,'Dt Final Entrega');
       if(parsed?.date&&!Number.isNaN(parsed.date.getTime())){
         const d=parsed.date;
         return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).padStart(4,'0')}`;
       }
-      const raw=String(value).trim();
       const m=raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})(?:\s+.*)?$/);
       if(m){let a=Number(m[1]),b=Number(m[2]),y=Number(m[3]);if(y<100)y+=y>=70?1900:2000;let day=a,month=b;if(b>12&&a<=12){day=b;month=a}if(day>=1&&day<=31&&month>=1&&month<=12)return `${String(day).padStart(2,'0')}/${String(month).padStart(2,'0')}/${String(y).padStart(4,'0')}`}
       return raw;
@@ -1214,7 +1221,17 @@
         }
         let y=(summaries.length>60)?summaryEndY+8:summaryEndY+8;
         const headers=['Chegada','Nota','Etq. Unica','CTE','OEF','Pesado','Jan. Emissao','KG','Vol','Prior','ONU','Remetente','Almoxarifado','Mercadoria','Lim. Embarque','Data Entrega','Data Inventario','End. WMS'];
-        const colStyles={0:{cellWidth:12},1:{cellWidth:11},2:{cellWidth:13},3:{cellWidth:14},4:{cellWidth:12},5:{cellWidth:8},6:{cellWidth:11},7:{cellWidth:9},8:{cellWidth:7},9:{cellWidth:10},10:{cellWidth:8},11:{cellWidth:34},12:{cellWidth:30},13:{cellWidth:36},14:{cellWidth:12},15:{cellWidth:12},16:{cellWidth:12},17:{cellWidth:30}};
+        const colStyles={
+          0:{cellWidth:12},
+          1:{cellWidth:'wrap',overflow:'linebreak'},       // Nota: nunca cortar conteúdo
+          2:{cellWidth:'wrap',overflow:'linebreak'},       // Etq. Única: nunca cortar conteúdo
+          3:{cellWidth:14},
+          4:{cellWidth:'wrap',overflow:'linebreak'},       // OEF: nunca cortar conteúdo
+          5:{cellWidth:8},6:{cellWidth:11},7:{cellWidth:9},8:{cellWidth:7},9:{cellWidth:10},10:{cellWidth:8},11:{cellWidth:34},
+          12:{cellWidth:'wrap',overflow:'linebreak'},      // Almoxarifado: nunca cortar conteúdo
+          13:{cellWidth:36},14:{cellWidth:12},15:{cellWidth:16},16:{cellWidth:12},
+          17:{cellWidth:'wrap',overflow:'linebreak'}       // End. WMS: nunca cortar conteúdo
+        };
         for(const [vocativo,gRows] of groups){
           const weight=gRows.reduce((sum,r)=>sum+pdfNumber(pdfRaw(r.item,'Peso',r.item?.weight??0)),0);
           if(y>pageH-25){doc.addPage();y=10}
@@ -1222,7 +1239,8 @@
           doc.text(`${vocativo} - Peso: ${weight.toFixed(2)} KG - Notas: ${gRows.length}`,pageW/2,y,{align:'center'});y+=3.8;
           doc.autoTable({startY:y,head:[headers],body:gRows.map(pdfRowData),theme:'grid',showHead:'firstPage',margin:{left,right,top:5,bottom:5},
             styles:{font:'helvetica',fontSize:6.3,cellPadding:0.54,textColor:0,lineColor:[105,105,105],lineWidth:0.1,valign:'middle',overflow:'ellipsize',minCellHeight:3.9},
-            headStyles:{fillColor:[0,0,0],textColor:255,fontStyle:'normal',fontSize:6.0,halign:'center',cellPadding:0.58},columnStyles:colStyles});
+            headStyles:{fillColor:[0,0,0],textColor:255,fontStyle:'normal',fontSize:6.0,halign:'center',cellPadding:0.58},columnStyles:colStyles,
+            didParseCell:data=>{if([1,2,4,12,17].includes(data.column.index)){data.cell.styles.overflow='linebreak'}}});
           y=(doc.lastAutoTable.finalY||y)+7;
         }
         const inv=state.reportInventories.find(x=>x.id===state.reportInventoryId)||state.inventory||{};
