@@ -128,7 +128,7 @@
     .import-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
     .mini{background:#f9fafb;border:1px solid var(--line);border-radius:13px;padding:12px}
     .mini span{font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase}.mini b{display:block;font-size:21px;margin-top:4px}
-    .report-toolbar{display:grid;grid-template-columns:minmax(210px,1.35fr) repeat(4,minmax(150px,1fr));gap:10px;align-items:end}
+    .report-toolbar{display:grid;grid-template-columns:minmax(210px,1.35fr) repeat(5,minmax(150px,1fr));gap:10px;align-items:end}
     .report-toolbar .field{margin:0}.report-actions{display:flex;gap:8px;flex-wrap:wrap}
     .report-status{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900;white-space:nowrap}
     .report-status.complete{background:var(--okbg);color:#166534}.report-status.partial{background:var(--warnbg);color:#92400e}.report-status.pending{background:#f3f4f6;color:#4b5563}.report-status.offreport{background:var(--badbg);color:#991b1b}
@@ -328,7 +328,7 @@
         <section id="page-report" class="page">
           <div class="section-head">
             <div><h1>Relatório do inventário</h1><p class="subtitle">Status por NF e volume, divergências, faltantes, locais e conferentes.</p></div>
-            <div class="report-actions"><span id="reportFreshness" class="report-fresh hidden">Novas leituras disponíveis</span><button id="refreshReportBtn" class="btn" type="button">Atualizar relatório</button><button id="exportFilteredBtn" class="btn ghost" type="button">Exportar filtrado</button><button id="exportFullBtn" class="btn primary" type="button">Exportar Excel completo</button></div>
+            <div class="report-actions"><span id="reportFreshness" class="report-fresh hidden">Novas leituras disponíveis</span><button id="refreshReportBtn" class="btn" type="button">Atualizar relatório</button><button id="exportPdfVocativoBtn" class="btn ghost" type="button">Gerar PDF por vocativo</button><button id="exportFilteredBtn" class="btn ghost" type="button">Exportar filtrado</button><button id="exportFullBtn" class="btn primary" type="button">Exportar Excel completo</button></div>
           </div>
           <div class="card" style="margin-bottom:16px">
             <div class="report-toolbar">
@@ -336,7 +336,8 @@
               <div class="field"><label for="reportSearch">Pesquisar</label><input id="reportSearch" placeholder="NF, OEF, fornecedor, cliente..."></div>
               <div class="field"><label for="reportStatusFilter">Status da NF</label><select id="reportStatusFilter"><option value="all">Todos</option><option value="complete">Conferida</option><option value="partial">Parcial</option><option value="not_started">Não conferida</option><option value="off_report">Fora do relatório</option></select></div>
               <div class="field"><label for="reportDivergenceFilter">Divergência</label><select id="reportDivergenceFilter"><option value="all">Todas</option><option value="none">Sem divergência</option><option value="any">Com qualquer divergência</option><option value="divergent_not_in_report">Não consta no relatório</option><option value="divergent_total_mismatch">Total diferente</option><option value="divergent_volume_out_of_range">Volume fora da faixa</option><option value="duplicate">Duplicidade</option></select></div>
-              <div class="field"><label for="reportLocationFilter">Local</label><select id="reportLocationFilter"><option value="all">Todos os locais</option></select></div>
+              <div class="field"><label for="reportClientFilter">Cliente</label><select id="reportClientFilter"><option value="all">Todos os clientes</option></select></div>
+              <div class="field"><label for="reportVocativoFilter">Vocativo</label><select id="reportVocativoFilter"><option value="all">Todos os vocativos</option></select></div>
             </div>
           </div>
           <div class="grid kpis report-kpis">
@@ -466,6 +467,8 @@
 
   <script src="app-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1063,13 +1066,18 @@
       state.reportUniqueScans.filter(x=>x.status==='divergent_not_in_report').forEach(sc=>{const label=normalizeUniqueLabel(sc.unique_label);if(!offUniqueGroups.has(label))offUniqueGroups.set(label,[]);offUniqueGroups.get(label).push(sc)});
       offUniqueGroups.forEach((scans,label)=>{const first=scans[0],locations=uniq(scans.map(scanLocationName)),users=uniq(scans.map(scanUserName));rows.push({key:'offu:'+label,recordType:'off_report_unique',item:null,status:'off_report',nf:'-',uniqueLabel:label,uniqueMode:true,series:'',oef:'',supplier:'',client:'',destination:'',expected:Number(first.total_volumes_qr||0)||null,ok:0,missing:[],missingDisplay:[],scans:[],uniqueScans:scans,effectiveScans:scans,okScans:[],divScans:scans,divTypes:['divergent_not_in_report'],duplicateCount:dupsByUnique.get(label)||0,locations,users,searchText:['etiqueta única',label].join(' ').toLowerCase()})});
       state.reportRows=rows;state.reportPage=1;renderReportKpis();
-      $('#reportLocationFilter').innerHTML='<option value="all">Todos os locais</option>'+state.locations.map(l=>`<option value="${esc(l.name)}">${esc(l.name)}</option>`).join('');
+      const clientSel=$('#reportClientFilter'),vocativoSel=$('#reportVocativoFilter'),currentClient=clientSel.value||'all',currentVocativo=vocativoSel.value||'all';
+      const clients=uniq(rows.filter(r=>r.recordType==='base').map(r=>r.client)).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+      const vocativos=uniq(rows.filter(r=>r.recordType==='base').map(r=>r.item?.warehouse||'')).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+      clientSel.innerHTML='<option value="all">Todos os clientes</option>'+clients.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+      vocativoSel.innerHTML='<option value="all">Todos os vocativos</option>'+vocativos.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+      if(clients.includes(currentClient))clientSel.value=currentClient;if(vocativos.includes(currentVocativo))vocativoSel.value=currentVocativo;
     }
     function renderReportKpis(){const base=state.reportRows.filter(r=>r.recordType==='base');$('#rExpectedNotes').textContent=fmtNum(base.length);$('#rCompleteNotes').textContent=fmtNum(base.filter(r=>r.status==='complete').length);$('#rPartialNotes').textContent=fmtNum(base.filter(r=>r.status==='partial').length);$('#rNotStartedNotes').textContent=fmtNum(base.filter(r=>r.status==='not_started').length);$('#rOffReport').textContent=fmtNum(state.reportRows.filter(r=>r.recordType.startsWith('off_report')).length);$('#rDuplicates').textContent=fmtNum(state.reportAttempts.length)}
     function rowHasDivergence(row,type){if(type==='duplicate')return row.duplicateCount>0;if(type==='divergent_not_in_report')return row.recordType.startsWith('off_report')||row.divTypes.includes(type);return row.divTypes.includes(type)}
     function applyReportFilters(){
-      const q=$('#reportSearch').value.trim().toLowerCase(),status=$('#reportStatusFilter').value,div=$('#reportDivergenceFilter').value,loc=$('#reportLocationFilter').value;
-      state.reportFiltered=state.reportRows.filter(r=>{if(q&&!r.searchText.includes(q))return false;if(status!=='all'&&r.status!==status)return false;if(loc!=='all'&&!r.locations.includes(loc))return false;const anyDiv=r.divTypes.length>0||r.duplicateCount>0;if(div==='none'&&anyDiv)return false;if(div==='any'&&!anyDiv)return false;if(!['all','none','any'].includes(div)&&!rowHasDivergence(r,div))return false;return true});state.reportPage=1;renderReport();
+      const q=$('#reportSearch').value.trim().toLowerCase(),status=$('#reportStatusFilter').value,div=$('#reportDivergenceFilter').value,client=$('#reportClientFilter').value,vocativo=$('#reportVocativoFilter').value;
+      state.reportFiltered=state.reportRows.filter(r=>{if(q&&!r.searchText.includes(q))return false;if(status!=='all'&&r.status!==status)return false;if(client!=='all'&&r.client!==client)return false;if(vocativo!=='all'&&(r.item?.warehouse||'')!==vocativo)return false;const anyDiv=r.divTypes.length>0||r.duplicateCount>0;if(div==='none'&&anyDiv)return false;if(div==='any'&&!anyDiv)return false;if(!['all','none','any'].includes(div)&&!rowHasDivergence(r,div))return false;return true});state.reportPage=1;renderReport();
     }
     function divergenceText(row){const parts=row.divTypes.map(x=>divergenceLabels[x]||x);if(row.duplicateCount)parts.push(`${row.duplicateCount} duplicidade${row.duplicateCount===1?'':'s'}`);return parts.length?parts.join(' • '):'-'}
     function renderReport(){
@@ -1098,6 +1106,120 @@
       }else r.scans.forEach(sc=>cards.push(`<div class="volume-card bad"><strong>Volume ${esc(sc.volume_no??'-')}/${esc(sc.total_volumes_qr??'-')}</strong><small>Não consta no relatório</small><small>${esc(scanLocationName(sc)||'-')} • ${esc(scanUserName(sc)||'-')}</small><small>${fmtDateTime(sc.scanned_at)}</small></div>`));
       $('#reportModalContent').innerHTML=header+`<div class="section-head"><h2>Volumes / leituras</h2><span class="pill">${cards.length} registro(s)</span></div><div class="volume-grid">${cards.join('')}</div>${r.duplicateCount?`<div class="notice warn" style="margin-top:14px">Foram registradas ${r.duplicateCount} tentativa(s) de leitura duplicada para esta NF/combinação/Etiqueta Única.</div>`:''}`;$('#reportModal').classList.remove('hidden')
     }
+    function pdfRaw(item,key,fallback=''){
+      if(!item)return fallback;
+      const raw=cleanSourceRaw(item.raw_data);
+      return Object.prototype.hasOwnProperty.call(raw,key)?raw[key]:fallback;
+    }
+    function pdfText(value){return value===null||value===undefined?'':String(value).trim()}
+    function pdfNumber(value){
+      if(value===null||value===undefined||value==='')return 0;
+      if(typeof value==='number')return Number.isFinite(value)?value:0;
+      let x=String(value).trim().replace(/\s/g,'');
+      if(/^[-+]?\d{1,3}(?:\.\d{3})*,\d+$/.test(x))x=x.replace(/\./g,'').replace(',','.');
+      else if(/^[-+]?\d+,\d+$/.test(x))x=x.replace(',','.');
+      const n=Number(x);return Number.isFinite(n)?n:0;
+    }
+    function pdfDate(value){
+      if(value===null||value===undefined||String(value).trim()==='')return '';
+      const raw=String(value).trim();let m=raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})(?:\s+.*)?$/);
+      if(m){let a=Number(m[1]),b=Number(m[2]),y=Number(m[3]);if(y<100)y+=y>=70?1900:2000;let day=a,month=b;if(b>12&&a<=12){day=b;month=a}if(day>=1&&day<=31&&month>=1&&month<=12)return `${String(day).padStart(2,'0')}/${String(month).padStart(2,'0')}/${String(y).slice(-2)}`}
+      m=raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/);if(m)return `${String(Number(m[3])).padStart(2,'0')}/${String(Number(m[2])).padStart(2,'0')}/${m[1].slice(-2)}`;
+      const d=new Date(raw);if(!Number.isNaN(d.getTime()))return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'});return raw;
+    }
+    function pdfVocativo(row){return pdfText(row.item?.warehouse||'')||'SEM VOCATIVO'}
+    function pdfBp(row){return pdfText(pdfRaw(row.item,'BP Destino',''))||'-'}
+    function pdfRowData(row){
+      const i=row.item,sc=row.scans?.[0]||row.uniqueScans?.[0]||null;
+      if(!i)return [
+        '',pdfText(row.nf),pdfText(row.uniqueLabel),'',pdfText(row.oef),'','','',pdfText(row.expected??''),'','','',pdfVocativo(row),'','','','',''
+      ];
+      return [
+        pdfDate(pdfRaw(i,'Data de Entrada da Nota',pdfRaw(i,'Data de Check in',''))),
+        pdfText(pdfRaw(i,'Nota',row.nf)),
+        pdfText(pdfRaw(i,'Etiqueta Unica',i.unique_label||'')),
+        pdfText(pdfRaw(i,'CTE','')),
+        pdfText(pdfRaw(i,'Numero OEF',i.oef||row.oef||'')),
+        pdfText(pdfRaw(i,'Pesado','')),
+        pdfText(pdfRaw(i,'Janela de Emissao','')),
+        pdfText(pdfRaw(i,'Peso',i.weight??'')),
+        pdfText(pdfRaw(i,'Volumes',row.expected??'')),
+        pdfText(pdfRaw(i,'Prioridade','')),
+        pdfText(pdfRaw(i,'ONU','')),
+        pdfText(pdfRaw(i,'Fornecedor',i.supplier||row.supplier||'')),
+        pdfText(pdfRaw(i,'Almoxarifado',i.warehouse||'')),
+        pdfText(pdfRaw(i,'Mercadoria',i.merchandise||'')),
+        pdfDate(pdfRaw(i,'Dt Limite Embarque','')),
+        pdfDate(pdfRaw(i,'Dt Final Entrega','')),
+        pdfDate(pdfRaw(i,'Data Inventario','')),
+        pdfText(pdfRaw(i,'End. WMS',i.wms_address||''))
+      ];
+    }
+    function generateVocativoPdf(){
+      const rows=state.reportFiltered||[];
+      if(!rows.length){toast('Nenhum registro filtrado para gerar o PDF.','warn');return}
+      const jsPDFCtor=window.jspdf?.jsPDF;
+      if(!jsPDFCtor){toast('Biblioteca de PDF não carregada. Atualize a página e tente novamente.','bad');return}
+      try{
+        const doc=new jsPDFCtor({orientation:'landscape',unit:'mm',format:'a4',compress:true});
+        if(typeof doc.autoTable!=='function')throw new Error('Componente de tabela PDF não carregado.');
+        const pageW=doc.internal.pageSize.getWidth(),pageH=doc.internal.pageSize.getHeight(),left=8,right=8;
+        const clientFilter=$('#reportClientFilter').value,vocativoFilter=$('#reportVocativoFilter').value;
+        const filterLabel=vocativoFilter!=='all'?`Vocativo: ${vocativoFilter}`:clientFilter!=='all'?`Cliente: ${clientFilter}`:'Registros filtrados';
+        const totalWeight=rows.reduce((sum,r)=>sum+pdfNumber(pdfRaw(r.item,'Peso',r.item?.weight??0)),0);
+        const statusCount={complete:0,partial:0,not_started:0,off_report:0};rows.forEach(r=>{if(Object.prototype.hasOwnProperty.call(statusCount,r.status))statusCount[r.status]++});
+        const groups=new Map();rows.forEach(r=>{const v=pdfVocativo(r);if(!groups.has(v))groups.set(v,[]);groups.get(v).push(r)});
+        const summaryMap=new Map();rows.forEach(r=>{const v=pdfVocativo(r),bp=pdfBp(r),key=bp+'\u0000'+v;if(!summaryMap.has(key))summaryMap.set(key,{bp,v,count:0});summaryMap.get(key).count++});
+        const summaries=[...summaryMap.values()];
+        const drawMainHeader=()=>{
+          doc.setTextColor(0);doc.setFont('helvetica','bold');doc.setFontSize(15);
+          doc.text(`Relatório do Inventário - ${filterLabel}`,pageW/2,10,{align:'center'});
+          doc.setFontSize(11.5);doc.text(`Peso Total: ${totalWeight.toFixed(2)} KG - NFs Totais: ${rows.length}`,pageW/2,16,{align:'center'});
+          doc.setFontSize(9.5);doc.text(`Conferidas: ${statusCount.complete} | Parciais: ${statusCount.partial} | Não conferidas: ${statusCount.not_started} | Fora do relatório: ${statusCount.off_report}`,pageW/2,21,{align:'center'});
+        };
+        drawMainHeader();
+        let summaryEndY=25;
+        const chunk=summaries.slice(0,60),perCol=Math.max(1,Math.ceil(chunk.length/3)),usable=pageW-left-right,gap=4,colW=(usable-gap*2)/3;
+        for(let c=0;c<3;c++){
+          const part=chunk.slice(c*perCol,(c+1)*perCol);if(!part.length)continue;
+          doc.autoTable({startY:27,margin:{left:left+c*(colW+gap),right:pageW-(left+c*(colW+gap)+colW)},tableWidth:colW,
+            head:[['BP','Qtd Notas','Vocativo']],body:part.map(x=>[x.bp,String(x.count),x.v]),theme:'grid',
+            styles:{font:'helvetica',fontSize:5.6,cellPadding:0.85,textColor:0,lineColor:[125,125,125],lineWidth:0.12,halign:'center',valign:'middle',overflow:'ellipsize'},
+            headStyles:{fillColor:[0,0,0],textColor:255,fontStyle:'bold',fontSize:5.4},
+            columnStyles:{0:{cellWidth:colW*.27},1:{cellWidth:colW*.18},2:{cellWidth:colW*.55}}});
+          summaryEndY=Math.max(summaryEndY,doc.lastAutoTable.finalY||27);
+        }
+        if(summaries.length>60){
+          const remaining=summaries.slice(60);for(let offset=0;offset<remaining.length;offset+=60){
+            doc.addPage();doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('Resumo por BP / Vocativo - continuação',pageW/2,10,{align:'center'});
+            const sub=remaining.slice(offset,offset+60),pc=Math.max(1,Math.ceil(sub.length/3));let end=14;
+            for(let c=0;c<3;c++){
+              const part=sub.slice(c*pc,(c+1)*pc);if(!part.length)continue;
+              doc.autoTable({startY:14,margin:{left:left+c*(colW+gap),right:pageW-(left+c*(colW+gap)+colW)},tableWidth:colW,head:[['BP','Qtd Notas','Vocativo']],body:part.map(x=>[x.bp,String(x.count),x.v]),theme:'grid',styles:{font:'helvetica',fontSize:5.6,cellPadding:0.85,textColor:0,lineColor:[125,125,125],lineWidth:0.12,halign:'center',valign:'middle',overflow:'ellipsize'},headStyles:{fillColor:[0,0,0],textColor:255,fontStyle:'bold',fontSize:5.4},columnStyles:{0:{cellWidth:colW*.27},1:{cellWidth:colW*.18},2:{cellWidth:colW*.55}}});end=Math.max(end,doc.lastAutoTable.finalY||14);
+            }
+            summaryEndY=end;
+          }
+        }
+        let y=(summaries.length>60)?summaryEndY+8:summaryEndY+8;
+        const headers=['Chegada','Nota','Etq. Unica','CTE','OEF','Pesado','Jan. Emissao','KG','Vol','Prior','ONU','Remetente','Almoxarifado','Mercadoria','Lim. Embarque','Data Entrega','Data Inventario','End. WMS'];
+        const colStyles={0:{cellWidth:12},1:{cellWidth:11},2:{cellWidth:13},3:{cellWidth:14},4:{cellWidth:12},5:{cellWidth:8},6:{cellWidth:11},7:{cellWidth:9},8:{cellWidth:7},9:{cellWidth:10},10:{cellWidth:8},11:{cellWidth:34},12:{cellWidth:30},13:{cellWidth:36},14:{cellWidth:12},15:{cellWidth:12},16:{cellWidth:12},17:{cellWidth:30}};
+        for(const [vocativo,gRows] of groups){
+          const weight=gRows.reduce((sum,r)=>sum+pdfNumber(pdfRaw(r.item,'Peso',r.item?.weight??0)),0);
+          if(y>pageH-25){doc.addPage();y=10}
+          doc.setFont('helvetica','bold');doc.setFontSize(10.5);doc.setTextColor(0);
+          doc.text(`ENTREGA DIRETA - ${vocativo} - Peso: ${weight.toFixed(2)} KG - Notas: ${gRows.length}`,pageW/2,y,{align:'center'});y+=3.5;
+          doc.autoTable({startY:y,head:[headers],body:gRows.map(pdfRowData),theme:'grid',showHead:'everyPage',margin:{left,right,top:8,bottom:8},
+            styles:{font:'helvetica',fontSize:4.15,cellPadding:0.65,textColor:0,lineColor:[105,105,105],lineWidth:0.1,valign:'middle',overflow:'ellipsize',minCellHeight:3.4},
+            headStyles:{fillColor:[0,0,0],textColor:255,fontStyle:'normal',fontSize:4.15,halign:'center',cellPadding:0.7},columnStyles:colStyles,
+            didDrawPage:data=>{if(data.pageNumber>1){doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(0);doc.text(vocativo,pageW/2,5.5,{align:'center'})}}});
+          y=(doc.lastAutoTable.finalY||y)+7;
+        }
+        const inv=state.reportInventories.find(x=>x.id===state.reportInventoryId)||state.inventory||{};
+        const safe=(inv.name||'inventario').replace(/[\\/:*?"<>|]+/g,'_').slice(0,60);
+        doc.save(`${safe}_por_vocativo.pdf`);toast('Relatório PDF gerado.','ok');
+      }catch(e){console.error('PDF por vocativo',e);toast(e.message||'Falha ao gerar o PDF.','bad')}
+    }
+
     const knownReportHeaderOrder=['Filial Atual','Data de Check in','Data de Entrada da Nota','Data Resolução Ocorrencia','Nota','Numero OEF','INCOTERMS','UF_ID','Pedido','Organização de Vendas','Range de Dias','CNPJ Fornecedor','Fornecedor','Cliente','Destinatario','Destino','UF Destino','CNPJ Destino','BP Destino','Almoxarifado','CTE','ONU','End. WMS','Peso','Volumes','Mercadoria','Etiqueta Unica','Prioridade','Dt Limite Embarque','Dt Final Entrega','Pesado','ALTURA','COMPRIMENTO','LARGURA','CHAVE_NFE','Filial Origem','Data Programacao','Data de Criação da Coleta','Valor Nota','Liberacao Suzano','Inventario','Data Inventario','Ultimo Inventario Filial','Status no Inventario','Janela de Emissao','CIF/FOB','OF','Janela Operacional','CEP Destino','Fonte Data Entrega','Data Limite Embarque (Ajuste Janela de Carregamento)','Contrato','Veiculo Coleta'];
     function cleanSourceRaw(raw){if(!raw||typeof raw!=='object'||Array.isArray(raw))return{};return raw}
     function reportSourceHeaders(){
@@ -1253,8 +1375,8 @@
     $('#manualSubmit').addEventListener('click',()=>{unlockScanAudio();const v=$('#manualCode').value.trim();if(v){processCode(v);$('#manualCode').value=''}});$('#manualCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#manualSubmit').click()}});
     $('#refreshDashboard').addEventListener('click',refreshDashboard);$('#pendingNotesBtn').addEventListener('click',loadPendingNotes);$('#createInventoryBtn').addEventListener('click',createInventory);$('#saveInventoryTypeBtn').addEventListener('click',saveInventoryType);$('#closeInventoryBtn').addEventListener('click',closeInventory);
     $('#pendingNotesClose').addEventListener('click',()=>$('#pendingNotesModal').classList.add('hidden'));$('#pendingNotesModal').addEventListener('click',e=>{if(e.target.id==='pendingNotesModal')$('#pendingNotesModal').classList.add('hidden')});$('#pendingNotesSearch').addEventListener('input',applyPendingNotesFilter);$('#pendingNotesPrev').addEventListener('click',()=>{if(state.pendingPage>1){state.pendingPage--;renderPendingNotes()}});$('#pendingNotesNext').addEventListener('click',()=>{if(state.pendingPage*state.pendingPageSize<state.pendingFiltered.length){state.pendingPage++;renderPendingNotes()}});
-    $('#refreshReportBtn').addEventListener('click',()=>loadReport());$('#reportInventorySelect').addEventListener('change',()=>{state.reportInventoryId=$('#reportInventorySelect').value;loadReport()});['reportSearch','reportStatusFilter','reportDivergenceFilter','reportLocationFilter'].forEach(id=>$('#'+id).addEventListener(id==='reportSearch'?'input':'change',applyReportFilters));
-    $('#reportPrevBtn').addEventListener('click',()=>{if(state.reportPage>1){state.reportPage--;renderReport()}});$('#reportNextBtn').addEventListener('click',()=>{if(state.reportPage*state.reportPageSize<state.reportFiltered.length){state.reportPage++;renderReport()}});$('#exportFullBtn').addEventListener('click',()=>exportReport(false));$('#exportFilteredBtn').addEventListener('click',()=>exportReport(true));
+    $('#refreshReportBtn').addEventListener('click',()=>loadReport());$('#reportInventorySelect').addEventListener('change',()=>{state.reportInventoryId=$('#reportInventorySelect').value;loadReport()});['reportSearch','reportStatusFilter','reportDivergenceFilter','reportClientFilter','reportVocativoFilter'].forEach(id=>$('#'+id).addEventListener(id==='reportSearch'?'input':'change',applyReportFilters));
+    $('#reportPrevBtn').addEventListener('click',()=>{if(state.reportPage>1){state.reportPage--;renderReport()}});$('#reportNextBtn').addEventListener('click',()=>{if(state.reportPage*state.reportPageSize<state.reportFiltered.length){state.reportPage++;renderReport()}});$('#exportPdfVocativoBtn').addEventListener('click',generateVocativoPdf);$('#exportFullBtn').addEventListener('click',()=>exportReport(false));$('#exportFilteredBtn').addEventListener('click',()=>exportReport(true));
     $('#reportBody').addEventListener('click',e=>{const b=e.target.closest('.report-detail-btn');if(b)openReportDetail(b.dataset.reportKey)});$('#reportModalClose').addEventListener('click',()=>$('#reportModal').classList.add('hidden'));$('#reportModal').addEventListener('click',e=>{if(e.target.id==='reportModal')$('#reportModal').classList.add('hidden')});
 
     $('#reportFile').addEventListener('change',async e=>{
