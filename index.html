@@ -523,7 +523,7 @@
     const cfg=window.APP_CONFIG||{};
     const configured=Boolean(cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase);
     const db=configured ? window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true}}) : null;
-    const state={user:null,profile:null,branches:[],currentBranch:null,adminBranches:[],inventory:null,locations:[],importItems:[],importMeta:null,recent:[],scanner:null,scannerRunning:false,realtimeChannel:null,demoItems:[],demoScans:[],demoUniqueScans:[],demoAttempts:[],reportBranches:[],reportBranchId:null,reportInventories:[],reportInventoryId:null,reportRows:[],reportFiltered:[],reportItems:[],reportScans:[],reportUniqueScans:[],reportAttempts:[],reportProfiles:new Map(),reportLocations:new Map(),reportPage:1,reportPageSize:100,reportDirty:false,pendingRows:[],pendingFiltered:[],pendingPage:1,pendingPageSize:100,users:[],usersFiltered:[]};
+    const state={user:null,profile:null,branches:[],currentBranch:null,adminBranches:[],inventory:null,locations:[],importItems:[],importMeta:null,recent:[],scanner:null,scannerRunning:false,realtimeChannel:null,demoItems:[],demoScans:[],demoUniqueScans:[],demoAttempts:[],reportBranches:[],reportBranchId:null,reportInventories:[],reportInventoryId:null,reportRows:[],reportFiltered:[],reportItems:[],reportScans:[],reportUniqueScans:[],reportAttempts:[],reportProfiles:new Map(),reportLocations:new Map(),reportPage:1,reportPageSize:100,reportDirty:false,reportLoading:false,reportLoadPromise:null,reportLoadedBranchId:null,reportLoadedInventoryId:null,pendingRows:[],pendingFiltered:[],pendingPage:1,pendingPageSize:100,users:[],usersFiltered:[]};
     const $=s=>document.querySelector(s); const $$=s=>[...document.querySelectorAll(s)];
     const digits=v=>String(v??'').replace(/\D/g,'');
     const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -688,7 +688,7 @@
       const branch=state.branches.find(b=>String(b.id)===String(branchId));if(!branch)throw new Error('Filial não permitida para este usuário.');
       await stopScanner();state.currentBranch=branch;state.inventory=null;state.locations=[];state.reportBranchId=branch.id;state.reportInventoryId=null;state.reportInventories=[];state.reportRows=[];state.reportFiltered=[];state.recent=[];
       renderTopBranchSelect();
-      if(enter){$('#branchSelectView').classList.add('hidden');await enterApp()}else{await loadLocations();await loadActiveInventory();await refreshDashboard();renderSettings();if(state.profile?.role==='admin')await loadReportInventories(false)}
+      if(enter){$('#branchSelectView').classList.add('hidden');await enterApp()}else{await loadLocations();await loadActiveInventory();await refreshDashboard();renderSettings();if(state.profile?.role==='admin')await refreshReportContext({branchId:branch.id,resetFilters:true,keepInventory:false})}
     }
     async function prepareBranchAccess(){
       const branches=await loadUserBranches();
@@ -1088,6 +1088,72 @@
     function reportStatusBadge(status){return `<span class="report-status ${status==='complete'?'complete':status==='partial'?'partial':status==='off_report'?'offreport':'pending'}">${esc(statusLabels[status]||status)}</span>`}
     function uniq(arr){return [...new Set(arr.filter(Boolean))]}
     async function fetchAllRows(table,select,apply){const out=[];const step=1000;let from=0;while(true){let q=db.from(table).select(select).range(from,from+step-1);if(apply)q=apply(q);const {data,error}=await q;if(error)throw error;const part=data||[];out.push(...part);if(part.length<step)break;from+=step}return out}
+    let reportLoadSequence=0;
+    function setReportLoadingUi(loading){
+      state.reportLoading=Boolean(loading);
+      const refresh=$('#refreshReportBtn');
+      if(refresh){
+        if(loading){if(!refresh.dataset.originalText)refresh.dataset.originalText=refresh.textContent||'Atualizar relatório';refresh.textContent='Atualizando...'}
+        else refresh.textContent=refresh.dataset.originalText||'Atualizar relatório';
+        refresh.disabled=Boolean(loading);
+      }
+      ['exportPdfVocativoBtn','exportFilteredBtn','exportFullBtn'].forEach(id=>{const b=$('#'+id);if(b)b.disabled=Boolean(loading)});
+    }
+    function clearReportContextData(){
+      state.reportRows=[];state.reportFiltered=[];state.reportItems=[];state.reportScans=[];state.reportUniqueScans=[];state.reportAttempts=[];state.reportProfiles=new Map();state.reportLocations=new Map();state.reportPage=1;state.reportLoadedBranchId=null;state.reportLoadedInventoryId=null;state.reportDirty=true;
+      renderReportKpis();
+      $('#reportBody').innerHTML='<tr><td colspan="15" class="empty">Atualizando relatório da filial selecionada...</td></tr>';
+      $('#reportCount').textContent='Atualizando relatório...';
+      $('#reportPageInfo').textContent='Página 0 de 0';
+    }
+    function resetReportFiltersForContext(){
+      const search=$('#reportSearch');if(search)search.value='';
+      ['reportStatusFilter','reportDivergenceFilter'].forEach(id=>{
+        const el=$('#'+id);if(!el)return;
+        const all=el.querySelector('input[data-all]');const items=[...el.querySelectorAll('input[data-value]')];
+        if(all)all.checked=true;items.forEach(x=>x.checked=true);reportMultiFilterSummary(id);
+      });
+      ['reportClientFilter','reportVocativoFilter'].forEach(id=>{
+        const el=$('#'+id);if(!el)return;
+        delete el.dataset.initialized;
+        const all=el.querySelector('input[data-all]');if(all)all.checked=true;
+        [...el.querySelectorAll('input[data-value]')].forEach(x=>x.checked=true);
+        reportMultiFilterSummary(id);
+      });
+      state.reportPage=1;
+    }
+    async function refreshReportContext({branchId=null,resetFilters=true,keepInventory=false}={}){
+      if(state.profile?.role!=='admin')return;
+      const targetBranch=branchId||state.currentBranch?.id||state.reportBranchId||'';
+      state.reportBranchId=targetBranch;
+      if(!keepInventory)state.reportInventoryId=null;
+      state.reportInventories=[];
+      if(resetFilters)resetReportFiltersForContext();
+      clearReportContextData();
+      setReportLoadingUi(true);
+      const promise=(async()=>{
+        try{
+          await loadReportInventories(Boolean(keepInventory));
+          await loadReport();
+        }finally{
+          setReportLoadingUi(false);
+        }
+      })();
+      state.reportLoadPromise=promise;
+      try{await promise}finally{if(state.reportLoadPromise===promise)state.reportLoadPromise=null}
+    }
+    async function ensureReportReadyForExport(){
+      if(state.profile?.role!=='admin')throw new Error('Acesso administrativo necessário para exportar o relatório.');
+      if(state.reportLoadPromise)await state.reportLoadPromise;
+      const branchId=state.reportBranchId||state.currentBranch?.id||'';
+      const selectedInventory=$('#reportInventorySelect')?.value||state.reportInventoryId||'';
+      const stale=state.reportDirty||String(state.reportLoadedBranchId||'')!==String(branchId||'')||String(state.reportLoadedInventoryId||'')!==String(selectedInventory||'');
+      if(stale){
+        await refreshReportContext({branchId,resetFilters:false,keepInventory:true});
+      }
+      if(state.reportLoadPromise)await state.reportLoadPromise;
+    }
+
     function renderReportBranchOptions(){
       const sel=$('#reportBranchSelect');if(!sel)return;const available=(state.profile?.all_branches&&state.adminBranches.length)?state.adminBranches:state.branches,current=state.reportBranchId||state.currentBranch?.id||available[0]?.id||'';sel.innerHTML='<option value="">Selecione...</option>'+available.map(b=>`<option value="${esc(b.id)}">${esc(b.name)}${b.active?'':' • INATIVA'}</option>`).join('');if(available.some(b=>String(b.id)===String(current)))sel.value=current;state.reportBranchId=sel.value||'';
     }
@@ -1101,10 +1167,19 @@
     }
     async function loadReport(force=true){
       if(state.profile?.role!=='admin')return;
-      if(!state.reportInventories.length)await loadReportInventories();
-      const invId=$('#reportInventorySelect').value||state.reportInventoryId;if(!invId){state.reportRows=[];state.reportFiltered=[];renderReport();return}
-      state.reportInventoryId=invId;$('#reportBody').innerHTML='<tr><td colspan="15" class="empty">Carregando dados do inventário...</td></tr>';
+      const seq=++reportLoadSequence;
+      setReportLoadingUi(true);
       try{
+        if(!state.reportInventories.length)await loadReportInventories();
+        const invId=$('#reportInventorySelect').value||state.reportInventoryId;
+        const branchId=state.reportBranchId||state.currentBranch?.id||'';
+        if(!invId){
+          if(seq!==reportLoadSequence)return;
+          state.reportRows=[];state.reportFiltered=[];state.reportItems=[];state.reportScans=[];state.reportUniqueScans=[];state.reportAttempts=[];state.reportLoadedBranchId=branchId;state.reportLoadedInventoryId=null;state.reportDirty=false;
+          renderReportKpis();renderReport();return;
+        }
+        state.reportInventoryId=invId;
+        $('#reportBody').innerHTML='<tr><td colspan="15" class="empty">Carregando dados do inventário...</td></tr>';
         if(configured){
           const [items,scans,uniqueScans,attempts,profiles,reportLocations]=await Promise.all([
             fetchAllRows('inventory_items','*',q=>q.eq('inventory_id',invId).order('source_row',{ascending:true})),
@@ -1112,11 +1187,23 @@
             fetchAllRows('inventory_unique_label_scans','*',q=>q.eq('inventory_id',invId).order('scanned_at',{ascending:true})),
             fetchAllRows('scan_attempts','*',q=>q.eq('inventory_id',invId).eq('result','duplicate').order('attempted_at',{ascending:true})),
             fetchAllRows('profiles','id,name,role,active',q=>q.order('name',{ascending:true})),
-            fetchAllRows('locations','id,name',q=>q.eq('branch_id',state.reportBranchId).order('name',{ascending:true}))
-          ]);state.reportItems=items;state.reportScans=scans;state.reportUniqueScans=uniqueScans;state.reportAttempts=attempts;state.reportProfiles=new Map(profiles.map(x=>[x.id,x.name]));state.reportLocations=new Map(reportLocations.map(x=>[String(x.id),x.name]));
-        }else{state.reportItems=state.demoItems;state.reportScans=state.demoScans;state.reportUniqueScans=state.demoUniqueScans;state.reportAttempts=state.demoAttempts.filter(x=>x.result==='duplicate');state.reportProfiles=new Map([[state.profile.id,state.profile.name]]);state.reportLocations=new Map(state.locations.map(x=>[String(x.id),x.name]))}
-        buildReportRows();state.reportDirty=false;$('#reportFreshness').classList.add('hidden');applyReportFilters();
-      }catch(e){toast(e.message||'Falha ao carregar relatório.','bad');$('#reportBody').innerHTML=`<tr><td colspan="15" class="empty">${esc(e.message||'Falha ao carregar.')}</td></tr>`}
+            fetchAllRows('locations','id,name',q=>q.eq('branch_id',branchId).order('name',{ascending:true}))
+          ]);
+          if(seq!==reportLoadSequence)return;
+          state.reportItems=items;state.reportScans=scans;state.reportUniqueScans=uniqueScans;state.reportAttempts=attempts;state.reportProfiles=new Map(profiles.map(x=>[x.id,x.name]));state.reportLocations=new Map(reportLocations.map(x=>[String(x.id),x.name]));
+        }else{
+          if(seq!==reportLoadSequence)return;
+          state.reportItems=state.demoItems;state.reportScans=state.demoScans;state.reportUniqueScans=state.demoUniqueScans;state.reportAttempts=state.demoAttempts.filter(x=>x.result==='duplicate');state.reportProfiles=new Map([[state.profile.id,state.profile.name]]);state.reportLocations=new Map(state.locations.map(x=>[String(x.id),x.name]));
+        }
+        if(seq!==reportLoadSequence)return;
+        buildReportRows();state.reportDirty=false;state.reportLoadedBranchId=branchId;state.reportLoadedInventoryId=invId;$('#reportFreshness').classList.add('hidden');applyReportFilters();
+      }catch(e){
+        if(seq!==reportLoadSequence)return;
+        state.reportDirty=true;toast(e.message||'Falha ao carregar relatório.','bad');$('#reportBody').innerHTML=`<tr><td colspan="15" class="empty">${esc(e.message||'Falha ao carregar.')}</td></tr>`;
+        throw e;
+      }finally{
+        if(seq===reportLoadSequence)setReportLoadingUi(false);
+      }
     }
     function scanLocationName(scan){return scan.location||state.reportLocations.get(String(scan.location_id))||state.locations.find(l=>String(l.id)===String(scan.location_id))?.name||''}
     function scanUserName(scan){return scan.user_name||state.reportProfiles.get(scan.user_id)||''}
@@ -1196,21 +1283,109 @@
       $('#reportPageInfo').textContent=`Página ${rows.length?state.reportPage:0} de ${rows.length?pages:0} • ${fmtNum(rows.length)} registro(s)`;$('#reportPrevBtn').disabled=!rows.length||state.reportPage<=1;$('#reportNextBtn').disabled=!rows.length||state.reportPage>=pages;
     }
     function reportCanonicalKey(r,v){if(r.uniqueMode)return `U|${normalizeUniqueLabel(r.uniqueLabel)}|${String(v).padStart(3,'0')}`;const i=r.item;return [i?.note_padded||'',i?.series||'',i?.cnpj_supplier||'',i?.collection_padded||'',String(v).padStart(3,'0')].join('|')}
-    async function lastConfirmationMap(keys){const out=new Map();if(!configured||!keys.length||state.profile?.role!=='admin')return out;const {data,error}=await db.rpc('get_last_volume_confirmations',{p_keys:keys});if(error)throw error;(data||[]).forEach(x=>out.set(x.canonical_volume_key,x));return out}
-    function historyHtml(h){return h?`<small><b>Última conferência:</b> ${esc(fmtDateTime(h.scanned_at))}</small><small><b>Filial:</b> ${esc(h.branch_name||'-')} • <b>Local:</b> ${esc(h.location_name||'-')}</small><small><b>Conferente:</b> ${esc(h.user_name||'-')} • <b>Inventário:</b> ${esc(h.inventory_name||'-')}</small>`:`<small><b>Última conferência:</b> sem histórico OK registrado</small>`}
+    async function lastConfirmationMap(keys,currentInventoryId){
+      const out=new Map();
+      if(!configured||!keys.length||state.profile?.role!=='admin')return out;
+      const {data,error}=await db.rpc('get_last_volume_confirmations',{
+        p_keys:keys,
+        p_exclude_inventory_id:currentInventoryId||null
+      });
+      if(error)throw error;
+      (data||[]).forEach(x=>out.set(x.canonical_volume_key,x));
+      return out;
+    }
+    function confirmationStatusText(status){
+      if(status==='ok')return 'Conferido';
+      if(status)return 'Divergente: '+(divergenceLabels[status]||status);
+      return 'Não conferido';
+    }
+    function currentConfirmationHtml(sc,r){
+      if(!sc)return `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(15,23,42,.10)"><small><b>Conferência do inventário atual:</b> Não conferido</small></div>`;
+      const inv=state.reportInventories.find(x=>String(x.id)===String(state.reportInventoryId));
+      const branch=state.branches.find(x=>String(x.id)===String(state.reportBranchId||state.currentBranch?.id));
+      return `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(15,23,42,.10)">
+        <small><b>Conferência do inventário atual:</b> ${esc(confirmationStatusText(sc.status))}</small>
+        <small><b>Data/Hora:</b> ${esc(fmtDateTime(sc.scanned_at))}</small>
+        <small><b>Filial:</b> ${esc(branch?.name||'-')} • <b>Local:</b> ${esc(scanLocationName(sc)||'-')}</small>
+        <small><b>Conferente:</b> ${esc(scanUserName(sc)||'-')} • <b>Inventário:</b> ${esc(inv?.name||'-')}</small>
+      </div>`;
+    }
+    function historyHtml(h){
+      return h
+        ? `<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(15,23,42,.20)">
+            <small><b>Última conferência:</b> ${esc(confirmationStatusText(h.status))}</small>
+            <small><b>Data/Hora:</b> ${esc(fmtDateTime(h.scanned_at))}</small>
+            <small><b>Filial:</b> ${esc(h.branch_name||'-')} • <b>Local:</b> ${esc(h.location_name||'-')}</small>
+            <small><b>Conferente:</b> ${esc(h.user_name||'-')} • <b>Inventário:</b> ${esc(h.inventory_name||'-')}</small>
+          </div>`
+        : `<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(15,23,42,.20)"><small><b>Última conferência:</b> nenhum histórico registrado em outro inventário</small></div>`;
+    }
     async function openReportDetail(key){
       const r=state.reportRows.find(x=>x.key===key);if(!r)return;
-      if(r.recordType==='base')$('#reportModalTitle').textContent='NF '+r.nf;else if(r.recordType==='off_report_unique')$('#reportModalTitle').textContent='Divergência Etiqueta Única '+r.uniqueLabel;else $('#reportModalTitle').textContent='Divergência NF '+r.nf;
+      if(r.recordType==='base')$('#reportModalTitle').textContent='NF '+r.nf;
+      else if(r.recordType==='off_report_unique')$('#reportModalTitle').textContent='Divergência Etiqueta Única '+r.uniqueLabel;
+      else $('#reportModalTitle').textContent='Divergência NF '+r.nf;
       $('#reportModalSubtitle').textContent=r.recordType==='base'?`${statusLabels[r.status]} • ${r.ok}/${r.expected} volumes OK${r.uniqueMode?' • conferência por Etiqueta Única':''}`:'Conferido fisicamente, mas não consta no relatório carregado';
-      let header='';if(r.item){const i=r.item;header=`<div class="detail-grid" style="margin-bottom:14px"><div class="detail"><span>Filial do inventário</span><b>${esc(branchById(state.reportBranchId)?.name||'-')}</b></div><div class="detail"><span>Etiqueta Única</span><b>${esc(i.unique_label||'-')}</b></div><div class="detail"><span>Fornecedor</span><b>${esc(i.supplier||'-')}</b></div><div class="detail"><span>Cliente</span><b>${esc(i.client||'-')}</b></div><div class="detail"><span>OEF / Coleta</span><b>${esc(i.oef||i.collection_padded||'-')}</b></div><div class="detail"><span>CNPJ</span><b>${esc(i.cnpj_supplier||'-')}</b></div><div class="detail"><span>Pedido</span><b>${esc(i.order_number||'-')}</b></div><div class="detail"><span>Destino</span><b>${esc([i.destination,i.destination_uf].filter(Boolean).join(' - ')||'-')}</b></div><div class="detail"><span>Almoxarifado</span><b>${esc(i.warehouse||'-')}</b></div><div class="detail"><span>End. WMS</span><b>${esc(i.wms_address||'-')}</b></div><div class="detail"><span>Peso</span><b>${i.weight??'-'}</b></div><div class="detail"><span>Mercadoria</span><b>${esc(i.merchandise||'-')}</b></div></div>`}
-      let history=new Map();if(r.recordType==='base'){const keys=[];for(let v=1;v<=Number(r.expected||0);v++)keys.push(reportCanonicalKey(r,v));try{history=await lastConfirmationMap(keys)}catch(e){toast('Não foi possível carregar o histórico da última conferência: '+e.message,'warn')}}
+      let header='';
+      if(r.item){
+        const i=r.item,branch=state.branches.find(b=>String(b.id)===String(state.reportBranchId||state.currentBranch?.id));
+        header=`<div class="detail-grid" style="margin-bottom:14px"><div class="detail"><span>Filial do inventário</span><b>${esc(branch?.name||'-')}</b></div><div class="detail"><span>Etiqueta Única</span><b>${esc(i.unique_label||'-')}</b></div><div class="detail"><span>Fornecedor</span><b>${esc(i.supplier||'-')}</b></div><div class="detail"><span>Cliente</span><b>${esc(i.client||'-')}</b></div><div class="detail"><span>OEF / Coleta</span><b>${esc(i.oef||i.collection_padded||'-')}</b></div><div class="detail"><span>CNPJ</span><b>${esc(i.cnpj_supplier||'-')}</b></div><div class="detail"><span>Pedido</span><b>${esc(i.order_number||'-')}</b></div><div class="detail"><span>Destino</span><b>${esc([i.destination,i.destination_uf].filter(Boolean).join(' - ')||'-')}</b></div><div class="detail"><span>Almoxarifado</span><b>${esc(i.warehouse||'-')}</b></div><div class="detail"><span>End. WMS</span><b>${esc(i.wms_address||'-')}</b></div><div class="detail"><span>Peso</span><b>${i.weight??'-'}</b></div><div class="detail"><span>Mercadoria</span><b>${esc(i.merchandise||'-')}</b></div></div>`;
+      }
+
+      let history=new Map();
+      if(r.recordType==='base'){
+        const keys=[];
+        for(let v=1;v<=Number(r.expected||0);v++)keys.push(reportCanonicalKey(r,v));
+        try{
+          history=await lastConfirmationMap(keys,state.reportInventoryId);
+        }catch(e){
+          toast('Não foi possível carregar o histórico da última conferência: '+e.message,'warn');
+        }
+      }
+
       const cards=[];
-      if(r.recordType==='base'&&r.uniqueMode){const byVol=new Map();r.uniqueScans.forEach(sc=>{const v=Number(sc.volume_no),old=byVol.get(v);if(!old||new Date(sc.scanned_at)>new Date(old.scanned_at))byVol.set(v,sc)});for(let v=1;v<=r.expected;v++){const sc=byVol.get(v),h=history.get(reportCanonicalKey(r,v));if(!sc)cards.push(`<div class="volume-card pending"><strong>Etiqueta Única • Volume ${v}/${r.expected}</strong><small>Não conferido no inventário atual</small>${historyHtml(h)}</div>`);else{const ok=sc.status==='ok';cards.push(`<div class="volume-card ${ok?'ok':'bad'}"><strong>Etiqueta Única • Volume ${v}/${r.expected}</strong><small>${ok?'Conferido no inventário atual':'Divergente: '+esc(divergenceLabels[sc.status]||sc.status)}</small>${historyHtml(h)}</div>`)}}r.uniqueScans.filter(s=>Number(s.volume_no)>r.expected||Number(s.volume_no)<1).forEach(sc=>cards.push(`<div class="volume-card bad"><strong>Etiqueta Única • Volume ${esc(sc.volume_no)}/${esc(sc.total_volumes_qr)}</strong><small>${esc(divergenceLabels[sc.status]||sc.status)}</small><small>${esc(scanLocationName(sc)||'-')} • ${esc(scanUserName(sc)||'-')} • ${fmtDateTime(sc.scanned_at)}</small></div>`))}
-      else if(r.recordType==='base'){const byVol=new Map();r.scans.forEach(sc=>{const v=Number(sc.volume_no),old=byVol.get(v);if(!old||new Date(sc.scanned_at)>new Date(old.scanned_at))byVol.set(v,sc)});for(let v=1;v<=r.expected;v++){const sc=byVol.get(v),h=history.get(reportCanonicalKey(r,v));if(!sc)cards.push(`<div class="volume-card pending"><strong>Volume ${v}/${r.expected}</strong><small>Não conferido no inventário atual</small>${historyHtml(h)}</div>`);else{const ok=sc.status==='ok';cards.push(`<div class="volume-card ${ok?'ok':'bad'}"><strong>Volume ${v}/${r.expected}</strong><small>${ok?'Conferido no inventário atual':'Divergente: '+esc(divergenceLabels[sc.status]||sc.status)}</small>${historyHtml(h)}</div>`)}}r.scans.filter(s=>Number(s.volume_no)>r.expected||Number(s.volume_no)<1).forEach(sc=>cards.push(`<div class="volume-card bad"><strong>Volume ${esc(sc.volume_no)}/${esc(sc.total_volumes_qr)}</strong><small>${esc(divergenceLabels[sc.status]||sc.status)}</small><small>${esc(scanLocationName(sc)||'-')} • ${esc(scanUserName(sc)||'-')} • ${fmtDateTime(sc.scanned_at)}</small></div>`))}
-      else if(r.recordType==='off_report_unique'){r.uniqueScans.forEach(sc=>cards.push(`<div class="volume-card bad"><strong>Etiqueta Única ${esc(r.uniqueLabel)} • Volume ${esc(sc.volume_no??'-')}/${esc(sc.total_volumes_qr??'-')}</strong><small>Não consta no relatório</small><small>${esc(scanLocationName(sc)||'-')} • ${esc(scanUserName(sc)||'-')}</small><small>${fmtDateTime(sc.scanned_at)}</small></div>`))}
-      else r.scans.forEach(sc=>cards.push(`<div class="volume-card bad"><strong>Volume ${esc(sc.volume_no??'-')}/${esc(sc.total_volumes_qr??'-')}</strong><small>Não consta no relatório</small><small>${esc(scanLocationName(sc)||'-')} • ${esc(scanUserName(sc)||'-')}</small><small>${fmtDateTime(sc.scanned_at)}</small></div>`));
-      $('#reportModalContent').innerHTML=header+`<div class="section-head"><h2>Volumes / leituras</h2><span class="pill">${cards.length} registro(s)</span></div><div class="volume-grid">${cards.join('')}</div>${r.duplicateCount?`<div class="notice warn" style="margin-top:14px">Foram registradas ${r.duplicateCount} tentativa(s) de leitura duplicada para esta NF/combinação/Etiqueta Única.</div>`:''}`;$('#reportModal').classList.remove('hidden')
+      if(r.recordType==='base'&&r.uniqueMode){
+        const byVol=new Map();
+        r.uniqueScans.forEach(sc=>{
+          const v=Number(sc.volume_no),old=byVol.get(v);
+          if(!old||new Date(sc.scanned_at)>new Date(old.scanned_at))byVol.set(v,sc);
+        });
+        for(let v=1;v<=r.expected;v++){
+          const sc=byVol.get(v),h=history.get(reportCanonicalKey(r,v));
+          if(!sc){
+            cards.push(`<div class="volume-card pending"><strong>Etiqueta Única • Volume ${v}/${r.expected}</strong>${currentConfirmationHtml(null,r)}${historyHtml(h)}</div>`);
+          }else{
+            const ok=sc.status==='ok';
+            cards.push(`<div class="volume-card ${ok?'ok':'bad'}"><strong>Etiqueta Única • Volume ${v}/${r.expected}</strong>${currentConfirmationHtml(sc,r)}${historyHtml(h)}</div>`);
+          }
+        }
+        r.uniqueScans.filter(s=>Number(s.volume_no)>r.expected||Number(s.volume_no)<1).forEach(sc=>cards.push(`<div class="volume-card bad"><strong>Etiqueta Única • Volume ${esc(sc.volume_no)}/${esc(sc.total_volumes_qr)}</strong>${currentConfirmationHtml(sc,r)}</div>`));
+      }else if(r.recordType==='base'){
+        const byVol=new Map();
+        r.scans.forEach(sc=>{
+          const v=Number(sc.volume_no),old=byVol.get(v);
+          if(!old||new Date(sc.scanned_at)>new Date(old.scanned_at))byVol.set(v,sc);
+        });
+        for(let v=1;v<=r.expected;v++){
+          const sc=byVol.get(v),h=history.get(reportCanonicalKey(r,v));
+          if(!sc){
+            cards.push(`<div class="volume-card pending"><strong>Volume ${v}/${r.expected}</strong>${currentConfirmationHtml(null,r)}${historyHtml(h)}</div>`);
+          }else{
+            const ok=sc.status==='ok';
+            cards.push(`<div class="volume-card ${ok?'ok':'bad'}"><strong>Volume ${v}/${r.expected}</strong>${currentConfirmationHtml(sc,r)}${historyHtml(h)}</div>`);
+          }
+        }
+        r.scans.filter(s=>Number(s.volume_no)>r.expected||Number(s.volume_no)<1).forEach(sc=>cards.push(`<div class="volume-card bad"><strong>Volume ${esc(sc.volume_no)}/${esc(sc.total_volumes_qr)}</strong>${currentConfirmationHtml(sc,r)}</div>`));
+      }else if(r.recordType==='off_report_unique'){
+        r.uniqueScans.forEach(sc=>cards.push(`<div class="volume-card bad"><strong>Etiqueta Única ${esc(r.uniqueLabel)} • Volume ${esc(sc.volume_no??'-')}/${esc(sc.total_volumes_qr??'-')}</strong>${currentConfirmationHtml(sc,r)}</div>`));
+      }else{
+        r.scans.forEach(sc=>cards.push(`<div class="volume-card bad"><strong>Volume ${esc(sc.volume_no??'-')}/${esc(sc.total_volumes_qr??'-')}</strong>${currentConfirmationHtml(sc,r)}</div>`));
+      }
+
+      $('#reportModalContent').innerHTML=header+`<div class="section-head"><h2>Volumes / leituras</h2><span class="pill">${cards.length} registro(s)</span></div><div class="volume-grid">${cards.join('')}</div>${r.duplicateCount?`<div class="notice warn" style="margin-top:14px">Foram registradas ${r.duplicateCount} tentativa(s) de leitura duplicada para esta NF/combinação/Etiqueta Única.</div>`:''}`;
+      $('#reportModal').classList.remove('hidden');
     }
+
     function pdfRaw(item,key,fallback=''){
       if(!item)return fallback;
       const raw=cleanSourceRaw(item.raw_data);
@@ -1550,7 +1725,7 @@
     async function saveInventoryType(){if(!state.inventory)return;const type=$('#adminInventoryType').value||'general';try{if(configured){const {data,error}=await db.from('inventories').update({inventory_type:type}).eq('id',state.inventory.id).select().single();if(error)throw error;state.inventory=data}else{state.inventory.inventory_type=type;localStorage.setItem('demo_inventory',JSON.stringify(state.inventory))}renderInventoryHeader();renderSettings();await refreshDashboard();toast('Tipo do inventário atualizado.','ok')}catch(e){toast(e.message||'Falha ao atualizar o tipo do inventário.','bad')}}
     async function deleteInventory(){const inv=state.inventory;if(!inv)return;if(state.profile?.role!=='admin'){toast('Somente administradores podem excluir inventários.','bad');return}const warning=`Excluir DEFINITIVAMENTE o inventário \"${inv.name}\"?\n\nSerão apagados a base importada e todos os registros vinculados a este inventário, incluindo notas, volumes conferidos, leituras, duplicidades/tentativas e Etiquetas Únicas.\n\nEsta ação não pode ser desfeita.`;if(!confirm(warning))return;const typed=prompt(`Para confirmar a exclusão, digite exatamente o nome do inventário:\n\n${inv.name}`);if(typed!==inv.name){if(typed!==null)toast('Exclusão cancelada: o nome informado não confere.','warn');return}const btn=$('#deleteInventoryBtn'),old=btn.textContent;btn.disabled=true;btn.textContent='Excluindo...';try{await stopScanner();if(configured){const {data,error}=await db.from('inventories').delete().eq('id',inv.id).select('id');if(error)throw error;if(!data?.length)throw new Error('O inventário não foi excluído. Verifique se sua conta continua com perfil de administrador ativo.')}else{localStorage.removeItem('demo_inventory');localStorage.removeItem('demo_items');localStorage.removeItem('demo_scans');localStorage.removeItem('demo_unique_scans');localStorage.removeItem('demo_attempts');state.inventory=null;state.demoItems=[];state.demoScans=[];state.demoUniqueScans=[];state.demoAttempts=[]}state.reportInventories=[];state.reportInventoryId=null;state.reportRows=[];state.reportFiltered=[];state.reportItems=[];state.reportScans=[];state.reportUniqueScans=[];state.reportAttempts=[];await loadActiveInventory();await refreshDashboard();renderSettings();toast('Inventário e todos os registros vinculados foram excluídos definitivamente.','ok')}catch(e){toast(e.message||'Falha ao excluir o inventário. Nenhum dado foi removido parcialmente.','bad')}finally{btn.disabled=false;btn.textContent=old}}
 
-    function navigate(page){if((page==='report'||page==='admin'||page==='settings'||page==='users')&&state.profile?.role!=='admin')page='scanner';$$('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+page));$$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));if(page!=='scanner')stopScanner();if(page==='dashboard')refreshDashboard();if(page==='report'){loadReportInventories().then(()=>loadReport()).catch(e=>toast(e.message,'bad'))}if(page==='settings')renderSettings();if(page==='users')loadUsers()}
+    function navigate(page){if((page==='report'||page==='admin'||page==='settings'||page==='users')&&state.profile?.role!=='admin')page='scanner';$$('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+page));$$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));if(page!=='scanner')stopScanner();if(page==='dashboard')refreshDashboard();if(page==='report'){ensureReportReadyForExport().catch(e=>toast(e.message,'bad'))}if(page==='settings')renderSettings();if(page==='users')loadUsers()}
 
     $('#loginForm').addEventListener('submit',async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('button[type="submit"]');if(btn?.disabled)return;const original=btn?.textContent||'Entrar';if(btn){btn.disabled=true;btn.textContent='Entrando...'}try{const ready=await loginSupabase($('#email').value.trim(),$('#password').value);if(ready)await enterApp()}catch(err){toast(err.message||'Falha no login.','bad');showLogin();return}finally{if(btn){btn.disabled=false;btn.textContent=original}}});
     $('#demoChecker').addEventListener('click',async()=>{loginDemo('conferente');await enterApp()});$('#demoAdmin').addEventListener('click',async()=>{loginDemo('admin');await enterApp()});$('#logoutBtn').addEventListener('click',logout);$('#branchChoiceLogout').addEventListener('click',logout);$('#branchChoiceList').addEventListener('click',e=>{const b=e.target.closest('[data-branch-id]');if(b)selectBranch(b.dataset.branchId).catch(err=>toast(err.message,'bad'))});$('#topBranchSelect').addEventListener('change',e=>selectBranch(e.target.value,{enter:false}).catch(err=>toast(err.message,'bad')));
@@ -1563,8 +1738,8 @@
     $('#manualSubmit').addEventListener('click',()=>{unlockScanAudio();const v=$('#manualCode').value.trim();if(v){processCode(v);$('#manualCode').value=''}});$('#manualCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#manualSubmit').click()}});
     $('#refreshDashboard').addEventListener('click',refreshDashboard);$('#pendingNotesBtn').addEventListener('click',loadPendingNotes);$('#createInventoryBtn').addEventListener('click',createInventory);$('#saveInventoryNameBtn').addEventListener('click',saveInventoryName);$('#saveInventoryTypeBtn').addEventListener('click',saveInventoryType);$('#closeInventoryBtn').addEventListener('click',closeInventory);$('#deleteInventoryBtn').addEventListener('click',deleteInventory);
     $('#pendingNotesClose').addEventListener('click',()=>$('#pendingNotesModal').classList.add('hidden'));$('#pendingNotesModal').addEventListener('click',e=>{if(e.target.id==='pendingNotesModal')$('#pendingNotesModal').classList.add('hidden')});$('#pendingNotesSearch').addEventListener('input',applyPendingNotesFilter);$('#pendingNotesPrev').addEventListener('click',()=>{if(state.pendingPage>1){state.pendingPage--;renderPendingNotes()}});$('#pendingNotesNext').addEventListener('click',()=>{if(state.pendingPage*state.pendingPageSize<state.pendingFiltered.length){state.pendingPage++;renderPendingNotes()}});
-    $('#refreshReportBtn').addEventListener('click',()=>loadReport());$('#reportBranchSelect').addEventListener('change',async()=>{state.reportBranchId=$('#reportBranchSelect').value;state.reportInventoryId=null;await loadReportInventories(false);await loadReport()});$('#reportInventorySelect').addEventListener('change',()=>{state.reportInventoryId=$('#reportInventorySelect').value;loadReport()});$('#reportSearch').addEventListener('input',applyReportFilters);['reportStatusFilter','reportDivergenceFilter','reportClientFilter','reportVocativoFilter'].forEach(id=>{$('#'+id).addEventListener('change',handleReportMultiFilterChange);reportMultiFilterSummary(id)});
-    $('#reportPrevBtn').addEventListener('click',()=>{if(state.reportPage>1){state.reportPage--;renderReport()}});$('#reportNextBtn').addEventListener('click',()=>{if(state.reportPage*state.reportPageSize<state.reportFiltered.length){state.reportPage++;renderReport()}});$('#exportPdfVocativoBtn').addEventListener('click',generateVocativoPdf);$('#exportFullBtn').addEventListener('click',()=>exportReport(false));$('#exportFilteredBtn').addEventListener('click',()=>exportReport(true));
+    $('#refreshReportBtn').addEventListener('click',()=>refreshReportContext({branchId:state.reportBranchId||state.currentBranch?.id,resetFilters:false,keepInventory:true}).catch(e=>toast(e.message,'bad')));$('#reportBranchSelect').addEventListener('change',()=>refreshReportContext({branchId:$('#reportBranchSelect').value,resetFilters:true,keepInventory:false}).catch(e=>toast(e.message,'bad')));$('#reportInventorySelect').addEventListener('change',()=>{state.reportInventoryId=$('#reportInventorySelect').value;resetReportFiltersForContext();clearReportContextData();loadReport().catch(e=>toast(e.message,'bad'))});$('#reportSearch').addEventListener('input',applyReportFilters);['reportStatusFilter','reportDivergenceFilter','reportClientFilter','reportVocativoFilter'].forEach(id=>{$('#'+id).addEventListener('change',handleReportMultiFilterChange);reportMultiFilterSummary(id)});
+    $('#reportPrevBtn').addEventListener('click',()=>{if(state.reportPage>1){state.reportPage--;renderReport()}});$('#reportNextBtn').addEventListener('click',()=>{if(state.reportPage*state.reportPageSize<state.reportFiltered.length){state.reportPage++;renderReport()}});$('#exportPdfVocativoBtn').addEventListener('click',async()=>{try{await ensureReportReadyForExport();generateVocativoPdf()}catch(e){toast(e.message||'Falha ao atualizar o relatório antes de gerar o PDF.','bad')}});$('#exportFullBtn').addEventListener('click',async()=>{try{await ensureReportReadyForExport();exportReport(false)}catch(e){toast(e.message||'Falha ao atualizar o relatório antes da exportação.','bad')}});$('#exportFilteredBtn').addEventListener('click',async()=>{try{await ensureReportReadyForExport();exportReport(true)}catch(e){toast(e.message||'Falha ao atualizar o relatório antes da exportação.','bad')}});
     $('#reportBody').addEventListener('click',e=>{const b=e.target.closest('.report-detail-btn');if(b)openReportDetail(b.dataset.reportKey).catch(err=>toast(err.message,'bad'))});$('#reportModalClose').addEventListener('click',()=>$('#reportModal').classList.add('hidden'));$('#reportModal').addEventListener('click',e=>{if(e.target.id==='reportModal')$('#reportModal').classList.add('hidden')});
 
     $('#reportFile').addEventListener('change',async e=>{
