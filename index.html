@@ -1316,7 +1316,7 @@
             <small><b>Última conferência:</b> ${esc(confirmationStatusText(h.status))}</small>
             <small><b>Data/Hora:</b> ${esc(fmtDateTime(h.scanned_at))}</small>
             <small><b>Filial:</b> ${esc(h.branch_name||'-')} • <b>Local:</b> ${esc(h.location_name||'-')}</small>
-            <small><b>Conferente:</b> ${esc(h.user_name||'-')} • <b>Inventário:</b> ${esc(h.inventory_name||'-')}</small>
+            <small><b>Conferente:</b> ${esc(h.user_name||'-')}</small>
           </div>`
         : `<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(15,23,42,.20)"><small><b>Última conferência:</b> nenhum histórico registrado em outro inventário</small></div>`;
     }
