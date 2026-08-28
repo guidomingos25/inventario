@@ -241,6 +241,42 @@
       #scanResult .scan-secondary-details{display:none}
       .scan-feedback-card{padding:24px 15px;border-radius:22px}.scan-feedback-icon{font-size:40px}.scan-feedback-title{font-size:24px}.scan-feedback-detail{font-size:15px;margin-top:9px}
     }
+
+    @media(max-width:700px){
+      #page-report .card{overflow:visible}
+      #page-report .report-table{overflow:visible;border:0;background:transparent}
+      #page-report .report-table table{display:block;width:100%;min-width:0;table-layout:auto;background:transparent}
+      #page-report .report-table thead{display:none}
+      #page-report .report-table tbody{display:block}
+      #page-report .report-table tbody tr{display:block;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:10px;box-shadow:0 4px 14px rgba(17,24,39,.04)}
+      #page-report .report-table tbody tr td{display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px;align-items:start;width:100%!important;padding:6px 0;border:0;border-bottom:1px solid #eef2f7;font-size:12px;line-height:1.3;white-space:normal;word-break:break-word;overflow-wrap:anywhere;text-align:left;vertical-align:top}
+      #page-report .report-table tbody tr td:last-child{border-bottom:0;padding-bottom:0}
+      #page-report .report-table tbody tr td::before{content:'';font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#6b7280}
+      #page-report .report-table tbody tr td:nth-child(1)::before{content:'Status'}
+      #page-report .report-table tbody tr td:nth-child(2)::before{content:'NF'}
+      #page-report .report-table tbody tr td:nth-child(3)::before{content:'Etiqueta única'}
+      #page-report .report-table tbody tr td:nth-child(4)::before{content:'Série'}
+      #page-report .report-table tbody tr td:nth-child(5)::before{content:'OEF / Coleta'}
+      #page-report .report-table tbody tr td:nth-child(6)::before{content:'Fornecedor'}
+      #page-report .report-table tbody tr td:nth-child(7)::before{content:'Cliente'}
+      #page-report .report-table tbody tr td:nth-child(8)::before{content:'Destino'}
+      #page-report .report-table tbody tr td:nth-child(9)::before{content:'Esperados'}
+      #page-report .report-table tbody tr td:nth-child(10)::before{content:'OK'}
+      #page-report .report-table tbody tr td:nth-child(11)::before{content:'Faltantes'}
+      #page-report .report-table tbody tr td:nth-child(12)::before{content:'Divergências'}
+      #page-report .report-table tbody tr td:nth-child(13)::before{content:'Local(is)'}
+      #page-report .report-table tbody tr td:nth-child(14)::before{content:'Conferente(s)'}
+      #page-report .report-table tbody tr td:nth-child(15)::before{content:'Detalhes'}
+      #page-report .report-table tbody tr td[colspan]{display:block!important;width:100%!important;padding:8px 0!important;border:0!important}
+      #page-report .report-table tbody tr td[colspan]::before{display:none}
+      #page-report .report-table .report-status{display:inline-flex;justify-content:center;max-width:140px}
+      #page-report .report-table .nf-cell{white-space:normal}
+      #page-report .report-table .report-detail-btn{width:100%;min-height:38px;font-size:13px;padding:8px 10px}
+      #page-report .report-pagination{gap:8px}
+      #page-report .report-pagination-actions{width:100%;justify-content:space-between}
+      #page-report .report-pagination-actions .btn{flex:1}
+    }
+
   </style>
 </head>
 <body>
