@@ -1322,7 +1322,7 @@
             <small><b>Filial:</b> ${esc(h.branch_name||'-')} • <b>Local:</b> ${esc(h.location_name||'-')}</small>
             <small><b>Conferente:</b> ${esc(h.user_name||'-')}</small>
           </div>`
-        : `<div class="history-confirmation"><small><b>Última conferência:</b> nenhum histórico registrado em outro inventário</small></div>`;
+        : `<div class="history-confirmation"><small><b>Última conferência:</b> nenhum registro</small></div>`;
     }
     async function openReportDetail(key){
       const r=state.reportRows.find(x=>x.key===key);if(!r)return;
