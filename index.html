@@ -149,6 +149,10 @@
     .report-table table{min-width:1250px}.report-table tbody tr:hover{background:#f8fafc}.report-table .nf-cell{font-weight:900;white-space:nowrap}
     .report-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;flex-wrap:wrap}.report-pagination-actions{display:flex;gap:8px;align-items:center}
     .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.62);z-index:80;display:grid;place-items:center;padding:18px}.modal-card{width:min(1120px,100%);max-height:88vh;overflow:auto;background:white;border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.35);padding:18px}.modal-head{position:sticky;top:-18px;background:white;z-index:2;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:4px 0 12px;border-bottom:1px solid var(--line);margin-bottom:14px}.modal-close{width:42px;height:42px;border:0;border-radius:11px;background:#f3f4f6;font-size:22px}.volume-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:9px}.volume-card{border:1px solid var(--line);border-radius:13px;padding:11px;background:#fff}.volume-card.ok{border-color:#86efac;background:#f0fdf4}.volume-card.bad{border-color:#fca5a5;background:#fef2f2}.volume-card.pending{background:#f8fafc}.volume-card strong{display:block;margin-bottom:4px}.volume-card small{display:block;color:var(--muted);line-height:1.45}
+    .current-confirmation{margin-top:8px;padding:9px 10px;border:1px solid rgba(15,23,42,.10);border-left:3px solid #64748b;border-radius:9px;background:rgba(255,255,255,.64)}
+    .current-confirmation small{color:#4b5563}.current-confirmation small:first-child{color:#1f2937;font-size:12.5px}
+    .history-confirmation{margin-top:8px;padding:8px 10px;border-top:1px dashed rgba(15,23,42,.16);background:rgba(248,250,252,.48);border-radius:7px}
+    .history-confirmation small{color:#9ca3af;font-size:11.5px;line-height:1.4}.history-confirmation small:first-child{color:#7c8491}.history-confirmation b{color:#6b7280;font-weight:700}
     .report-fresh{font-size:12px;color:var(--warn);font-weight:800}.report-fresh.hidden{display:none!important}
     .toast-wrap{position:fixed;right:16px;bottom:16px;z-index:50;display:flex;flex-direction:column;gap:8px;max-width:min(420px,calc(100vw - 32px))}
     .toast{background:#111827;color:white;border-radius:13px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:13px}
@@ -1300,10 +1304,10 @@
       return 'Não conferido';
     }
     function currentConfirmationHtml(sc,r){
-      if(!sc)return `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(15,23,42,.10)"><small><b>Conferência do inventário atual:</b> Não conferido</small></div>`;
+      if(!sc)return `<div class="current-confirmation"><small><b>Conferência do inventário atual:</b> Não conferido</small></div>`;
       const inv=state.reportInventories.find(x=>String(x.id)===String(state.reportInventoryId));
       const branch=state.branches.find(x=>String(x.id)===String(state.reportBranchId||state.currentBranch?.id));
-      return `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(15,23,42,.10)">
+      return `<div class="current-confirmation">
         <small><b>Conferência do inventário atual:</b> ${esc(confirmationStatusText(sc.status))}</small>
         <small><b>Data/Hora:</b> ${esc(fmtDateTime(sc.scanned_at))}</small>
         <small><b>Filial:</b> ${esc(branch?.name||'-')} • <b>Local:</b> ${esc(scanLocationName(sc)||'-')}</small>
@@ -1312,13 +1316,13 @@
     }
     function historyHtml(h){
       return h
-        ? `<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(15,23,42,.20)">
+        ? `<div class="history-confirmation">
             <small><b>Última conferência:</b> ${esc(confirmationStatusText(h.status))}</small>
             <small><b>Data/Hora:</b> ${esc(fmtDateTime(h.scanned_at))}</small>
             <small><b>Filial:</b> ${esc(h.branch_name||'-')} • <b>Local:</b> ${esc(h.location_name||'-')}</small>
             <small><b>Conferente:</b> ${esc(h.user_name||'-')}</small>
           </div>`
-        : `<div style="margin-top:8px;padding-top:8px;border-top:1px dashed rgba(15,23,42,.20)"><small><b>Última conferência:</b> nenhum histórico registrado em outro inventário</small></div>`;
+        : `<div class="history-confirmation"><small><b>Última conferência:</b> nenhum histórico registrado em outro inventário</small></div>`;
     }
     async function openReportDetail(key){
       const r=state.reportRows.find(x=>x.key===key);if(!r)return;
