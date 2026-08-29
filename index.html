@@ -1781,26 +1781,77 @@
       headers.forEach(header=>{if(header==='__inventory_source_headers'||sourceHeaderRepresented(header,out))return;out[header]=Object.prototype.hasOwnProperty.call(raw,header)?raw[header]:''});
       return out;
     }
-    function masterVolumeRows(rows,sourceHeaders){
+    function exportLastConfirmationText(h,volume=null){
+      if(!h)return 'nenhum registro';
+      const parts=[];
+      if(volume!==null&&volume!==undefined&&volume!=='')parts.push('Volume '+volume);
+      parts.push(confirmationStatusText(h.status));
+      parts.push(fmtDateTime(h.scanned_at));
+      parts.push('Filial: '+(h.branch_name||'-'));
+      parts.push('Local: '+(h.location_name||'-'));
+      parts.push('Conferente: '+(h.user_name||'-'));
+      if(h.inventory_name)parts.push('Inventário: '+h.inventory_name);
+      if(h.inventory_type)parts.push('Tipo: '+inventoryTypeName(h.inventory_type));
+      return parts.join(' / ');
+    }
+    function exportHistoryKeysForRow(r){
+      const keys=[];
+      if(r.recordType==='base'){
+        for(let v=1;v<=Number(r.expected||0);v++)keys.push(reportCanonicalKey(r,v));
+      }else{
+        const scans=[...(r.scans||[]),...(r.uniqueScans||[]),...(r.effectiveScans||[])];
+        scans.forEach(sc=>{if(sc?.canonical_volume_key)keys.push(sc.canonical_volume_key)});
+      }
+      return uniq(keys.filter(Boolean));
+    }
+    function exportSummaryHistoryText(r,history){
+      const entries=[];
+      if(r.recordType==='base'){
+        for(let v=1;v<=Number(r.expected||0);v++){
+          const h=history.get(reportCanonicalKey(r,v));
+          if(h)entries.push(exportLastConfirmationText(h,v));
+        }
+      }else{
+        const seen=new Set();
+        [...(r.scans||[]),...(r.uniqueScans||[]),...(r.effectiveScans||[])].forEach(sc=>{
+          const key=sc?.canonical_volume_key;
+          if(!key||seen.has(key))return;
+          seen.add(key);
+          const h=history.get(key);
+          if(h)entries.push(exportLastConfirmationText(h,sc?.volume_no??''));
+        });
+      }
+      return entries.length?entries.join(' | '):'nenhum registro';
+    }
+    async function exportHistoryMap(rows){
+      const keys=uniq((rows||[]).flatMap(exportHistoryKeysForRow));
+      if(!keys.length)return new Map();
+      return await lastConfirmationMap(keys,state.reportInventoryId);
+    }
+
+    function masterVolumeRows(rows,sourceHeaders,history=new Map()){
       const out=[];
       rows.forEach(r=>{
         if(r.recordType==='base'&&r.uniqueMode){
           const byVol=new Map();r.uniqueScans.forEach(sc=>{if(!byVol.has(Number(sc.volume_no))||sc.status==='ok')byVol.set(Number(sc.volume_no),sc)});
-          for(let v=1;v<=r.expected;v++)out.push(exportVolumeRow(r,byVol.get(v),v,r.expected,true,sourceHeaders));
-          r.uniqueScans.filter(sc=>Number(sc.volume_no)>r.expected||Number(sc.volume_no)<1).forEach(sc=>out.push(exportVolumeRow(r,sc,Number(sc.volume_no),r.expected,true,sourceHeaders)));
+          for(let v=1;v<=r.expected;v++)out.push(exportVolumeRow(r,byVol.get(v),v,r.expected,true,sourceHeaders,history));
+          r.uniqueScans.filter(sc=>Number(sc.volume_no)>r.expected||Number(sc.volume_no)<1).forEach(sc=>out.push(exportVolumeRow(r,sc,Number(sc.volume_no),r.expected,true,sourceHeaders,history)));
         }else if(r.recordType==='base'){
           const byVol=new Map();r.scans.forEach(sc=>{if(!byVol.has(Number(sc.volume_no))||sc.status==='ok')byVol.set(Number(sc.volume_no),sc)});
-          for(let v=1;v<=r.expected;v++)out.push(exportVolumeRow(r,byVol.get(v),v,r.expected,false,sourceHeaders));
-          r.scans.filter(sc=>Number(sc.volume_no)>r.expected||Number(sc.volume_no)<1).forEach(sc=>out.push(exportVolumeRow(r,sc,Number(sc.volume_no),r.expected,false,sourceHeaders)));
-        }else if(r.recordType==='off_report_unique'||r.recordType==='occurrence_unique')r.uniqueScans.forEach(sc=>out.push(exportVolumeRow(r,sc,Number(sc.volume_no)||'',r.expected??null,true,sourceHeaders)));
-        else r.scans.forEach(sc=>out.push(exportVolumeRow(r,sc,Number(sc.volume_no)||'',r.recordType==='occurrence_nf'?(r.expected??null):null,false,sourceHeaders)));
+          for(let v=1;v<=r.expected;v++)out.push(exportVolumeRow(r,byVol.get(v),v,r.expected,false,sourceHeaders,history));
+          r.scans.filter(sc=>Number(sc.volume_no)>r.expected||Number(sc.volume_no)<1).forEach(sc=>out.push(exportVolumeRow(r,sc,Number(sc.volume_no),r.expected,false,sourceHeaders,history)));
+        }else if(r.recordType==='off_report_unique'||r.recordType==='occurrence_unique')r.uniqueScans.forEach(sc=>out.push(exportVolumeRow(r,sc,Number(sc.volume_no)||'',r.expected??null,true,sourceHeaders,history)));
+        else r.scans.forEach(sc=>out.push(exportVolumeRow(r,sc,Number(sc.volume_no)||'',r.recordType==='occurrence_nf'?(r.expected??null):null,false,sourceHeaders,history)));
       });
       return out;
     }
-    function exportVolumeRow(r,sc,volume,expected,isUnique=false,sourceHeaders=[]){
+    function exportVolumeRow(r,sc,volume,expected,isUnique=false,sourceHeaders=[],history=new Map()){
       const i=r.item||{};
       const occurrence=String(r.recordType||'').startsWith('occurrence_');const base={'Tipo Registro':r.recordType==='base'?'Base do inventário':occurrence?'Inventário de Ocorrências':'Divergência fora do relatório','Tipo Conferência':isUnique?'Etiqueta Única':'NF','Etiqueta Única':r.uniqueLabel||i.unique_label||sc?.unique_label||'','Status NF':occurrence?'Registrado':(statusLabels[r.status]||r.status),'Status Volume':occurrence?(sc?'Registrado em ocorrência':'Não registrado'):!sc?(isUnique?'Não conferido — Etiqueta Única':'Não conferido'):sc.status==='ok'?'Conferido':'Divergente','Tipo Divergência':sc&&sc.status!=='ok'?(divergenceLabels[sc.status]||sc.status):'','NF':r.nf,'Série':r.series||'','CNPJ Fornecedor':i.cnpj_supplier||sc?.cnpj_supplier||'','OEF / Coleta':r.oef||'','Volume':volume,'Total Volumes Considerado':expected??'','Total Volumes QR':sc?.total_volumes_qr??'','Item QR':sc?.item_code||'','Fornecedor':i.supplier||'','Cliente':i.client||'','Destinatário':i.recipient||'','Destino':i.destination||'','UF Destino':i.destination_uf||'','Pedido':i.order_number||'','Almoxarifado':i.warehouse||'','End. WMS':i.wms_address||'','Peso':i.weight??'','Mercadoria':i.merchandise||'','Local Conferência':sc?scanLocationName(sc):'','Conferente':sc?scanUserName(sc):'','Data/Hora Conferência':sc?fmtDateTime(sc.scanned_at):'','Chave NF-e':i.invoice_key||'','Código QR Lido':sc?.raw_code||''};
-      return appendMissingSourceColumns(base,r.recordType==='base'?i:null,sourceHeaders);
+      const out=appendMissingSourceColumns(base,r.recordType==='base'?i:null,sourceHeaders);
+      const historyKey=sc?.canonical_volume_key||(r.recordType==='base'?reportCanonicalKey(r,volume):'');
+      out['Última conferência em outro inventário']=historyKey?exportLastConfirmationText(history.get(historyKey),volume):'nenhum registro';
+      return out;
     }
     function uniqueByScanId(arr){const m=new Map();arr.filter(Boolean).forEach(x=>m.set(x.id||[x.canonical_volume_key,x.scanned_at].join('|'),x));return [...m.values()]}
     function excelDateHeader(name){
@@ -1849,13 +1900,15 @@
         }
       }
     }
-    function exportReport(filtered=false){if(!window.XLSX){toast('Biblioteca de Excel não carregada.','bad');return}const rows=filtered?state.reportFiltered:state.reportRows;if(!rows.length){toast('Não há dados para exportar.','warn');return}const inv=state.reportInventories.find(x=>x.id===state.reportInventoryId)||state.inventory||{};
+    async function exportReport(filtered=false){if(!window.XLSX){toast('Biblioteca de Excel não carregada.','bad');return}const rows=filtered?state.reportFiltered:state.reportRows;if(!rows.length){toast('Não há dados para exportar.','warn');return}const inv=state.reportInventories.find(x=>x.id===state.reportInventoryId)||state.inventory||{};
       const sourceHeaders=reportSourceHeaders();
-      const summary=rows.map(r=>appendMissingSourceColumns({'Filial do inventário':branchById(state.reportBranchId)?.name||currentBranchName(),'Tipo':r.recordType==='base'?'NF do relatório':r.recordType==='occurrence_nf'?'Ocorrência NF':r.recordType==='occurrence_unique'?'Ocorrência Etiqueta Única':r.recordType==='off_report_unique'?'Etiqueta Única fora do relatório':'Conferido fora do relatório','Status NF':String(r.recordType||'').startsWith('occurrence_')?'Registrado':(statusLabels[r.status]||r.status),'NF':r.nf,'Etiqueta Única':r.uniqueLabel||'','Origem do Status':r.uniqueMode?'Etiqueta Única':'QR da NF','Série':r.series,'CNPJ Fornecedor':r.item?.cnpj_supplier||r.scans[0]?.cnpj_supplier||'','OEF / Coleta':r.oef,'Fornecedor':r.supplier,'Cliente':r.client,'Destino':r.destination,'Volumes Esperados / Etiqueta':r.expected??'','Volumes OK':r.ok,'Volumes Faltantes':r.recordType==='base'?r.missingDisplay.join(', '):'','Divergências':divergenceText(r),'Locais':r.locations.join(', '),'Conferentes':r.users.join(', '),'Pedido':r.item?.order_number||'','Almoxarifado':r.item?.warehouse||'','End. WMS':r.item?.wms_address||'','Peso':r.item?.weight??'','Mercadoria':r.item?.merchandise||''},r.recordType==='base'?r.item:null,sourceHeaders));
+      let history=new Map();
+      try{history=await exportHistoryMap(rows)}catch(e){throw new Error('Não foi possível carregar a última conferência para o Excel: '+(e.message||e))}
+      const summary=rows.map(r=>{const out=appendMissingSourceColumns({'Filial do inventário':branchById(state.reportBranchId)?.name||currentBranchName(),'Tipo':r.recordType==='base'?'NF do relatório':r.recordType==='occurrence_nf'?'Ocorrência NF':r.recordType==='occurrence_unique'?'Ocorrência Etiqueta Única':r.recordType==='off_report_unique'?'Etiqueta Única fora do relatório':'Conferido fora do relatório','Status NF':String(r.recordType||'').startsWith('occurrence_')?'Registrado':(statusLabels[r.status]||r.status),'NF':r.nf,'Etiqueta Única':r.uniqueLabel||'','Origem do Status':r.uniqueMode?'Etiqueta Única':'QR da NF','Série':r.series,'CNPJ Fornecedor':r.item?.cnpj_supplier||r.scans[0]?.cnpj_supplier||'','OEF / Coleta':r.oef,'Fornecedor':r.supplier,'Cliente':r.client,'Destino':r.destination,'Volumes Esperados / Etiqueta':r.expected??'','Volumes OK':r.ok,'Volumes Faltantes':r.recordType==='base'?r.missingDisplay.join(', '):'','Divergências':divergenceText(r),'Locais':r.locations.join(', '),'Conferentes':r.users.join(', '),'Pedido':r.item?.order_number||'','Almoxarifado':r.item?.warehouse||'','End. WMS':r.item?.wms_address||'','Peso':r.item?.weight??'','Mercadoria':r.item?.merchandise||''},r.recordType==='base'?r.item:null,sourceHeaders);out['Última conferência em outro inventário']=exportSummaryHistoryText(r,history);return out});
       const normalSource=filtered?uniqueByScanId(rows.flatMap(r=>r.scans)):state.reportScans,uniqueSource=filtered?uniqueByScanId(rows.flatMap(r=>r.uniqueScans)):state.reportUniqueScans;
       const scans=[...normalSource.map(sc=>({'Filial do inventário':branchById(state.reportBranchId)?.name||currentBranchName(),'Tipo Leitura':'NF','Status Leitura':sc.status==='ok'?'OK':divergenceLabels[sc.status]||sc.status,'Etiqueta Única':'','NF':sc.note_padded,'Série':sc.series,'CNPJ':sc.cnpj_supplier,'OEF / Coleta':sc.collection_padded,'Volume':sc.volume_no,'Total QR':sc.total_volumes_qr,'Item QR':sc.item_code,'Local':scanLocationName(sc),'Conferente':scanUserName(sc),'Data/Hora':fmtDateTime(sc.scanned_at),'Código QR':sc.raw_code||''})),...uniqueSource.map(sc=>({'Filial do inventário':branchById(state.reportBranchId)?.name||currentBranchName(),'Tipo Leitura':'Etiqueta Única','Status Leitura':sc.status==='ok'?'OK':divergenceLabels[sc.status]||sc.status,'Etiqueta Única':sc.unique_label||'','NF':'','Série':'','CNPJ':'','OEF / Coleta':'','Volume':sc.volume_no,'Total QR':sc.total_volumes_qr,'Item QR':'','Local':scanLocationName(sc),'Conferente':scanUserName(sc),'Data/Hora':fmtDateTime(sc.scanned_at),'Código QR':sc.raw_code||''}))];
       const dups=state.reportAttempts.map(a=>({'Resultado':'Duplicidade','Tipo Leitura':uniqueLabelFromCanonical(a.canonical_volume_key)?'Etiqueta Única':'NF','Etiqueta Única':uniqueLabelFromCanonical(a.canonical_volume_key),'Chave do volume':a.canonical_volume_key||'','Conferente':state.reportProfiles.get(a.user_id)||'','Local':state.reportLocations.get(String(a.location_id))||state.locations.find(l=>String(l.id)===String(a.location_id))?.name||'','Data/Hora':fmtDateTime(a.attempted_at),'Código QR':a.raw_code||''}));
-      const wb=XLSX.utils.book_new();const sheets=[['Status por Volume',masterVolumeRows(rows,sourceHeaders)],[reportIsOccurrence()?'Resumo Ocorrências':'Resumo NFs',summary],['Leituras',scans],['Duplicidades',dups]];sheets.forEach(([name,data])=>{const ws=XLSX.utils.json_to_sheet(data.length?data:[{'Sem dados':''}]);formatWorksheetDateColumns(ws);ws['!autofilter']={ref:ws['!ref']};XLSX.utils.book_append_sheet(wb,ws,name)});const safe=(inv.name||'inventario').replace(/[\/:*?"<>|]+/g,'_').slice(0,70);XLSX.writeFile(wb,`${safe}_${filtered?'filtrado':'completo'}.xlsx`);toast('Relatório Excel gerado.','ok')
+      const wb=XLSX.utils.book_new();const sheets=[['Status por Volume',masterVolumeRows(rows,sourceHeaders,history)],[reportIsOccurrence()?'Resumo Ocorrências':'Resumo NFs',summary],['Leituras',scans],['Duplicidades',dups]];sheets.forEach(([name,data])=>{const ws=XLSX.utils.json_to_sheet(data.length?data:[{'Sem dados':''}]);formatWorksheetDateColumns(ws);ws['!autofilter']={ref:ws['!ref']};XLSX.utils.book_append_sheet(wb,ws,name)});const safe=(inv.name||'inventario').replace(/[\/:*?"<>|]+/g,'_').slice(0,70);XLSX.writeFile(wb,`${safe}_${filtered?'filtrado':'completo'}.xlsx`);toast('Relatório Excel gerado.','ok')
     }
 
     async function createInventory(){
@@ -2220,7 +2273,7 @@
     $('#refreshDashboard').addEventListener('click',refreshDashboard);$('#pendingNotesBtn').addEventListener('click',loadPendingNotes);$('#createInventoryBtn').addEventListener('click',createInventory);$('#createOccurrenceInventoryBtn').addEventListener('click',createOccurrenceInventory);$('#useOccurrenceInventoryBtn').addEventListener('click',useOccurrenceInventory);$('#closeOccurrenceInventoryBtn').addEventListener('click',closeOccurrenceInventory);$('#saveInventoryNameBtn').addEventListener('click',saveInventoryName);$('#saveInventoryTypeBtn').addEventListener('click',saveInventoryType);$('#closeInventoryBtn').addEventListener('click',closeInventory);$('#deleteInventoryBtn').addEventListener('click',deleteInventory);
     $('#pendingNotesClose').addEventListener('click',()=>$('#pendingNotesModal').classList.add('hidden'));$('#pendingNotesModal').addEventListener('click',e=>{if(e.target.id==='pendingNotesModal')$('#pendingNotesModal').classList.add('hidden')});$('#pendingNotesSearch').addEventListener('input',applyPendingNotesFilter);$('#pendingNotesPrev').addEventListener('click',()=>{if(state.pendingPage>1){state.pendingPage--;renderPendingNotes()}});$('#pendingNotesNext').addEventListener('click',()=>{if(state.pendingPage*state.pendingPageSize<state.pendingFiltered.length){state.pendingPage++;renderPendingNotes()}});
     $('#refreshReportBtn').addEventListener('click',()=>refreshReportContext({branchId:state.reportBranchId||state.currentBranch?.id,resetFilters:false,keepInventory:true}).catch(e=>toast(e.message,'bad')));$('#reportBranchSelect').addEventListener('change',()=>refreshReportContext({branchId:$('#reportBranchSelect').value,resetFilters:true,keepInventory:false}).catch(e=>toast(e.message,'bad')));$('#reportInventorySelect').addEventListener('change',()=>{state.reportInventoryId=$('#reportInventorySelect').value;syncReportModeUi();resetReportFiltersForContext();clearReportContextData();loadReport().catch(e=>toast(e.message,'bad'))});$('#reportSearch').addEventListener('input',applyReportFilters);['reportStatusFilter','reportDivergenceFilter','reportClientFilter','reportVocativoFilter'].forEach(id=>{$('#'+id).addEventListener('change',handleReportMultiFilterChange);reportMultiFilterSummary(id)});
-    $('#reportPrevBtn').addEventListener('click',()=>{if(state.reportPage>1){state.reportPage--;renderReport()}});$('#reportNextBtn').addEventListener('click',()=>{if(state.reportPage*state.reportPageSize<state.reportFiltered.length){state.reportPage++;renderReport()}});$('#exportPdfVocativoBtn').addEventListener('click',async()=>{try{await ensureReportReadyForExport();generateVocativoPdf()}catch(e){toast(e.message||'Falha ao atualizar o relatório antes de gerar o PDF.','bad')}});$('#exportFullBtn').addEventListener('click',async()=>{try{await ensureReportReadyForExport();exportReport(false)}catch(e){toast(e.message||'Falha ao atualizar o relatório antes da exportação.','bad')}});$('#exportFilteredBtn').addEventListener('click',async()=>{try{await ensureReportReadyForExport();exportReport(true)}catch(e){toast(e.message||'Falha ao atualizar o relatório antes da exportação.','bad')}});
+    $('#reportPrevBtn').addEventListener('click',()=>{if(state.reportPage>1){state.reportPage--;renderReport()}});$('#reportNextBtn').addEventListener('click',()=>{if(state.reportPage*state.reportPageSize<state.reportFiltered.length){state.reportPage++;renderReport()}});$('#exportPdfVocativoBtn').addEventListener('click',async()=>{try{await ensureReportReadyForExport();generateVocativoPdf()}catch(e){toast(e.message||'Falha ao atualizar o relatório antes de gerar o PDF.','bad')}});$('#exportFullBtn').addEventListener('click',async()=>{try{await ensureReportReadyForExport();await exportReport(false)}catch(e){toast(e.message||'Falha ao atualizar o relatório antes da exportação.','bad')}});$('#exportFilteredBtn').addEventListener('click',async()=>{try{await ensureReportReadyForExport();await exportReport(true)}catch(e){toast(e.message||'Falha ao atualizar o relatório antes da exportação.','bad')}});
     $('#reportBody').addEventListener('click',e=>{const b=e.target.closest('.report-detail-btn');if(b)openReportDetail(b.dataset.reportKey).catch(err=>toast(err.message,'bad'))});$('#reportModalClose').addEventListener('click',()=>$('#reportModal').classList.add('hidden'));$('#reportModal').addEventListener('click',e=>{if(e.target.id==='reportModal')$('#reportModal').classList.add('hidden')});
 
     $('#reportFile').addEventListener('change',async e=>{
