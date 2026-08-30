@@ -1699,10 +1699,14 @@
       let total=pdfNumber(pdfRaw(row.item,'Volumes',row.item.expected_volumes??row.expected??0));if(!total)total=Number(row.item.expected_volumes||row.expected||0);let ok=0;
       if(row.uniqueMode&&Number(row.expected||0)>0)ok=total*Math.min(Number(row.ok||0),Number(row.expected||0))/Number(row.expected||0);else ok=Math.min(Number(row.ok||0),total||Number(row.expected||0));ok=Math.max(0,Math.min(ok,total||ok));return {total:total||'',ok,missing:total?Math.max(total-ok,0):''};
     }
+    function pdfMissingVolumesText(row){
+      const missing=Array.isArray(row?.missing)?row.missing.map(Number).filter(v=>Number.isFinite(v)&&v>0).sort((a,b)=>a-b):[];
+      return missing.length?missing.join(', '):'';
+    }
     function pdfRowData(row){
-      const i=row.item,counts=pdfEffectiveVolumeCounts(row);
-      if(!i)return ['', '', '',pdfText(row.nf),pdfText(row.oef),'','','','','',pdfVolumeCountText(counts.total),'',statusLabels[row.status]||row.status,pdfVolumeCountText(counts.ok),pdfVolumeCountText(counts.missing)];
-      return [pdfReportDateBr(pdfRaw(i,'Data de Check in','')),pdfReportDateBr(pdfRaw(i,'Data de Entrada da Nota','')),pdfReportDateBr(pdfRaw(i,'Data Resolução Ocorrencia','')),pdfText(pdfRaw(i,'Nota',row.nf)),pdfText(pdfRaw(i,'Numero OEF',i.oef||row.oef||'')),pdfText(pdfRaw(i,'Fornecedor',i.supplier||row.supplier||'')),pdfText(pdfRaw(i,'Almoxarifado',i.warehouse||'')),pdfText(pdfRaw(i,'ONU','')),pdfText(pdfRaw(i,'End. WMS',i.wms_address||'')),pdfText(pdfRaw(i,'Peso',i.weight??'')),pdfText(pdfRaw(i,'Volumes',i.expected_volumes??counts.total)),pdfText(pdfRaw(i,'Mercadoria',i.merchandise||'')),statusLabels[row.status]||row.status,pdfVolumeCountText(counts.ok),pdfVolumeCountText(counts.missing)];
+      const i=row.item,counts=pdfEffectiveVolumeCounts(row),missingText=pdfMissingVolumesText(row);
+      if(!i)return ['', '', '',pdfText(row.nf),pdfText(row.oef),pdfText(row.uniqueLabel||''),'','','','','',pdfVolumeCountText(counts.total),'',statusLabels[row.status]||row.status,pdfVolumeCountText(counts.ok),missingText];
+      return [pdfReportDateBr(pdfRaw(i,'Data de Check in','')),pdfReportDateBr(pdfRaw(i,'Data de Entrada da Nota','')),pdfReportDateBr(pdfRaw(i,'Data Resolução Ocorrencia','')),pdfText(pdfRaw(i,'Nota',row.nf)),pdfText(pdfRaw(i,'Numero OEF',i.oef||row.oef||'')),pdfText(row.uniqueLabel||pdfRaw(i,'Etiqueta Unica',pdfRaw(i,'Etiqueta Única',i.unique_label||''))||''),pdfText(pdfRaw(i,'Fornecedor',i.supplier||row.supplier||'')),pdfText(pdfRaw(i,'Almoxarifado',i.warehouse||'')),pdfText(pdfRaw(i,'ONU','')),pdfText(pdfRaw(i,'End. WMS',i.wms_address||'')),pdfText(pdfRaw(i,'Peso',i.weight??'')),pdfText(pdfRaw(i,'Volumes',i.expected_volumes??counts.total)),pdfText(pdfRaw(i,'Mercadoria',i.merchandise||'')),statusLabels[row.status]||row.status,pdfVolumeCountText(counts.ok),missingText];
     }
     function generateOccurrencePdf(){
       try{
@@ -1763,28 +1767,39 @@
           }
         }
         let y=(summaries.length>60)?summaryEndY+8:summaryEndY+8;
-        const headers=['Data de Check in','Data de Entrada da Nota','Data Resolução Ocorrencia','Nota','Numero OEF','Fornecedor','Almoxarifado','ONU','End. WMS','Peso','Volumes','Mercadoria','Status','V. Conferidos','V. Faltantes'];
-        // A tabela detalhada ocupa toda a largura útil da folha. As colunas operacionais
-        // abaixo são dimensionadas pelo maior conteúdo real (não pelo cabeçalho), evitando
-        // corte e quebra de linha. Fornecedor e Mercadoria preservam larguras confortáveis
-        // e podem usar reticências quando o texto exceder a célula.
+        const headers=['Dt Check in','Dt Entrada','Dt Resolução','Nota','Numero OEF','Etiqueta Única','Fornecedor','Almoxarifado','ONU','End. WMS','Peso','Volumes','Mercadoria','Status','V. Conferidos','V. Faltantes'];
+        // As três datas usam títulos compactos e a largura é calculada pelo conteúdo da data,
+        // não pelo tamanho do cabeçalho. Assim o título pode ser reduzido sem cortar a data.
+        // Etiqueta Única é exibida integralmente. V. Faltantes pode quebrar linha para
+        // mostrar todos os números dos volumes sem ocultar informação.
         const pdfBodyRows=rows.map(pdfRowData),usableTableW=pageW-left-right;
-        const protectedCols=new Set([0,1,2,3,4,6,7,8,9,10,12,13,14]);
-        const minWidths={0:18,1:18,2:18,3:13,4:15,6:29,7:9,8:24,9:11,10:10,12:15,13:13,14:13};
+        const protectedCols=new Set([0,1,2,3,4,5,7,8,9,10,11,13,14]);
+        const wrapCols=new Set([15]);
+        const minWidths={0:14,1:14,2:14,3:13,4:15,5:19,7:27,8:9,9:22,10:10,11:10,13:14,14:12};
         doc.setFont('helvetica','normal');doc.setFontSize(6.3);
         const measureCol=(idx,minW)=>{let w=minW;for(const r of pdfBodyRows){const v=pdfText(r[idx]);if(v)w=Math.max(w,doc.getTextWidth(v)+1.8)}return w};
         const widths={};protectedCols.forEach(i=>{widths[i]=measureCol(i,minWidths[i]||10)});
-        widths[5]=27;widths[11]=28;
+        widths[6]=25;   // Fornecedor
+        widths[12]=25;  // Mercadoria
+        widths[15]=16;  // V. Faltantes: lista completa com quebra de linha
         let totalWidth=Object.values(widths).reduce((a,b)=>a+b,0);
-        if(totalWidth<usableTableW){const extra=usableTableW-totalWidth;widths[5]+=extra*.5;widths[11]+=extra*.5;totalWidth=usableTableW}
+        if(totalWidth<usableTableW){const extra=usableTableW-totalWidth;widths[6]+=extra*.5;widths[12]+=extra*.5;totalWidth=usableTableW}
         else if(totalWidth>usableTableW){
-          // O conteúdo das colunas protegidas nunca é cortado. Em bases excepcionais,
-          // reduzimos somente Fornecedor/Mercadoria até um mínimo legível antes de usar
-          // a largura natural necessária.
-          let excess=totalWidth-usableTableW;for(const i of [5,11]){const floor=22,cut=Math.min(excess,Math.max(0,widths[i]-floor));widths[i]-=cut;excess-=cut}
+          // Primeiro reduzimos somente as colunas textuais que aceitam reticências.
+          let excess=totalWidth-usableTableW;
+          for(const i of [6,12]){
+            const floor=20,cut=Math.min(excess,Math.max(0,widths[i]-floor));
+            widths[i]-=cut;excess-=cut;
+          }
+          // Se ainda for necessário, V. Faltantes pode ficar um pouco mais estreita,
+          // mantendo o conteúdo completo por quebra de linha.
+          if(excess>0){
+            const floor=12,cut=Math.min(excess,Math.max(0,widths[15]-floor));
+            widths[15]-=cut;excess-=cut;
+          }
           totalWidth=Object.values(widths).reduce((a,b)=>a+b,0);
         }
-        const colStyles={};for(let i=0;i<headers.length;i++)colStyles[i]={cellWidth:widths[i],overflow:protectedCols.has(i)?'visible':'ellipsize'};
+        const colStyles={};for(let i=0;i<headers.length;i++)colStyles[i]={cellWidth:widths[i],overflow:wrapCols.has(i)?'linebreak':protectedCols.has(i)?'visible':'ellipsize'};
         for(const [vocativo,gRows] of groups){
           const weight=gRows.reduce((sum,r)=>sum+pdfNumber(pdfRaw(r.item,'Peso',r.item?.weight??0)),0);
           if(y>pageH-25){doc.addPage();y=10}
@@ -1793,7 +1808,7 @@
           doc.autoTable({startY:y,head:[headers],body:gRows.map(pdfRowData),theme:'grid',showHead:'firstPage',margin:{left,right,top:5,bottom:5},tableWidth:Math.min(usableTableW,totalWidth),
             styles:{font:'helvetica',fontSize:6.3,cellPadding:0.54,textColor:0,lineColor:[105,105,105],lineWidth:0.1,valign:'middle',overflow:'ellipsize',minCellHeight:3.9,cellWidth:'wrap'},
             headStyles:{fillColor:[0,0,0],textColor:255,fontStyle:'normal',fontSize:6.0,halign:'center',cellPadding:0.58,overflow:'ellipsize'},columnStyles:colStyles,
-            didParseCell:data=>{if(data.section==='body'&&protectedCols.has(data.column.index)){data.cell.styles.overflow='visible';data.cell.styles.fontStyle='normal'}else if(data.section==='body'){data.cell.styles.overflow='ellipsize'}}});
+            didParseCell:data=>{if(data.section==='body'&&wrapCols.has(data.column.index)){data.cell.styles.overflow='linebreak';data.cell.styles.fontStyle='normal'}else if(data.section==='body'&&protectedCols.has(data.column.index)){data.cell.styles.overflow='visible';data.cell.styles.fontStyle='normal'}else if(data.section==='body'){data.cell.styles.overflow='ellipsize'}}});
           y=(doc.lastAutoTable.finalY||y)+7;
         }
         const inv=state.reportInventories.find(x=>x.id===state.reportInventoryId)||state.inventory||{};
