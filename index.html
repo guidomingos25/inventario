@@ -504,6 +504,20 @@
             <div class="section-head"><h2>Primeiros registros</h2><span id="importFileName" class="pill">Nenhum arquivo</span></div>
             <div class="table-wrap"><table><thead><tr><th>NF</th><th>Etiqueta Única</th><th>Série</th><th>CNPJ</th><th>OEF/Coleta</th><th>Volumes</th><th>Fornecedor</th><th>Destino</th></tr></thead><tbody id="previewBody"><tr><td colspan="8" class="empty">Sem prévia.</td></tr></tbody></table></div>
           </div>
+          <div id="baseUpdateCard" class="card hidden" style="margin-top:16px">
+            <div class="section-head">
+              <div>
+                <h2>Atualizar base do inventário aberto</h2>
+                <p class="login-help" style="margin:4px 0 0">Exclusivo do Administrador Global. Substitui somente a base do Inventário Geral/Rotativo aberto e preserva todas as conferências já realizadas.</p>
+              </div>
+              <span class="pill type-general">ADMIN GLOBAL</span>
+            </div>
+            <div id="baseUpdateTarget" class="notice info">Carregue acima o relatório atualizado para habilitar esta opção.</div>
+            <div class="security-box" style="margin-bottom:12px">
+              NFs que não existirem mais no relatório atualizado deixam a base ativa. As leituras já realizadas não são apagadas: são preservadas e reavaliadas contra a nova base. Etiquetas Únicas que antes estavam fora do relatório também são reavaliadas automaticamente.
+            </div>
+            <button id="replaceInventoryBaseBtn" class="btn primary" style="width:100%" disabled type="button">Atualizar base mantendo conferências</button>
+          </div>
           <div class="card" style="margin-top:16px">
             <div class="section-head">
               <div><h2>Inventário de ocorrências</h2><p class="login-help" style="margin:4px 0 0">Não exige relatório. O inventário é aberto automaticamente para a filial atualmente selecionada na aplicação.</p></div>
@@ -644,6 +658,7 @@
     const isOccurrenceInventory=(inv=state.inventory)=>inv?.inventory_type==='occurrence';
     const occurrenceInventory=()=>state.openInventories.find(i=>i.inventory_type==='occurrence')||null;
     const normalOpenInventory=()=>state.openInventories.find(i=>i.inventory_type!=='occurrence')||null;
+    const isGlobalAdmin=()=>state.profile?.role==='admin'&&Boolean(state.profile?.all_branches);
     const safeInt=v=>{const n=parseInt(String(v??'').replace(',','.'),10);return Number.isFinite(n)?n:0};
     function toast(msg,type=''){const el=document.createElement('div');el.className='toast '+type;el.textContent=msg;$('#toastWrap').appendChild(el);setTimeout(()=>el.remove(),3800)}
     let scanFeedbackTimer=null,scanAudioCtx=null;
@@ -850,13 +865,14 @@
         state.inventory=JSON.parse(localStorage.getItem('demo_inventory')||'null');state.openInventories=state.inventory?[state.inventory]:[];state.demoItems=JSON.parse(localStorage.getItem('demo_items')||'[]');state.demoScans=JSON.parse(localStorage.getItem('demo_scans')||'[]');state.demoUniqueScans=JSON.parse(localStorage.getItem('demo_unique_scans')||'[]');state.demoAttempts=JSON.parse(localStorage.getItem('demo_attempts')||'[]')
       }
       renderInventoryHeader();renderSettings();renderOccurrenceAdmin();
-      if(configured&&state.inventory){state.realtimeChannel=db.channel('inventory-'+state.inventory.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'inventory_scans',filter:'inventory_id=eq.'+state.inventory.id},()=>{refreshDashboard();state.reportDirty=true;$('#reportFreshness')?.classList.remove('hidden')}).on('postgres_changes',{event:'INSERT',schema:'public',table:'inventory_unique_label_scans',filter:'inventory_id=eq.'+state.inventory.id},()=>{refreshDashboard();state.reportDirty=true;$('#reportFreshness')?.classList.remove('hidden')}).subscribe()}
+      if(configured&&state.inventory){state.realtimeChannel=db.channel('inventory-'+state.inventory.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'inventory_scans',filter:'inventory_id=eq.'+state.inventory.id},()=>{refreshDashboard();state.reportDirty=true;$('#reportFreshness')?.classList.remove('hidden')}).on('postgres_changes',{event:'INSERT',schema:'public',table:'inventory_unique_label_scans',filter:'inventory_id=eq.'+state.inventory.id},()=>{refreshDashboard();state.reportDirty=true;$('#reportFreshness')?.classList.remove('hidden')}).on('postgres_changes',{event:'UPDATE',schema:'public',table:'inventories',filter:'id=eq.'+state.inventory.id},payload=>{if(payload?.new){state.inventory={...state.inventory,...payload.new};const idx=state.openInventories.findIndex(i=>String(i.id)===String(payload.new.id));if(idx>=0)state.openInventories[idx]={...state.openInventories[idx],...payload.new};renderInventoryHeader();refreshDashboard();state.reportDirty=true;$('#reportFreshness')?.classList.remove('hidden')}}).subscribe()}
     }
     function renderInventoryHeader(){
       const inv=state.inventory,type=inv?.inventory_type||'general';
       $('#scannerInventoryName').textContent=inv?inv.name:'Nenhum inventário ativo';$('#scannerInventoryType').textContent=inv?inventoryTypeLabel(type):'-';$('#scannerInventoryType').className='pill '+(inv?(type==='occurrence'?'type-occurrence':type==='rotating'?'type-rotating':'type-general'):'');$('#scannerInventoryStatus').textContent=inv?'ABERTO':'-';$('#scannerInventoryStatus').className='pill '+(inv?'open':'');
       const sw=$('#scannerInventorySelect');if(sw){sw.innerHTML=state.openInventories.map(i=>`<option value="${esc(i.id)}">${esc(inventoryTypeLabel(i.inventory_type||'general'))} • ${esc(i.name)}</option>`).join('');if(inv)sw.value=inv.id;sw.classList.toggle('hidden',state.openInventories.length<=1)}
       $('#dashboardInventoryType').textContent=inv?inventoryTypeName(type):'-';$('#dashboardInventoryType').className='pill '+(inv?(type==='occurrence'?'type-occurrence':type==='rotating'?'type-rotating':'type-general'):'');$('#dashboardInventoryStatus').textContent=inv?'ABERTO':'SEM INVENTÁRIO';$('#dashboardInventoryStatus').className='pill '+(inv?'open':'');$('#inventoryBranchInfo')&&($('#inventoryBranchInfo').textContent=`Filial: ${currentBranchName()}`)
+      syncBaseUpdateUi();
     }
     async function selectOpenInventory(id){
       const inv=state.openInventories.find(i=>String(i.id)===String(id));if(!inv)return;
@@ -1911,6 +1927,150 @@
       const wb=XLSX.utils.book_new();const sheets=[['Status por Volume',masterVolumeRows(rows,sourceHeaders,history)],[reportIsOccurrence()?'Resumo Ocorrências':'Resumo NFs',summary],['Leituras',scans],['Duplicidades',dups]];sheets.forEach(([name,data])=>{const ws=XLSX.utils.json_to_sheet(data.length?data:[{'Sem dados':''}]);formatWorksheetDateColumns(ws);ws['!autofilter']={ref:ws['!ref']};XLSX.utils.book_append_sheet(wb,ws,name)});const safe=(inv.name||'inventario').replace(/[\/:*?"<>|]+/g,'_').slice(0,70);XLSX.writeFile(wb,`${safe}_${filtered?'filtrado':'completo'}.xlsx`);toast('Relatório Excel gerado.','ok')
     }
 
+    function syncBaseUpdateUi(){
+      const card=$('#baseUpdateCard'),btn=$('#replaceInventoryBaseBtn'),info=$('#baseUpdateTarget');
+      if(!card||!btn||!info)return;
+      const allowed=isGlobalAdmin();
+      card.classList.toggle('hidden',!allowed);
+      if(!allowed)return;
+
+      const inv=normalOpenInventory();
+      const ready=Boolean(state.importItems?.length&&state.importMeta);
+      if(!configured){
+        info.className='notice warn';
+        info.textContent='A atualização de base exige Supabase configurado.';
+        btn.disabled=true;
+        return;
+      }
+      if(!inv){
+        info.className='notice warn';
+        info.textContent='Não existe Inventário Geral/Rotativo aberto na filial '+currentBranchName()+'.';
+        btn.disabled=true;
+        return;
+      }
+
+      info.className='notice '+(ready?'ok':'info');
+      info.innerHTML=`<b>Inventário:</b> ${esc(inv.name)} • <b>Filial:</b> ${esc(currentBranchName())}<br><b>Base atual:</b> ${esc(inv.source_filename||'-')}${ready?`<br><b>Nova base selecionada:</b> ${esc(state.importMeta.fileName)} • ${fmtNum(state.importMeta.items.length)} NFs • ${fmtNum(state.importMeta.expectedVolumes)} volumes`:'<br>Selecione o relatório atualizado no campo Excel acima.'}`;
+      btn.disabled=!ready;
+    }
+
+    function baseUpdateDbItem(item){
+      const {lookupKey,cNPJ,...dbItem}=item||{};
+      return dbItem;
+    }
+
+    async function replaceOpenInventoryBase(){
+      if(!isGlobalAdmin()){
+        toast('Somente Administrador Global pode atualizar a base.','bad');
+        return;
+      }
+      if(!configured){
+        toast('A atualização de base exige Supabase configurado.','bad');
+        return;
+      }
+      const inv=normalOpenInventory();
+      if(!inv){
+        toast('Não existe Inventário Geral/Rotativo aberto nesta filial.','warn');
+        return;
+      }
+      if(!state.importItems.length||!state.importMeta){
+        toast('Selecione e valide o relatório atualizado primeiro.','warn');
+        return;
+      }
+
+      const msg=
+        `Atualizar a base de "${inv.name}"?\n\n`+
+        `Base atual: ${inv.source_filename||'-'}\n`+
+        `Nova base: ${state.importMeta.fileName}\n`+
+        `NFs novas na base: ${state.importMeta.items.length}\n`+
+        `Volumes esperados: ${state.importMeta.expectedVolumes}\n\n`+
+        `As conferências já realizadas serão preservadas e reavaliadas. `+
+        `NFs que não existirem mais no relatório sairão da base ativa.`;
+      if(!confirm(msg))return;
+      const typed=prompt('Para confirmar a substituição da base, digite ATUALIZAR:');
+      if(typed!=='ATUALIZAR')return;
+
+      const btn=$('#replaceInventoryBaseBtn'),info=$('#baseUpdateTarget');
+      const original=btn.textContent;
+      let updateId=null;
+      btn.disabled=true;
+
+      try{
+        info.className='notice info';
+        info.textContent='Preparando atualização segura da base...';
+        btn.textContent='Preparando...';
+
+        const {data:startId,error:startError}=await db.rpc('start_inventory_base_update',{
+          p_inventory_id:inv.id,
+          p_source_filename:state.importMeta.fileName,
+          p_imported_rows:state.importMeta.items.length,
+          p_expected_volumes:state.importMeta.expectedVolumes
+        });
+        if(startError)throw startError;
+        updateId=startId;
+
+        const prepared=state.importItems.map(baseUpdateDbItem);
+        const chunkSize=250;
+        for(let i=0;i<prepared.length;i+=chunkSize){
+          const part=prepared.slice(i,i+chunkSize);
+          btn.textContent=`Enviando ${Math.min(i+part.length,prepared.length)}/${prepared.length}...`;
+          info.textContent=`Enviando nova base para área temporária: ${fmtNum(Math.min(i+part.length,prepared.length))} de ${fmtNum(prepared.length)} registros. A base em uso ainda não foi alterada.`;
+          const {error}=await db.rpc('stage_inventory_base_update',{
+            p_update_id:updateId,
+            p_items:part
+          });
+          if(error)throw error;
+        }
+
+        btn.textContent='Aplicando nova base...';
+        info.textContent='Nova base validada. Aplicando a troca transacional e reavaliando as conferências existentes...';
+
+        const {data:result,error:finalError}=await db.rpc('finalize_inventory_base_update',{
+          p_update_id:updateId
+        });
+        if(finalError)throw finalError;
+        updateId=null;
+
+        const r=result||{};
+        info.className='notice ok';
+        info.innerHTML=
+          `<b>Base atualizada com sucesso.</b><br>`+
+          `${fmtNum(r.preserved_records)} registro(s) preservado(s) • `+
+          `${fmtNum(r.inserted_records)} novo(s) • `+
+          `${fmtNum(r.removed_records)} removido(s) da base ativa.<br>`+
+          `${fmtNum(r.normal_scans_revalidated)} leitura(s) de NF e `+
+          `${fmtNum(r.unique_scans_revalidated)} leitura(s) de Etiqueta Única reavaliadas.`;
+
+        toast('Base atualizada. Todas as conferências existentes foram preservadas e reavaliadas.','ok');
+
+        await loadActiveInventory();
+        await refreshDashboard();
+
+        state.reportDirty=true;
+        $('#reportFreshness')?.classList.remove('hidden');
+        if(state.profile?.role==='admin'&&state.reportInventoryId===inv.id){
+          try{
+            await refreshReportContext({
+              branchId:state.currentBranch?.id,
+              resetFilters:false,
+              keepInventory:true
+            });
+          }catch(e){console.warn('Relatório será atualizado na próxima abertura.',e)}
+        }
+        syncBaseUpdateUi();
+      }catch(e){
+        if(updateId){
+          try{await db.rpc('cancel_inventory_base_update',{p_update_id:updateId})}catch{}
+        }
+        info.className='notice bad';
+        info.textContent='A base não foi substituída: '+(e.message||'Falha na atualização.');
+        toast(e.message||'Falha ao atualizar a base. A base anterior foi mantida.','bad');
+      }finally{
+        btn.textContent=original;
+        syncBaseUpdateUi();
+      }
+    }
+
     async function createInventory(){
       if(!state.importItems.length)return;let name=$('#inventoryName').value.trim();if(!name)name='Inventário '+new Date().toLocaleDateString('pt-BR');const inventoryType=$('#inventoryType').value||'general',btn=$('#createInventoryBtn');btn.disabled=true;btn.textContent='Enviando...';
       try{
@@ -2270,7 +2430,7 @@
     $('#cameraZoomOut').addEventListener('click',()=>changeCameraZoom(-1));$('#cameraZoomIn').addEventListener('click',()=>changeCameraZoom(1));$('#cameraTorchBtn').addEventListener('click',toggleCameraTorch);
     $('#scanResult').addEventListener('click',e=>{if(e.target.closest('.scan-result-close'))$('#scanResult').classList.add('hidden')});
     $('#manualSubmit').addEventListener('click',()=>{unlockScanAudio();const v=$('#manualCode').value.trim();if(v){processCode(v);$('#manualCode').value=''}});$('#manualCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#manualSubmit').click()}});
-    $('#refreshDashboard').addEventListener('click',refreshDashboard);$('#pendingNotesBtn').addEventListener('click',loadPendingNotes);$('#createInventoryBtn').addEventListener('click',createInventory);$('#createOccurrenceInventoryBtn').addEventListener('click',createOccurrenceInventory);$('#useOccurrenceInventoryBtn').addEventListener('click',useOccurrenceInventory);$('#closeOccurrenceInventoryBtn').addEventListener('click',closeOccurrenceInventory);$('#saveInventoryNameBtn').addEventListener('click',saveInventoryName);$('#saveInventoryTypeBtn').addEventListener('click',saveInventoryType);$('#closeInventoryBtn').addEventListener('click',closeInventory);$('#deleteInventoryBtn').addEventListener('click',deleteInventory);
+    $('#refreshDashboard').addEventListener('click',refreshDashboard);$('#pendingNotesBtn').addEventListener('click',loadPendingNotes);$('#createInventoryBtn').addEventListener('click',createInventory);$('#replaceInventoryBaseBtn').addEventListener('click',replaceOpenInventoryBase);$('#createOccurrenceInventoryBtn').addEventListener('click',createOccurrenceInventory);$('#useOccurrenceInventoryBtn').addEventListener('click',useOccurrenceInventory);$('#closeOccurrenceInventoryBtn').addEventListener('click',closeOccurrenceInventory);$('#saveInventoryNameBtn').addEventListener('click',saveInventoryName);$('#saveInventoryTypeBtn').addEventListener('click',saveInventoryType);$('#closeInventoryBtn').addEventListener('click',closeInventory);$('#deleteInventoryBtn').addEventListener('click',deleteInventory);
     $('#pendingNotesClose').addEventListener('click',()=>$('#pendingNotesModal').classList.add('hidden'));$('#pendingNotesModal').addEventListener('click',e=>{if(e.target.id==='pendingNotesModal')$('#pendingNotesModal').classList.add('hidden')});$('#pendingNotesSearch').addEventListener('input',applyPendingNotesFilter);$('#pendingNotesPrev').addEventListener('click',()=>{if(state.pendingPage>1){state.pendingPage--;renderPendingNotes()}});$('#pendingNotesNext').addEventListener('click',()=>{if(state.pendingPage*state.pendingPageSize<state.pendingFiltered.length){state.pendingPage++;renderPendingNotes()}});
     $('#refreshReportBtn').addEventListener('click',()=>refreshReportContext({branchId:state.reportBranchId||state.currentBranch?.id,resetFilters:false,keepInventory:true}).catch(e=>toast(e.message,'bad')));$('#reportBranchSelect').addEventListener('change',()=>refreshReportContext({branchId:$('#reportBranchSelect').value,resetFilters:true,keepInventory:false}).catch(e=>toast(e.message,'bad')));$('#reportInventorySelect').addEventListener('change',()=>{state.reportInventoryId=$('#reportInventorySelect').value;syncReportModeUi();resetReportFiltersForContext();clearReportContextData();loadReport().catch(e=>toast(e.message,'bad'))});$('#reportSearch').addEventListener('input',applyReportFilters);['reportStatusFilter','reportDivergenceFilter','reportClientFilter','reportVocativoFilter'].forEach(id=>{$('#'+id).addEventListener('change',handleReportMultiFilterChange);reportMultiFilterSummary(id)});
     $('#reportPrevBtn').addEventListener('click',()=>{if(state.reportPage>1){state.reportPage--;renderReport()}});$('#reportNextBtn').addEventListener('click',()=>{if(state.reportPage*state.reportPageSize<state.reportFiltered.length){state.reportPage++;renderReport()}});$('#exportPdfVocativoBtn').addEventListener('click',async()=>{try{await ensureReportReadyForExport();generateVocativoPdf()}catch(e){toast(e.message||'Falha ao atualizar o relatório antes de gerar o PDF.','bad')}});$('#exportFullBtn').addEventListener('click',async()=>{try{await ensureReportReadyForExport();await exportReport(false)}catch(e){toast(e.message||'Falha ao atualizar o relatório antes da exportação.','bad')}});$('#exportFilteredBtn').addEventListener('click',async()=>{try{await ensureReportReadyForExport();await exportReport(true)}catch(e){toast(e.message||'Falha ao atualizar o relatório antes da exportação.','bad')}});
@@ -2281,7 +2441,7 @@
       try{const meta=await parseWorkbook(file);state.importItems=meta.items;state.importMeta=meta;$('#importNotes').textContent=fmtNum(meta.items.length);$('#importVolumes').textContent=fmtNum(meta.expectedVolumes);$('#importDuplicates').textContent=fmtNum(meta.duplicateKeys);$('#importSheet').textContent=meta.sheetName;$('#importFileName').textContent=file.name;
         $('#previewBody').innerHTML=meta.items.slice(0,8).map(x=>`<tr><td>${esc(x.note)}</td><td>${esc(x.unique_label||'-')}</td><td>${esc(x.series)}</td><td>${esc(x.cnpj_supplier)}</td><td>${esc(x.collection)}</td><td>${fmtNum(x.expected_volumes)}</td><td>${esc(x.supplier)}</td><td>${esc(x.destination)} ${esc(x.destination_uf)}</td></tr>`).join('');
         const sample=meta.items.find(x=>x.note_padded==='001504500'&&x.cnpj_supplier==='61409892005990'&&x.collection_padded==='000001581974');$('#sampleMatch').className='notice '+(sample?'ok':'info');$('#sampleMatch').textContent=sample?`Exemplo validado na base: NF 1504500 • OEF 1581974 • ${sample.expected_volumes} volumes • ${sample.supplier}.`:'Estrutura validada. O exemplo NF 1504500 não foi encontrado neste arquivo.';
-        $('#importNotice').className='notice '+(meta.invalidRows.length||meta.duplicateKeys?'warn':'ok');$('#importNotice').textContent=`${fmtNum(meta.items.length)} registros válidos. ${meta.invalidRows.length?meta.invalidRows.length+' linhas ignoradas por dados obrigatórios inválidos. ':''}${meta.duplicateKeys?meta.duplicateKeys+' chaves duplicadas ignoradas.':''}`;$('#createInventoryBtn').disabled=false;
+        $('#importNotice').className='notice '+(meta.invalidRows.length||meta.duplicateKeys?'warn':'ok');$('#importNotice').textContent=`${fmtNum(meta.items.length)} registros válidos. ${meta.invalidRows.length?meta.invalidRows.length+' linhas ignoradas por dados obrigatórios inválidos. ':''}${meta.duplicateKeys?meta.duplicateKeys+' chaves duplicadas ignoradas.':''}`;$('#createInventoryBtn').disabled=false;syncBaseUpdateUi();
       }catch(err){state.importItems=[];state.importMeta=null;$('#importNotice').className='notice bad';$('#importNotice').textContent=err.message;toast(err.message,'bad')}
     });
 
