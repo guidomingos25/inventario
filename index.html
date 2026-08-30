@@ -1412,7 +1412,7 @@
         rows.push({key:'occu:'+label,recordType:'occurrence_unique',item:null,status:'complete',nf:'-',uniqueLabel:label,uniqueMode:true,series:'',oef:'',supplier:'',client:'',destination:'',expected:total||null,ok:vols.size,missing:[],missingDisplay:[],scans:[],uniqueScans:scans,effectiveScans:scans,okScans:scans.filter(x=>x.status==='ok'),divScans:scans.filter(x=>x.status!=='ok'),divTypes:uniq(scans.filter(x=>x.status!=='ok').map(x=>x.status)),duplicateCount:dupsByUnique.get(label)||0,locations,users,searchText:['etiqueta única',label,...locations,...users].join(' ').toLowerCase()});
       });
       rows.sort((a,b)=>{const ad=new Date(a.effectiveScans?.[a.effectiveScans.length-1]?.scanned_at||0),bd=new Date(b.effectiveScans?.[b.effectiveScans.length-1]?.scanned_at||0);return bd-ad});
-      state.reportRows=rows;state.reportPage=1;renderReportKpis();setReportMultiFilterOptions('reportClientFilter',[],'Todos os clientes');setReportMultiFilterOptions('reportVocativoFilter',[],'Todos os vocativos');
+      state.reportRows=rows;state.reportPage=1;renderReportKpis(state.reportRows);setReportMultiFilterOptions('reportClientFilter',[],'Todos os clientes');setReportMultiFilterOptions('reportVocativoFilter',[],'Todos os vocativos');
     }
     function buildReportRows(){
       if(reportIsOccurrence()){buildOccurrenceReportRows();return}
@@ -1438,7 +1438,7 @@
       const offUniqueGroups=new Map();
       state.reportUniqueScans.filter(x=>x.status==='divergent_not_in_report').forEach(sc=>{const label=normalizeUniqueLabel(sc.unique_label);if(!offUniqueGroups.has(label))offUniqueGroups.set(label,[]);offUniqueGroups.get(label).push(sc)});
       offUniqueGroups.forEach((scans,label)=>{const first=scans[0],locations=uniq(scans.map(scanLocationName)),users=uniq(scans.map(scanUserName));rows.push({key:'offu:'+label,recordType:'off_report_unique',item:null,status:'off_report',nf:'-',uniqueLabel:label,uniqueMode:true,series:'',oef:'',supplier:'',client:'',destination:'',expected:Number(first.total_volumes_qr||0)||null,ok:0,missing:[],missingDisplay:[],scans:[],uniqueScans:scans,effectiveScans:scans,okScans:[],divScans:scans,divTypes:['divergent_not_in_report'],duplicateCount:dupsByUnique.get(label)||0,locations,users,searchText:['etiqueta única',label].join(' ').toLowerCase()})});
-      state.reportRows=rows;state.reportPage=1;renderReportKpis();
+      state.reportRows=rows;state.reportPage=1;renderReportKpis(state.reportRows);
       const clients=uniq(rows.filter(r=>r.recordType==='base').map(r=>r.client)).sort((a,b)=>a.localeCompare(b,'pt-BR'));
       const vocativos=uniq(rows.filter(r=>r.recordType==='base').map(r=>r.item?.warehouse||'')).sort((a,b)=>a.localeCompare(b,'pt-BR'));
       setReportMultiFilterOptions('reportClientFilter',clients,'Todos os clientes');
@@ -1471,12 +1471,42 @@
       if(input.hasAttribute('data-all'))items.forEach(x=>x.checked=input.checked);else if(all)all.checked=items.length>0&&items.every(x=>x.checked);reportMultiFilterSummary(el.id);applyReportFilters();
     }
     function setReportKpi(valueId,label,foot,value){const v=$('#'+valueId);if(!v)return;v.textContent=fmtNum(value);if(v.previousElementSibling)v.previousElementSibling.textContent=label;if(v.nextElementSibling)v.nextElementSibling.textContent=foot}
-    function renderReportKpis(){
+    function reportDuplicateCountForRows(rows){
+      const prefixes=new Set(),labels=new Set();
+      (rows||[]).forEach(r=>{
+        const label=normalizeUniqueLabel(r.uniqueLabel||r.item?.unique_label||'');
+        if(label)labels.add(label);
+        if(r.item)prefixes.add(itemLookupKey(r.item));
+        [...(r.scans||[]),...(r.uniqueScans||[]),...(r.effectiveScans||[])].forEach(sc=>{
+          const key=sc?.canonical_volume_key;if(!key)return;
+          const ul=uniqueLabelFromCanonical(key);
+          if(ul)labels.add(normalizeUniqueLabel(ul));else{const p=keyPrefixFromCanonical(key);if(p)prefixes.add(p)}
+        });
+      });
+      return (state.reportAttempts||[]).filter(a=>{
+        const ul=normalizeUniqueLabel(uniqueLabelFromCanonical(a.canonical_volume_key));
+        if(ul)return labels.has(ul);
+        const p=keyPrefixFromCanonical(a.canonical_volume_key);
+        return Boolean(p&&prefixes.has(p));
+      }).length;
+    }
+    function renderReportKpis(rows=state.reportRows){
+      rows=Array.isArray(rows)?rows:[];
       if(reportIsOccurrence()){
-        const nf=state.reportRows.filter(r=>r.recordType==='occurrence_nf'),un=state.reportRows.filter(r=>r.recordType==='occurrence_unique'),normalScans=state.reportScans.filter(s=>s.status==='ok').length,uniqueScans=state.reportUniqueScans.filter(s=>s.status==='ok').length,locations=uniq([...state.reportScans,...state.reportUniqueScans].map(scanLocationName)).length;
-        setReportKpi('rExpectedNotes','NFs / Coletas','Combinações registradas',nf.length);setReportKpi('rCompleteNotes','Volumes NF','Leituras por QR de NF',normalScans);setReportKpi('rPartialNotes','Etiquetas únicas','Etiquetas registradas',un.length);setReportKpi('rNotStartedNotes','Volumes etiqueta','Leituras por Etiqueta Única',uniqueScans);setReportKpi('rOffReport','Locais utilizados','Onde houve registro',locations);setReportKpi('rDuplicates','Duplicidades','Tentativas repetidas',state.reportAttempts.length);return;
+        const nf=rows.filter(r=>r.recordType==='occurrence_nf'),un=rows.filter(r=>r.recordType==='occurrence_unique');
+        const normalScans=uniqueByScanId(rows.flatMap(r=>r.scans||[])).filter(s=>s.status==='ok').length;
+        const uniqueScans=uniqueByScanId(rows.flatMap(r=>r.uniqueScans||[])).filter(s=>s.status==='ok').length;
+        const locations=uniq(rows.flatMap(r=>r.locations||[])).length;
+        const duplicates=reportDuplicateCountForRows(rows);
+        setReportKpi('rExpectedNotes','NFs / Coletas','Combinações registradas',nf.length);setReportKpi('rCompleteNotes','Volumes NF','Leituras por QR de NF',normalScans);setReportKpi('rPartialNotes','Etiquetas únicas','Etiquetas registradas',un.length);setReportKpi('rNotStartedNotes','Volumes etiqueta','Leituras por Etiqueta Única',uniqueScans);setReportKpi('rOffReport','Locais utilizados','Onde houve registro',locations);setReportKpi('rDuplicates','Duplicidades','Tentativas repetidas',duplicates);return;
       }
-      const base=state.reportRows.filter(r=>r.recordType==='base');setReportKpi('rExpectedNotes','NFs da base','Relatório carregado',base.length);setReportKpi('rCompleteNotes','Conferidas','100% dos volumes',base.filter(r=>r.status==='complete').length);setReportKpi('rPartialNotes','Parciais','Parte dos volumes',base.filter(r=>r.status==='partial').length);setReportKpi('rNotStartedNotes','Não conferidas','Nenhum volume OK',base.filter(r=>r.status==='not_started').length);setReportKpi('rOffReport','Fora do relatório','NFs/combinações encontradas',state.reportRows.filter(r=>r.recordType.startsWith('off_report')).length);setReportKpi('rDuplicates','Duplicidades','Tentativas repetidas',state.reportAttempts.length)
+      const base=rows.filter(r=>r.recordType==='base');
+      setReportKpi('rExpectedNotes','NFs da base','Registros filtrados',base.length);
+      setReportKpi('rCompleteNotes','Conferidas','100% dos volumes',base.filter(r=>r.status==='complete').length);
+      setReportKpi('rPartialNotes','Parciais','Parte dos volumes',base.filter(r=>r.status==='partial').length);
+      setReportKpi('rNotStartedNotes','Não conferidas','Nenhum volume OK',base.filter(r=>r.status==='not_started').length);
+      setReportKpi('rOffReport','Fora do relatório','NFs/combinações encontradas',rows.filter(r=>r.recordType.startsWith('off_report')).length);
+      setReportKpi('rDuplicates','Duplicidades','Tentativas repetidas',reportDuplicateCountForRows(rows))
     }
     function rowHasDivergence(row,type){if(type==='duplicate')return row.duplicateCount>0;if(type==='divergent_not_in_report')return row.recordType.startsWith('off_report')||row.divTypes.includes(type);return row.divTypes.includes(type)}
     function applyReportFilters(){
@@ -1485,7 +1515,7 @@
         if(q&&!r.searchText.includes(q))return false;if(!status.all&&!status.values.includes(r.status))return false;if(!client.all&&!client.values.includes(r.client||''))return false;if(!vocativo.all&&!vocativo.values.includes(r.item?.warehouse||''))return false;
         if(!div.all){const anyDiv=r.divTypes.length>0||r.duplicateCount>0;const matches=div.values.some(v=>v==='none'?!anyDiv:v==='any'?anyDiv:rowHasDivergence(r,v));if(!matches)return false}
         return true
-      });state.reportPage=1;renderReport();
+      });state.reportPage=1;renderReportKpis(state.reportFiltered);renderReport();
     }
     function divergenceText(row){const parts=row.divTypes.map(x=>divergenceLabels[x]||x);if(row.duplicateCount)parts.push(`${row.duplicateCount} duplicidade${row.duplicateCount===1?'':'s'}`);return parts.length?parts.join(' • '):'-'}
     function renderReport(){
