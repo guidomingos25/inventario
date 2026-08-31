@@ -158,7 +158,7 @@
     .confront-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(250px,.6fr);gap:14px}.confront-drop{border:2px dashed #cbd5e1;border-radius:15px;padding:18px;text-align:center;background:#f8fafc;transition:.15s}.confront-drop.drag{border-color:#60a5fa;background:#eff6ff}.confront-drop input{width:100%;min-height:0;border:0;background:transparent;padding:8px}.confront-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.confront-kpi{border:1px solid #e5e7eb;border-radius:12px;padding:10px;background:#f9fafb}.confront-kpi span{display:block;font-size:9px;text-transform:uppercase;color:#6b7280;font-weight:900;letter-spacing:.35px}.confront-kpi b{display:block;font-size:21px;margin-top:3px}.confront-progress-wrap{margin-top:12px}.confront-status{font-size:12px;color:#4b5563;margin-top:7px;min-height:18px}.confront-results{margin-top:14px}.confront-results table{min-width:1020px}.confront-result-badge{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;font-size:10px;font-weight:900;white-space:nowrap}.confront-result-badge.exact{background:#dcfce7;color:#166534}.confront-result-badge.strong{background:#dbeafe;color:#1d4ed8}.confront-result-badge.partial{background:#fef3c7;color:#92400e}.confront-result-badge.ambiguous{background:#ffedd5;color:#9a3412}.confront-result-badge.missing{background:#fee2e2;color:#991b1b}.confront-file-meta{font-size:12px;color:#4b5563;line-height:1.45}.confront-file-meta b{color:#111827}.confront-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.confront-help{font-size:12px;line-height:1.5;color:#6b7280}.confront-worker-note{border:1px solid #bfdbfe;background:#eff6ff;color:#1e40af;border-radius:12px;padding:10px 12px;font-size:12px;line-height:1.45}.confront-preview-note{font-size:11px;color:#6b7280;margin-top:8px}
     #confrontModal{padding:4px}
     #confrontModal .modal-card{width:calc(100vw - 8px);max-width:none;max-height:94vh}
-    .confront-filterbar{display:grid;grid-template-columns:minmax(170px,.9fr) minmax(150px,.7fr) minmax(150px,.7fr) auto;gap:9px;align-items:end;margin-top:14px;margin-bottom:10px}
+    .confront-filterbar{display:grid;grid-template-columns:minmax(170px,.9fr) minmax(135px,.65fr) minmax(135px,.65fr) minmax(170px,.8fr) auto;gap:9px;align-items:end;margin-top:14px;margin-bottom:10px}
     .confront-filterbar .field{margin:0}
     .confront-filterbar input,.confront-filterbar select{min-height:38px;height:38px;padding:6px 9px;font-size:13px}
     .confront-filterbar .btn{min-height:38px;padding:7px 11px;font-size:12px}
@@ -810,6 +810,7 @@
           <div class="field"><label for="confrontStatusFilter">Status do inventário</label><select id="confrontStatusFilter"><option value="">Todos os status</option></select></div>
           <div class="field"><label for="confrontNfFilter">NF</label><input id="confrontNfFilter" inputmode="numeric" placeholder="Filtrar NF"></div>
           <div class="field"><label for="confrontCollectionFilter">Coleta</label><input id="confrontCollectionFilter" inputmode="numeric" placeholder="Filtrar Coleta"></div>
+          <div class="field"><label for="confrontWindowFilter">Janela Operacional</label><select id="confrontWindowFilter"><option value="">Todas as janelas</option></select></div>
           <button id="confrontFiltersClear" class="btn" type="button">Limpar filtros</button>
         </div>
         <div class="table-wrap confront-results">
@@ -872,7 +873,7 @@
     const cfg=window.APP_CONFIG||{};
     const configured=Boolean(cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase);
     const db=configured ? window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true}}) : null;
-    const state={user:null,profile:null,branches:[],currentBranch:null,adminBranches:[],inventory:null,openInventories:[],adminInventoryId:null,globalHistoryRows:[],locations:[],importItems:[],importMeta:null,recent:[],scanner:null,scannerRunning:false,realtimeChannel:null,demoItems:[],demoScans:[],demoUniqueScans:[],demoAttempts:[],reportBranches:[],reportBranchId:null,reportInventories:[],reportInventoryId:null,reportRows:[],reportFiltered:[],reportItems:[],reportScans:[],reportUniqueScans:[],reportAttempts:[],reportProfiles:new Map(),reportLocations:new Map(),reportPage:1,reportPageSize:100,reportSort:{key:null,dir:'asc'},reportDirty:false,reportLoading:false,reportLoadPromise:null,reportLoadedBranchId:null,reportLoadedInventoryId:null,pendingRows:[],pendingFiltered:[],pendingPage:1,pendingPageSize:100,productivityData:null,productivityLoaded:false,productivityLoading:false,productivitySelectedUserId:null,productivitySort:{key:'volumes',dir:'desc'},productivityInventories:[],productivityLocations:[],productivityUsers:[],confrontData:null,confrontFile:null,confrontWorker:null,confrontSort:{key:'inventoryStatus',dir:'asc'},confrontView:{status:'',nf:'',collection:'',page:1,pageSize:100},users:[],usersFiltered:[]};
+    const state={user:null,profile:null,branches:[],currentBranch:null,adminBranches:[],inventory:null,openInventories:[],adminInventoryId:null,globalHistoryRows:[],locations:[],importItems:[],importMeta:null,recent:[],scanner:null,scannerRunning:false,realtimeChannel:null,demoItems:[],demoScans:[],demoUniqueScans:[],demoAttempts:[],reportBranches:[],reportBranchId:null,reportInventories:[],reportInventoryId:null,reportRows:[],reportFiltered:[],reportItems:[],reportScans:[],reportUniqueScans:[],reportAttempts:[],reportProfiles:new Map(),reportLocations:new Map(),reportPage:1,reportPageSize:100,reportSort:{key:null,dir:'asc'},reportDirty:false,reportLoading:false,reportLoadPromise:null,reportLoadedBranchId:null,reportLoadedInventoryId:null,pendingRows:[],pendingFiltered:[],pendingPage:1,pendingPageSize:100,productivityData:null,productivityLoaded:false,productivityLoading:false,productivitySelectedUserId:null,productivitySort:{key:'volumes',dir:'desc'},productivityInventories:[],productivityLocations:[],productivityUsers:[],confrontData:null,confrontFile:null,confrontWorker:null,confrontSort:{key:'inventoryStatus',dir:'asc'},confrontView:{status:'',nf:'',collection:'',window:'',page:1,pageSize:100},users:[],usersFiltered:[]};
     const $=s=>document.querySelector(s); const $$=s=>[...document.querySelectorAll(s)];
     const digits=v=>String(v??'').replace(/\D/g,'');
     const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -2225,7 +2226,7 @@
     }
     function clearConfrontAnalysis(silent=false){
       if(state.confrontWorker){try{state.confrontWorker.terminate()}catch(_){}state.confrontWorker=null}
-      state.confrontData=null;state.confrontFile=null;state.confrontView={status:'',nf:'',collection:'',page:1,pageSize:100};
+      state.confrontData=null;state.confrontFile=null;state.confrontView={status:'',nf:'',collection:'',window:'',page:1,pageSize:100};
       const f=$('#confrontFile');if(f)f.value='';
       if($('#confrontFileMeta'))$('#confrontFileMeta').textContent='Nenhum arquivo selecionado.';
       if($('#confrontResultArea'))$('#confrontResultArea').classList.add('hidden');
@@ -2276,12 +2277,13 @@
     }
     function confrontFilteredResults(){
       const all=confrontSortedResults(state.confrontData?.results||[]);
-      const v=state.confrontView||{status:'',nf:'',collection:'',page:1,pageSize:100};
+      const v=state.confrontView||{status:'',nf:'',collection:'',window:'',page:1,pageSize:100};
       const nf=displayNumericId(v.nf||'').toLowerCase(),collection=displayNumericId(v.collection||'').toLowerCase();
       return all.filter(x=>{
         if(v.status&&String(x.inventoryStatus)!==String(v.status))return false;
         if(nf&&!String(x.note||'').toLowerCase().includes(nf))return false;
         if(collection&&!String(x.collection||'').toLowerCase().includes(collection))return false;
+        if(v.window&&String(x.janela||'')!==String(v.window))return false;
         return true;
       });
     }
@@ -2292,19 +2294,31 @@
       sel.innerHTML='<option value="">Todos os status</option>'+values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
       if([...sel.options].some(o=>o.value===current))sel.value=current;
     }
+    function confrontWindowOptions(){
+      const sel=$('#confrontWindowFilter');if(!sel)return;
+      const current=state.confrontView?.window||'';
+      const values=[...new Set((state.confrontData?.results||[]).map(r=>{
+        const source=r.candidates?.[0]?.source||{};
+        return confrontSourceValue(source,['Janela Operacional']);
+      }).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR',{numeric:true,sensitivity:'base'}));
+      sel.innerHTML='<option value="">Todas as janelas</option>'+values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+      if([...sel.options].some(o=>o.value===current))sel.value=current;
+    }
     function applyConfrontViewFilters({resetPage=true}={}){
-      state.confrontView=state.confrontView||{status:'',nf:'',collection:'',page:1,pageSize:100};
+      state.confrontView=state.confrontView||{status:'',nf:'',collection:'',window:'',page:1,pageSize:100};
       state.confrontView.status=$('#confrontStatusFilter')?.value||'';
       state.confrontView.nf=$('#confrontNfFilter')?.value||'';
       state.confrontView.collection=$('#confrontCollectionFilter')?.value||'';
+      state.confrontView.window=$('#confrontWindowFilter')?.value||'';
       if(resetPage)state.confrontView.page=1;
       if(state.confrontData)renderConfrontResults(state.confrontData,{preserveData:true});
     }
     function clearConfrontViewFilters(){
-      state.confrontView={status:'',nf:'',collection:'',page:1,pageSize:100};
+      state.confrontView={status:'',nf:'',collection:'',window:'',page:1,pageSize:100};
       if($('#confrontStatusFilter'))$('#confrontStatusFilter').value='';
       if($('#confrontNfFilter'))$('#confrontNfFilter').value='';
       if($('#confrontCollectionFilter'))$('#confrontCollectionFilter').value='';
+      if($('#confrontWindowFilter'))$('#confrontWindowFilter').value='';
       if(state.confrontData)renderConfrontResults(state.confrontData,{preserveData:true});
     }
 
@@ -2318,7 +2332,7 @@
       if(!key)return;
       if(state.confrontSort?.key===key)state.confrontSort.dir=state.confrontSort.dir==='asc'?'desc':'asc';
       else state.confrontSort={key,dir:['totalVolumes','conferredCount','missingCount','matchCount'].includes(key)?'desc':'asc'};
-      state.confrontView=state.confrontView||{status:'',nf:'',collection:'',page:1,pageSize:100};
+      state.confrontView=state.confrontView||{status:'',nf:'',collection:'',window:'',page:1,pageSize:100};
       state.confrontView.page=1;
       if(state.confrontData)renderConfrontResults(state.confrontData,{preserveData:true});
     }
@@ -2326,14 +2340,16 @@
     function renderConfrontResults(data,{preserveData=false}={}){
       if(!preserveData){
         state.confrontData=data;
-        state.confrontView={status:'',nf:'',collection:'',page:1,pageSize:100};
+        state.confrontView={status:'',nf:'',collection:'',window:'',page:1,pageSize:100};
         if($('#confrontNfFilter'))$('#confrontNfFilter').value='';
         if($('#confrontCollectionFilter'))$('#confrontCollectionFilter').value='';
+        if($('#confrontWindowFilter'))$('#confrontWindowFilter').value='';
       }
       const d=state.confrontData||data||{},s=d.stats||{};
       $('#cAnalyzed').textContent=fmtNum(s.analyzed||0);$('#cLocated').textContent=fmtNum(s.located||0);$('#cStrong').textContent=fmtNum(s.strong||0);$('#cAmbiguous').textContent='0';$('#cMissing').textContent=fmtNum(s.missing||0);
 
       confrontStatusOptions();
+      confrontWindowOptions();
       const rows=confrontFilteredResults();
       const view=state.confrontView||{page:1,pageSize:100};
       const pageSize=Math.max(1,Number(view.pageSize||100));
@@ -3378,6 +3394,7 @@
     $('#confrontStatusFilter').addEventListener('change',()=>applyConfrontViewFilters({resetPage:true}));
     $('#confrontNfFilter').addEventListener('input',()=>applyConfrontViewFilters({resetPage:true}));
     $('#confrontCollectionFilter').addEventListener('input',()=>applyConfrontViewFilters({resetPage:true}));
+    $('#confrontWindowFilter').addEventListener('change',()=>applyConfrontViewFilters({resetPage:true}));
     $('#confrontFiltersClear').addEventListener('click',clearConfrontViewFilters);
     $('#confrontPrevBtn').addEventListener('click',()=>{if(!state.confrontView)return;state.confrontView.page=Math.max(1,(state.confrontView.page||1)-1);renderConfrontResults(state.confrontData,{preserveData:true})});
     $('#confrontNextBtn').addEventListener('click',()=>{if(!state.confrontView)return;state.confrontView.page=(state.confrontView.page||1)+1;renderConfrontResults(state.confrontData,{preserveData:true})});
