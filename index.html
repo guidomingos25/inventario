@@ -2638,6 +2638,13 @@
     async function saveInventoryType(){const inv=managedAdminInventory();if(!inv||isOccurrenceInventory(inv))return;const type=$('#adminInventoryType').value||'general';try{if(configured){const {data,error}=await db.from('inventories').update({inventory_type:type}).eq('id',inv.id).select().single();if(error)throw error;state.openInventories=(state.openInventories||[]).map(i=>String(i.id)===String(inv.id)?data:i);if(String(state.inventory?.id)===String(inv.id))state.inventory=data}else{inv.inventory_type=type;state.inventory=inv;localStorage.setItem('demo_inventory',JSON.stringify(inv))}renderInventoryHeader();renderSettings();await refreshDashboard();toast('Tipo do inventário atualizado.','ok')}catch(e){toast(e.message||'Falha ao atualizar o tipo do inventário.','bad')}}
     async function deleteInventory(){const inv=managedAdminInventory();if(!inv)return;if(state.profile?.role!=='admin'){toast('Somente administradores podem excluir inventários.','bad');return}const warning=`Excluir DEFINITIVAMENTE o inventário "${inv.name}"?\n\nSerão apagados a base importada e todos os registros vinculados a este inventário, incluindo notas, volumes conferidos, leituras, duplicidades/tentativas e Etiquetas Únicas.\n\nEsta ação não pode ser desfeita.`;if(!confirm(warning))return;const typed=prompt(`Para confirmar a exclusão, digite exatamente o nome do inventário:\n\n${inv.name}`);if(typed!==inv.name){if(typed!==null)toast('Exclusão cancelada: o nome informado não confere.','warn');return}const btn=$('#deleteInventoryBtn'),old=btn.textContent;btn.disabled=true;btn.textContent='Excluindo...';try{await stopScanner();if(configured){const {data,error}=await db.from('inventories').delete().eq('id',inv.id).select('id');if(error)throw error;if(!data?.length)throw new Error('O inventário não foi excluído. Verifique se sua conta continua com perfil de administrador ativo.')}else{localStorage.removeItem('demo_inventory');localStorage.removeItem('demo_items');localStorage.removeItem('demo_scans');localStorage.removeItem('demo_unique_scans');localStorage.removeItem('demo_attempts');state.inventory=null;state.openInventories=[];state.demoItems=[];state.demoScans=[];state.demoUniqueScans=[];state.demoAttempts=[]}if(String(state.inventory?.id)===String(inv.id))localStorage.removeItem('active_inventory_'+String(state.currentBranch?.id||''));state.adminInventoryId=null;state.reportInventories=[];state.reportInventoryId=null;state.reportRows=[];state.reportFiltered=[];state.reportItems=[];state.reportScans=[];state.reportUniqueScans=[];state.reportAttempts=[];await loadActiveInventory();await refreshDashboard();renderSettings();toast('Inventário e todos os registros vinculados foram excluídos definitivamente.','ok')}catch(e){toast(e.message||'Falha ao excluir o inventário. Nenhum dado foi removido parcialmente.','bad')}finally{btn.disabled=false;btn.textContent=old}}
 
+    let productivityRefreshTimer=null;
+    let productivityRequestSeq=0;
+    function scheduleProductivityRefresh(delay=350){
+      clearTimeout(productivityRefreshTimer);
+      productivityRefreshTimer=setTimeout(()=>refreshProductivity(),delay);
+    }
+
     function productivityDateValue(d){
       const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());
       return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
@@ -2780,6 +2787,7 @@
     async function refreshProductivity(){
       if(state.profile?.role!=='admin'){toast('Acesso administrativo necessário.','bad');return}
       if(!configured){toast('Painel de produtividade disponível no modo Supabase.','warn');return}
+      const seq=++productivityRequestSeq;
       productivitySetLoading(true);
       try{
         const range=productivityRange();
@@ -2787,10 +2795,15 @@
         const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'America/Sao_Paulo';
         const {data,error}=await db.rpc('get_inventory_productivity',{p_start:range.start,p_end:range.end,p_branch_id:branch,p_inventory_id:inventory,p_user_id:user,p_location_id:location?Number(location):null,p_timezone:tz});
         if(error)throw error;
+        if(seq!==productivityRequestSeq)return;
         state.productivityData=data||{summary:{},users:[],hourly:[],locations:[],inventories:[]};
         state.productivityLoaded=true;state.productivitySelectedUserId=null;renderProductivity();
-      }catch(e){console.error('Produtividade',e);toast(e.message||'Falha ao carregar produtividade.','bad')}
-      finally{productivitySetLoading(false)}
+      }catch(e){
+        if(seq!==productivityRequestSeq)return;
+        console.error('Produtividade',e);toast(e.message||'Falha ao carregar produtividade.','bad')
+      }finally{
+        if(seq===productivityRequestSeq)productivitySetLoading(false)
+      }
     }
     async function openProductivityPage(){
       if(state.profile?.role!=='admin')return;
@@ -2823,15 +2836,15 @@
     $('#manualSubmit').addEventListener('click',()=>{unlockScanAudio();const v=$('#manualCode').value.trim();if(v){processCode(v);$('#manualCode').value=''}});$('#manualCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#manualSubmit').click()}});
     $('#refreshDashboard').addEventListener('click',refreshDashboard);$('#pendingNotesBtn').addEventListener('click',loadPendingNotes);$('#createInventoryBtn').addEventListener('click',createInventory);$('#replaceInventoryBaseBtn').addEventListener('click',replaceOpenInventoryBase);$('#createOccurrenceInventoryBtn').addEventListener('click',createOccurrenceInventory);$('#useOccurrenceInventoryBtn').addEventListener('click',useOccurrenceInventory);$('#closeOccurrenceInventoryBtn').addEventListener('click',closeOccurrenceInventory);$('#saveInventoryNameBtn').addEventListener('click',saveInventoryName);$('#saveInventoryTypeBtn').addEventListener('click',saveInventoryType);$('#closeInventoryBtn').addEventListener('click',closeInventory);$('#deleteInventoryBtn').addEventListener('click',deleteInventory);
     $('#pendingNotesClose').addEventListener('click',()=>$('#pendingNotesModal').classList.add('hidden'));$('#pendingNotesModal').addEventListener('click',e=>{if(e.target.id==='pendingNotesModal')$('#pendingNotesModal').classList.add('hidden')});$('#pendingNotesSearch').addEventListener('input',applyPendingNotesFilter);$('#pendingNotesPrev').addEventListener('click',()=>{if(state.pendingPage>1){state.pendingPage--;renderPendingNotes()}});$('#pendingNotesNext').addEventListener('click',()=>{if(state.pendingPage*state.pendingPageSize<state.pendingFiltered.length){state.pendingPage++;renderPendingNotes()}});
-    $('#productivityRefreshBtn').addEventListener('click',refreshProductivity);
+    $('#productivityRefreshBtn').addEventListener('click',()=>{clearTimeout(productivityRefreshTimer);refreshProductivity()});
     $('#productivityExportBtn').addEventListener('click',exportProductivityExcel);
-    $('#productivityPreset').addEventListener('change',e=>{if(e.target.value!=='custom')setProductivityPreset(e.target.value)});
-    $('#productivityStartDate').addEventListener('change',()=>{$('#productivityPreset').value='custom'});
-    $('#productivityEndDate').addEventListener('change',()=>{$('#productivityPreset').value='custom'});
-    $('#productivityBranch').addEventListener('change',async()=>{state.productivitySelectedUserId=null;try{await loadProductivityOptions({keepSelections:false});await refreshProductivity()}catch(e){toast(e.message,'bad')}});
-    $('#productivityInventory').addEventListener('change',refreshProductivity);
-    $('#productivityUser').addEventListener('change',refreshProductivity);
-    $('#productivityLocation').addEventListener('change',refreshProductivity);
+    $('#productivityPreset').addEventListener('change',e=>{if(e.target.value!=='custom'){setProductivityPreset(e.target.value);scheduleProductivityRefresh(150)}});
+    $('#productivityStartDate').addEventListener('change',()=>{$('#productivityPreset').value='custom';scheduleProductivityRefresh(350)});
+    $('#productivityEndDate').addEventListener('change',()=>{$('#productivityPreset').value='custom';scheduleProductivityRefresh(350)});
+    $('#productivityBranch').addEventListener('change',async()=>{state.productivitySelectedUserId=null;clearTimeout(productivityRefreshTimer);try{await loadProductivityOptions({keepSelections:false});scheduleProductivityRefresh(100)}catch(e){toast(e.message,'bad')}});
+    $('#productivityInventory').addEventListener('change',()=>scheduleProductivityRefresh(200));
+    $('#productivityUser').addEventListener('change',()=>scheduleProductivityRefresh(200));
+    $('#productivityLocation').addEventListener('change',()=>scheduleProductivityRefresh(200));
     $('#productivityClearSelection').addEventListener('click',()=>{state.productivitySelectedUserId=null;renderProductivityHourly();renderProductivityDetail()});
     $('#productivityBody').addEventListener('click',e=>{const b=e.target.closest('[data-productivity-user]');if(!b)return;state.productivitySelectedUserId=b.dataset.productivityUser;renderProductivityHourly();renderProductivityDetail();$('#productivityUserDetail').scrollIntoView({behavior:'smooth',block:'nearest'})});
     const productivityHead=$('#page-productivity .productivity-table thead');
