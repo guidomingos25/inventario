@@ -153,9 +153,9 @@
     .report-status{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900;white-space:nowrap}
     .report-status.complete{background:var(--okbg);color:#166534}.report-status.partial{background:var(--warnbg);color:#92400e}.report-status.pending{background:#f3f4f6;color:#4b5563}.report-status.offreport{background:var(--badbg);color:#991b1b}
     .report-kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important}.report-kpi .kpi-value{font-size:25px}
-    .report-table{overflow-x:hidden}.report-table table{width:100%;min-width:0;table-layout:fixed}.report-table tbody tr:hover{background:#f8fafc}.report-table th,.report-table td{padding:9px 8px;font-size:12px;line-height:1.25;white-space:normal;word-break:break-word;overflow-wrap:anywhere;vertical-align:top}.report-table th{font-size:10px}.report-table .nf-cell{font-weight:900;white-space:nowrap}.report-table .report-status{padding:4px 7px;font-size:10px;line-height:1.15;white-space:normal;text-align:center;justify-content:center}.report-table .report-detail-btn{width:100%;min-width:0;min-height:34px;padding:6px 6px;font-size:12px;line-height:1.15;white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:none;display:flex;align-items:center;justify-content:center;text-align:center}.report-table th:nth-child(1),.report-table td:nth-child(1){width:8%}.report-table th:nth-child(2),.report-table td:nth-child(2){width:6%}.report-table th:nth-child(3),.report-table td:nth-child(3){width:6%}.report-table th:nth-child(4),.report-table td:nth-child(4){width:4%}.report-table th:nth-child(5),.report-table td:nth-child(5){width:7%}.report-table th:nth-child(6),.report-table td:nth-child(6){width:10.5%}.report-table th:nth-child(7),.report-table td:nth-child(7){width:7%}.report-table th:nth-child(8),.report-table td:nth-child(8){width:8%}.report-table th:nth-child(9),.report-table td:nth-child(9){width:4%}.report-table th:nth-child(10),.report-table td:nth-child(10){width:4%}.report-table th:nth-child(11),.report-table td:nth-child(11){width:6%}.report-table th:nth-child(12),.report-table td:nth-child(12){width:10%}.report-table th:nth-child(13),.report-table td:nth-child(13){width:6%}.report-table th:nth-child(14),.report-table td:nth-child(14){width:6%}.report-table th:nth-child(15),.report-table td:nth-child(15){width:7.5%}
+    .report-table{overflow-x:hidden}.report-table table{width:100%;min-width:0;table-layout:fixed}.report-table tbody tr:hover{background:#f8fafc}.report-table th,.report-table td{padding:9px 8px;font-size:12px;line-height:1.25;white-space:normal;word-break:break-word;overflow-wrap:anywhere;vertical-align:top}.report-table th{font-size:10px}.report-table th[data-sort]{cursor:pointer;user-select:none;padding-right:18px}.report-table th[data-sort]::after{content:'↕';position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:9px;opacity:.32}.report-table th[data-sort][data-sort-dir="asc"]::after{content:'▲';opacity:1;color:#2563eb}.report-table th[data-sort][data-sort-dir="desc"]::after{content:'▼';opacity:1;color:#2563eb}.report-table th[data-sort]:hover{background:#eef2f7;color:#1f2937}.report-table .nf-cell{font-weight:900;white-space:nowrap}.report-table .report-status{padding:4px 7px;font-size:10px;line-height:1.15;white-space:normal;text-align:center;justify-content:center}.report-table .report-detail-btn{width:100%;min-width:0;min-height:34px;padding:6px 6px;font-size:12px;line-height:1.15;white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:none;display:flex;align-items:center;justify-content:center;text-align:center}.report-table th:nth-child(1),.report-table td:nth-child(1){width:8%}.report-table th:nth-child(2),.report-table td:nth-child(2){width:6%}.report-table th:nth-child(3),.report-table td:nth-child(3){width:6%}.report-table th:nth-child(4),.report-table td:nth-child(4){width:4%}.report-table th:nth-child(5),.report-table td:nth-child(5){width:7%}.report-table th:nth-child(6),.report-table td:nth-child(6){width:10.5%}.report-table th:nth-child(7),.report-table td:nth-child(7){width:7%}.report-table th:nth-child(8),.report-table td:nth-child(8){width:8%}.report-table th:nth-child(9),.report-table td:nth-child(9){width:4%}.report-table th:nth-child(10),.report-table td:nth-child(10){width:4%}.report-table th:nth-child(11),.report-table td:nth-child(11){width:6%}.report-table th:nth-child(12),.report-table td:nth-child(12){width:10%}.report-table th:nth-child(13),.report-table td:nth-child(13){width:6%}.report-table th:nth-child(14),.report-table td:nth-child(14){width:6%}.report-table th:nth-child(15),.report-table td:nth-child(15){width:7.5%}
     .report-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;flex-wrap:wrap}.report-pagination-actions{display:flex;gap:8px;align-items:center}
-    .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.62);z-index:80;display:grid;place-items:center;padding:18px}.modal-card{width:min(1120px,100%);max-height:88vh;overflow:auto;background:white;border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.35);padding:18px}.modal-head{position:sticky;top:-18px;background:white;z-index:2;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:4px 0 12px;border-bottom:1px solid var(--line);margin-bottom:14px}.modal-close{width:42px;height:42px;border:0;border-radius:11px;background:#f3f4f6;font-size:22px}.volume-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:9px}.volume-card{border:1px solid var(--line);border-radius:13px;padding:11px;background:#fff}.volume-card.ok{border-color:#86efac;background:#f0fdf4}.volume-card.bad{border-color:#fca5a5;background:#fef2f2}.volume-card.pending{background:#f8fafc}.volume-card strong{display:block;margin-bottom:4px}.volume-card small{display:block;color:var(--muted);line-height:1.45}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.62);z-index:80;display:grid;place-items:center;padding:18px}.modal-card{width:min(1120px,100%);max-height:88vh;overflow:auto;background:white;border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.35);padding:18px}.modal-head{position:sticky;top:-18px;background:white;z-index:2;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:4px 0 12px;border-bottom:1px solid var(--line);margin-bottom:14px}.modal-close{width:42px;height:42px;border:0;border-radius:11px;background:#f3f4f6;font-size:22px}.pdf-org-options{display:grid;gap:10px}.pdf-org-option{width:100%;border:1px solid var(--line);background:#fff;border-radius:13px;padding:13px 14px;text-align:left;display:flex;align-items:flex-start;gap:11px;color:#111827}.pdf-org-option:hover{background:#eff6ff;border-color:#93c5fd}.pdf-org-icon{width:34px;height:34px;border-radius:10px;background:#eff6ff;color:#1d4ed8;display:grid;place-items:center;flex:0 0 auto;font-size:13px;font-weight:900}.pdf-org-option b{display:block;font-size:14px}.pdf-org-option small{display:block;color:var(--muted);font-size:12px;line-height:1.4;margin-top:2px}.volume-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:9px}.volume-card{border:1px solid var(--line);border-radius:13px;padding:11px;background:#fff}.volume-card.ok{border-color:#86efac;background:#f0fdf4}.volume-card.bad{border-color:#fca5a5;background:#fef2f2}.volume-card.pending{background:#f8fafc}.volume-card strong{display:block;margin-bottom:4px}.volume-card small{display:block;color:var(--muted);line-height:1.45}
     .current-confirmation{margin-top:8px;padding:9px 10px;border:1px solid rgba(15,23,42,.10);border-left:3px solid #64748b;border-radius:9px;background:rgba(255,255,255,.64)}
     .current-confirmation small{color:#4b5563}.current-confirmation small:first-child{color:#1f2937;font-size:12.5px}
     .history-confirmation{margin-top:8px;padding:8px 10px;border-top:1px dashed rgba(15,23,42,.16);background:rgba(248,250,252,.48);border-radius:7px}
@@ -453,7 +453,7 @@
           </div>
           <div class="card" style="margin-top:16px">
             <div class="section-head"><div><h2 id="reportDetailTitle">Detalhamento por nota</h2><p id="reportCount" class="subtitle" style="margin:3px 0 0">Nenhum registro carregado.</p></div></div>
-            <div class="table-wrap report-table"><table><thead><tr><th>Status</th><th>NF</th><th>Etiqueta Única</th><th>Série</th><th>OEF / Coleta</th><th>Fornecedor</th><th>Cliente</th><th>Destino</th><th>Esperados</th><th>OK</th><th>Faltantes</th><th>Divergências</th><th>Local(is)</th><th>Conferente(s)</th><th>Detalhes</th></tr></thead><tbody id="reportBody"><tr><td colspan="15" class="empty">Selecione um inventário.</td></tr></tbody></table></div>
+            <div class="table-wrap report-table"><table><thead><tr><th data-sort="status" role="button" tabindex="0" title="Clique para ordenar">Status</th><th data-sort="nf" role="button" tabindex="0" title="Clique para ordenar">NF</th><th data-sort="uniqueLabel" role="button" tabindex="0" title="Clique para ordenar">Etiqueta Única</th><th data-sort="series" role="button" tabindex="0" title="Clique para ordenar">Série</th><th data-sort="oef" role="button" tabindex="0" title="Clique para ordenar">OEF / Coleta</th><th data-sort="supplier" role="button" tabindex="0" title="Clique para ordenar">Fornecedor</th><th data-sort="client" role="button" tabindex="0" title="Clique para ordenar">Cliente</th><th data-sort="destination" role="button" tabindex="0" title="Clique para ordenar">Destino</th><th data-sort="expected" role="button" tabindex="0" title="Clique para ordenar">Esperados</th><th data-sort="ok" role="button" tabindex="0" title="Clique para ordenar">OK</th><th data-sort="missing" role="button" tabindex="0" title="Clique para ordenar">Faltantes</th><th data-sort="divergence" role="button" tabindex="0" title="Clique para ordenar">Divergências</th><th data-sort="locations" role="button" tabindex="0" title="Clique para ordenar">Local(is)</th><th data-sort="users" role="button" tabindex="0" title="Clique para ordenar">Conferente(s)</th><th>Detalhes</th></tr></thead><tbody id="reportBody"><tr><td colspan="15" class="empty">Selecione um inventário.</td></tr></tbody></table></div>
             <div class="report-pagination"><span id="reportPageInfo" class="login-help">Página 0 de 0</span><div class="report-pagination-actions"><button id="reportPrevBtn" class="btn" type="button">Anterior</button><button id="reportNextBtn" class="btn" type="button">Próxima</button></div></div>
           </div>
         </section>
@@ -633,6 +633,19 @@
   <div id="reportModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="reportModalTitle">
     <div class="modal-card"><div class="modal-head"><div><h2 id="reportModalTitle">Detalhes da NF</h2><p id="reportModalSubtitle" class="subtitle" style="margin:3px 0 0"></p></div><button id="reportModalClose" class="modal-close" type="button" aria-label="Fechar">×</button></div><div id="reportModalContent"></div></div>
   </div>
+  <div id="pdfOrganizationModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="pdfOrganizationTitle">
+    <div class="modal-card" style="width:min(540px,100%)">
+      <div class="modal-head">
+        <div><h2 id="pdfOrganizationTitle">Organização do relatório PDF</h2><p class="subtitle" style="margin:3px 0 0">Escolha como os blocos do relatório serão organizados.</p></div>
+        <button id="pdfOrganizationClose" class="modal-close" type="button" aria-label="Fechar">×</button>
+      </div>
+      <div class="pdf-org-options">
+        <button class="pdf-org-option" type="button" data-pdf-org="uf"><span class="pdf-org-icon">UF</span><span><b>Organizar por UF</b><small>Utiliza a coluna UF Destino. Dentro de cada UF, os vocativos ficam em ordem alfabética.</small></span></button>
+        <button class="pdf-org-option" type="button" data-pdf-org="client"><span class="pdf-org-icon">C</span><span><b>Organizar por Cliente</b><small>Utiliza a coluna Cliente. Dentro de cada cliente, os vocativos ficam em ordem alfabética.</small></span></button>
+        <button class="pdf-org-option" type="button" data-pdf-org="alphabetical"><span class="pdf-org-icon">A→Z</span><span><b>Ordem alfabética dos vocativos</b><small>Organiza diretamente os vocativos de A a Z.</small></span></button>
+      </div>
+    </div>
+  </div>
   <div id="scanFeedback" class="scan-feedback" aria-live="assertive" aria-atomic="true"><div class="scan-feedback-card"><div id="scanFeedbackIcon" class="scan-feedback-icon">✓</div><div id="scanFeedbackTitle" class="scan-feedback-title">VOLUME CONFERIDO</div><div id="scanFeedbackDetail" class="scan-feedback-detail"></div></div></div>
   <div id="toastWrap" class="toast-wrap"></div>
 
@@ -649,7 +662,7 @@
     const cfg=window.APP_CONFIG||{};
     const configured=Boolean(cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase);
     const db=configured ? window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true}}) : null;
-    const state={user:null,profile:null,branches:[],currentBranch:null,adminBranches:[],inventory:null,openInventories:[],adminInventoryId:null,globalHistoryRows:[],locations:[],importItems:[],importMeta:null,recent:[],scanner:null,scannerRunning:false,realtimeChannel:null,demoItems:[],demoScans:[],demoUniqueScans:[],demoAttempts:[],reportBranches:[],reportBranchId:null,reportInventories:[],reportInventoryId:null,reportRows:[],reportFiltered:[],reportItems:[],reportScans:[],reportUniqueScans:[],reportAttempts:[],reportProfiles:new Map(),reportLocations:new Map(),reportPage:1,reportPageSize:100,reportDirty:false,reportLoading:false,reportLoadPromise:null,reportLoadedBranchId:null,reportLoadedInventoryId:null,pendingRows:[],pendingFiltered:[],pendingPage:1,pendingPageSize:100,users:[],usersFiltered:[]};
+    const state={user:null,profile:null,branches:[],currentBranch:null,adminBranches:[],inventory:null,openInventories:[],adminInventoryId:null,globalHistoryRows:[],locations:[],importItems:[],importMeta:null,recent:[],scanner:null,scannerRunning:false,realtimeChannel:null,demoItems:[],demoScans:[],demoUniqueScans:[],demoAttempts:[],reportBranches:[],reportBranchId:null,reportInventories:[],reportInventoryId:null,reportRows:[],reportFiltered:[],reportItems:[],reportScans:[],reportUniqueScans:[],reportAttempts:[],reportProfiles:new Map(),reportLocations:new Map(),reportPage:1,reportPageSize:100,reportSort:{key:null,dir:'asc'},reportDirty:false,reportLoading:false,reportLoadPromise:null,reportLoadedBranchId:null,reportLoadedInventoryId:null,pendingRows:[],pendingFiltered:[],pendingPage:1,pendingPageSize:100,users:[],usersFiltered:[]};
     const $=s=>document.querySelector(s); const $$=s=>[...document.querySelectorAll(s)];
     const digits=v=>String(v??'').replace(/\D/g,'');
     const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -1306,7 +1319,7 @@
         [...el.querySelectorAll('input[data-value]')].forEach(x=>x.checked=true);
         reportMultiFilterSummary(id);
       });
-      state.reportPage=1;
+      state.reportPage=1;state.reportSort={key:null,dir:'asc'};updateReportSortHeaders();
     }
     async function refreshReportContext({branchId=null,resetFilters=true,keepInventory=false}={}){
       if(state.profile?.role!=='admin')return;
@@ -1521,8 +1534,50 @@
       });state.reportPage=1;renderReportKpis(state.reportFiltered);renderReport();
     }
     function divergenceText(row){const parts=row.divTypes.map(x=>divergenceLabels[x]||x);if(row.duplicateCount)parts.push(`${row.duplicateCount} duplicidade${row.duplicateCount===1?'':'s'}`);return parts.length?parts.join(' • '):'-'}
+    function reportSortValue(row,key){
+      if(key==='status')return statusLabels[row.status]||row.status||'';
+      if(key==='nf')return row.nf||'';
+      if(key==='uniqueLabel')return row.uniqueLabel||'';
+      if(key==='series')return row.series||'';
+      if(key==='oef')return row.oef||'';
+      if(key==='supplier')return row.supplier||'';
+      if(key==='client')return row.client||'';
+      if(key==='destination')return row.destination||'';
+      if(key==='expected')return row.expected==null?null:Number(row.expected);
+      if(key==='ok')return Number(row.ok||0);
+      if(key==='missing')return row.recordType==='base'?Number(row.missing?.length||0):0;
+      if(key==='divergence')return divergenceText(row);
+      if(key==='locations')return (row.locations||[]).join(', ');
+      if(key==='users')return (row.users||[]).join(', ');
+      return '';
+    }
+    function reportSortedRows(rows){
+      const key=state.reportSort?.key,dir=state.reportSort?.dir==='desc'?-1:1;
+      if(!key)return [...(rows||[])];
+      return (rows||[]).map((row,index)=>({row,index})).sort((a,b)=>{
+        const av=reportSortValue(a.row,key),bv=reportSortValue(b.row,key);let cmp=0;
+        if(typeof av==='number'||typeof bv==='number'){
+          const an=av===null?Number.POSITIVE_INFINITY:Number(av),bn=bv===null?Number.POSITIVE_INFINITY:Number(bv);cmp=an-bn;
+        }else cmp=String(av??'').localeCompare(String(bv??''),'pt-BR',{numeric:true,sensitivity:'base'});
+        return cmp?cmp*dir:a.index-b.index;
+      }).map(x=>x.row);
+    }
+    function updateReportSortHeaders(){
+      $$('#page-report .report-table th[data-sort]').forEach(th=>{
+        const active=th.dataset.sort===state.reportSort?.key;
+        th.dataset.sortDir=active?(state.reportSort.dir||'asc'):'';
+        th.setAttribute('aria-sort',active?(state.reportSort.dir==='desc'?'descending':'ascending'):'none');
+      });
+    }
+    function setReportSort(key){
+      if(!key)return;
+      if(state.reportSort?.key===key)state.reportSort.dir=state.reportSort.dir==='asc'?'desc':'asc';
+      else state.reportSort={key,dir:'asc'};
+      state.reportPage=1;updateReportSortHeaders();renderReport();
+    }
     function renderReport(){
-      const rows=state.reportFiltered||[],pages=Math.max(1,Math.ceil(rows.length/state.reportPageSize));state.reportPage=Math.min(Math.max(1,state.reportPage),pages);const start=(state.reportPage-1)*state.reportPageSize,part=rows.slice(start,start+state.reportPageSize);
+      const rows=reportSortedRows(state.reportFiltered||[]),pages=Math.max(1,Math.ceil(rows.length/state.reportPageSize));state.reportPage=Math.min(Math.max(1,state.reportPage),pages);const start=(state.reportPage-1)*state.reportPageSize,part=rows.slice(start,start+state.reportPageSize);
+      updateReportSortHeaders();
       $('#reportCount').textContent=`${fmtNum(rows.length)} registro(s) exibido(s) de ${fmtNum(state.reportRows.length)}.`;
       $('#reportBody').innerHTML=part.length?part.map(r=>`<tr><td>${reportStatusBadge(r.status,r)}</td><td class="nf-cell">${esc(r.nf)}</td><td>${esc(r.uniqueLabel||'-')}</td><td>${esc(r.series||'-')}</td><td>${esc(r.oef||'-')}</td><td>${esc(r.supplier||'-')}</td><td>${esc(r.client||'-')}</td><td>${esc(r.destination||'-')}</td><td>${r.expected==null?'-':fmtNum(r.expected)}</td><td>${fmtNum(r.ok)}</td><td>${r.recordType==='base'?(r.missingDisplay.length?esc(r.missingDisplay.join(', ')):'-'):'-'}</td><td>${esc(divergenceText(r))}</td><td>${esc(r.locations.join(', ')||'-')}</td><td>${esc(r.users.join(', ')||'-')}</td><td><button class="btn ghost report-detail-btn" data-report-key="${esc(r.key)}" type="button">Ver volumes</button></td></tr>`).join(''):'<tr><td colspan="15" class="empty">Nenhum registro encontrado com os filtros atuais.</td></tr>';
       $('#reportPageInfo').textContent=`Página ${rows.length?state.reportPage:0} de ${rows.length?pages:0} • ${fmtNum(rows.length)} registro(s)`;$('#reportPrevBtn').disabled=!rows.length||state.reportPage<=1;$('#reportNextBtn').disabled=!rows.length||state.reportPage>=pages;
@@ -1685,7 +1740,28 @@
       return raw;
     }
     function pdfVocativo(row){return pdfText(row.item?.warehouse||'')||'SEM VOCATIVO'}
+    function pdfUf(row){return pdfText(pdfRaw(row.item,'UF Destino',row.item?.destination_uf||''))||'SEM UF'}
+    function pdfClient(row){return pdfText(pdfRaw(row.item,'Cliente',row.client||''))||'SEM CLIENTE'}
     function pdfBp(row){return pdfText(pdfRaw(row.item,'BP Destino',''))||'-'}
+    function pdfOrganizationName(mode){return mode==='uf'?'UF Destino':mode==='client'?'Cliente':'Vocativos em ordem alfabética'}
+    function pdfOrganizationValue(row,mode){return mode==='uf'?pdfUf(row):mode==='client'?pdfClient(row):''}
+    function pdfOrganizationSections(rows,mode){
+      const map=new Map();
+      (rows||[]).forEach(r=>{
+        const org=pdfOrganizationValue(r,mode),vocativo=pdfVocativo(r),key=(mode==='alphabetical'?'':org+'\u0000')+vocativo;
+        if(!map.has(key))map.set(key,{org,vocativo,rows:[]});
+        map.get(key).rows.push(r);
+      });
+      return [...map.values()].sort((a,b)=>{
+        if(mode!=='alphabetical'){const c=a.org.localeCompare(b.org,'pt-BR',{numeric:true,sensitivity:'base'});if(c)return c}
+        return a.vocativo.localeCompare(b.vocativo,'pt-BR',{numeric:true,sensitivity:'base'});
+      });
+    }
+    function pdfSectionTitle(section,mode){return mode==='alphabetical'?section.vocativo:`${section.org} • ${section.vocativo}`}
+    function openPdfOrganizationModal(){
+      if(reportIsOccurrence()){generateOccurrencePdf();return}
+      $('#pdfOrganizationModal').classList.remove('hidden');
+    }
     function pdfReportDateBr(value){
       if(value===null||value===undefined||String(value).trim()==='')return '';const raw=String(value).trim();let normalized=value;
       if(typeof value!=='number'&&/^[-+]?\d+(?:[.,]\d+)?$/.test(raw)){const n=Number(raw.replace(',','.'));if(Number.isFinite(n)&&n>1&&n<100000)normalized=n}
@@ -1720,7 +1796,7 @@
         const safe=(inv.name||'inventario_ocorrencias').replace(/[\\/:*?"<>|]+/g,'_').slice(0,70);doc.save(`${safe}_ocorrencias.pdf`);toast('PDF de ocorrências gerado.','ok');
       }catch(e){console.error('PDF ocorrências',e);toast(e.message||'Falha ao gerar PDF de ocorrências.','bad')}
     }
-    function generateVocativoPdf(){
+    function generateVocativoPdf(organization='alphabetical'){
       if(reportIsOccurrence()){generateOccurrencePdf();return}
       const rows=state.reportFiltered||[];
       if(!rows.length){toast('Nenhum registro filtrado para gerar o PDF.','warn');return}
@@ -1734,26 +1810,27 @@
         const filterLabel=!vocativoState.all&&vocativoState.values.length===1?`Vocativo: ${vocativoState.values[0]}`:!clientState.all&&clientState.values.length===1?`Cliente: ${clientState.values[0]}`:'Registros filtrados';
         const totalWeight=rows.reduce((sum,r)=>sum+pdfNumber(pdfRaw(r.item,'Peso',r.item?.weight??0)),0);
         const statusCount={complete:0,partial:0,not_started:0,off_report:0};rows.forEach(r=>{if(Object.prototype.hasOwnProperty.call(statusCount,r.status))statusCount[r.status]++});
-        const groups=new Map();rows.forEach(r=>{const v=pdfVocativo(r);if(!groups.has(v))groups.set(v,[]);groups.get(v).push(r)});
-        const summaryMap=new Map();rows.forEach(r=>{const v=pdfVocativo(r),bp=pdfBp(r),key=bp+'\u0000'+v;if(!summaryMap.has(key))summaryMap.set(key,{bp,v,count:0});summaryMap.get(key).count++});
-        const summaries=[...summaryMap.values()];
+        const sections=pdfOrganizationSections(rows,organization);
+        const summaryMap=new Map();rows.forEach(r=>{const org=pdfOrganizationValue(r,organization),v=pdfVocativo(r),bp=pdfBp(r),key=(organization==='alphabetical'?'':org+'\u0000')+bp+'\u0000'+v;if(!summaryMap.has(key))summaryMap.set(key,{org,bp,v,count:0});summaryMap.get(key).count++});
+        const summaries=[...summaryMap.values()].sort((a,b)=>{if(organization!=='alphabetical'){const c=a.org.localeCompare(b.org,'pt-BR',{numeric:true,sensitivity:'base'});if(c)return c}const vc=a.v.localeCompare(b.v,'pt-BR',{numeric:true,sensitivity:'base'});if(vc)return vc;return a.bp.localeCompare(b.bp,'pt-BR',{numeric:true,sensitivity:'base'})});
         const drawMainHeader=()=>{
           doc.setTextColor(0);doc.setFont('helvetica','bold');doc.setFontSize(17);
           doc.text(`Relatório do Inventário - ${filterLabel}`,pageW/2,10,{align:'center'});
           doc.setFontSize(13);doc.text(`Peso Total: ${totalWeight.toFixed(2)} KG - NFs Totais: ${rows.length}`,pageW/2,16,{align:'center'});
           doc.setFontSize(11);doc.text(`Conferidas: ${statusCount.complete} | Parciais: ${statusCount.partial} | Não conferidas: ${statusCount.not_started} | Fora do relatório: ${statusCount.off_report}`,pageW/2,21,{align:'center'});
+          doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text(`Organização: ${pdfOrganizationName(organization)}`,pageW/2,25,{align:'center'});
         };
         drawMainHeader();
-        let summaryEndY=25;
+        let summaryEndY=29;
         const chunk=summaries.slice(0,60),perCol=Math.max(1,Math.ceil(chunk.length/3)),usable=pageW-left-right,gap=4,colW=(usable-gap*2)/3;
         for(let c=0;c<3;c++){
           const part=chunk.slice(c*perCol,(c+1)*perCol);if(!part.length)continue;
-          doc.autoTable({startY:27,margin:{left:left+c*(colW+gap),right:pageW-(left+c*(colW+gap)+colW)},tableWidth:colW,
+          doc.autoTable({startY:30,margin:{left:left+c*(colW+gap),right:pageW-(left+c*(colW+gap)+colW)},tableWidth:colW,
             head:[['BP','Qtd Notas','Vocativo']],body:part.map(x=>[x.bp,String(x.count),x.v]),theme:'grid',
             styles:{font:'helvetica',fontSize:7.2,cellPadding:0.84,textColor:0,lineColor:[125,125,125],lineWidth:0.12,halign:'center',valign:'middle',overflow:'ellipsize'},
             headStyles:{fillColor:[0,0,0],textColor:255,fontStyle:'bold',fontSize:6.9},
             columnStyles:{0:{cellWidth:colW*.27},1:{cellWidth:colW*.18},2:{cellWidth:colW*.55}}});
-          summaryEndY=Math.max(summaryEndY,doc.lastAutoTable.finalY||27);
+          summaryEndY=Math.max(summaryEndY,doc.lastAutoTable.finalY||30);
         }
         if(summaries.length>60){
           const remaining=summaries.slice(60);for(let offset=0;offset<remaining.length;offset+=60){
@@ -1800,11 +1877,12 @@
           totalWidth=Object.values(widths).reduce((a,b)=>a+b,0);
         }
         const colStyles={};for(let i=0;i<headers.length;i++)colStyles[i]={cellWidth:widths[i],overflow:wrapCols.has(i)?'linebreak':protectedCols.has(i)?'visible':'ellipsize'};
-        for(const [vocativo,gRows] of groups){
+        for(const section of sections){
+          const gRows=section.rows,sectionTitle=pdfSectionTitle(section,organization);
           const weight=gRows.reduce((sum,r)=>sum+pdfNumber(pdfRaw(r.item,'Peso',r.item?.weight??0)),0);
           if(y>pageH-25){doc.addPage();y=10}
           doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(0);
-          doc.text(`${vocativo} - Peso: ${weight.toFixed(2)} KG - Notas: ${gRows.length}`,pageW/2,y,{align:'center'});y+=3.8;
+          doc.text(`${sectionTitle} - Peso: ${weight.toFixed(2)} KG - Notas: ${gRows.length}`,pageW/2,y,{align:'center'});y+=3.8;
           doc.autoTable({startY:y,head:[headers],body:gRows.map(pdfRowData),theme:'grid',showHead:'firstPage',margin:{left,right,top:5,bottom:5},tableWidth:Math.min(usableTableW,totalWidth),
             styles:{font:'helvetica',fontSize:6.3,cellPadding:0.54,textColor:0,lineColor:[105,105,105],lineWidth:0.1,valign:'middle',overflow:'ellipsize',minCellHeight:3.9,cellWidth:'wrap'},
             headStyles:{fillColor:[0,0,0],textColor:255,fontStyle:'normal',fontSize:6.0,halign:'center',cellPadding:0.58,overflow:'ellipsize'},columnStyles:colStyles,
@@ -1813,7 +1891,8 @@
         }
         const inv=state.reportInventories.find(x=>x.id===state.reportInventoryId)||state.inventory||{};
         const safe=(inv.name||'inventario').replace(/[\\/:*?"<>|]+/g,'_').slice(0,60);
-        doc.save(`${safe}_por_vocativo.pdf`);toast('Relatório PDF gerado.','ok');
+        const suffix=organization==='uf'?'por_uf':organization==='client'?'por_cliente':'vocativos_alfabetico';
+        doc.save(`${safe}_${suffix}.pdf`);toast('Relatório PDF gerado.','ok');
       }catch(e){console.error('PDF por vocativo',e);toast(e.message||'Falha ao gerar o PDF.','bad')}
     }
 
@@ -2481,8 +2560,14 @@
     $('#refreshDashboard').addEventListener('click',refreshDashboard);$('#pendingNotesBtn').addEventListener('click',loadPendingNotes);$('#createInventoryBtn').addEventListener('click',createInventory);$('#replaceInventoryBaseBtn').addEventListener('click',replaceOpenInventoryBase);$('#createOccurrenceInventoryBtn').addEventListener('click',createOccurrenceInventory);$('#useOccurrenceInventoryBtn').addEventListener('click',useOccurrenceInventory);$('#closeOccurrenceInventoryBtn').addEventListener('click',closeOccurrenceInventory);$('#saveInventoryNameBtn').addEventListener('click',saveInventoryName);$('#saveInventoryTypeBtn').addEventListener('click',saveInventoryType);$('#closeInventoryBtn').addEventListener('click',closeInventory);$('#deleteInventoryBtn').addEventListener('click',deleteInventory);
     $('#pendingNotesClose').addEventListener('click',()=>$('#pendingNotesModal').classList.add('hidden'));$('#pendingNotesModal').addEventListener('click',e=>{if(e.target.id==='pendingNotesModal')$('#pendingNotesModal').classList.add('hidden')});$('#pendingNotesSearch').addEventListener('input',applyPendingNotesFilter);$('#pendingNotesPrev').addEventListener('click',()=>{if(state.pendingPage>1){state.pendingPage--;renderPendingNotes()}});$('#pendingNotesNext').addEventListener('click',()=>{if(state.pendingPage*state.pendingPageSize<state.pendingFiltered.length){state.pendingPage++;renderPendingNotes()}});
     $('#refreshReportBtn').addEventListener('click',()=>refreshReportContext({branchId:state.reportBranchId||state.currentBranch?.id,resetFilters:false,keepInventory:true}).catch(e=>toast(e.message,'bad')));$('#reportBranchSelect').addEventListener('change',()=>refreshReportContext({branchId:$('#reportBranchSelect').value,resetFilters:true,keepInventory:false}).catch(e=>toast(e.message,'bad')));$('#reportInventorySelect').addEventListener('change',()=>{state.reportInventoryId=$('#reportInventorySelect').value;syncReportModeUi();resetReportFiltersForContext();clearReportContextData();loadReport().catch(e=>toast(e.message,'bad'))});$('#reportSearch').addEventListener('input',applyReportFilters);['reportStatusFilter','reportDivergenceFilter','reportClientFilter','reportVocativoFilter'].forEach(id=>{$('#'+id).addEventListener('change',handleReportMultiFilterChange);reportMultiFilterSummary(id)});
-    $('#reportPrevBtn').addEventListener('click',()=>{if(state.reportPage>1){state.reportPage--;renderReport()}});$('#reportNextBtn').addEventListener('click',()=>{if(state.reportPage*state.reportPageSize<state.reportFiltered.length){state.reportPage++;renderReport()}});$('#exportPdfVocativoBtn').addEventListener('click',async()=>{try{await ensureReportReadyForExport();generateVocativoPdf()}catch(e){toast(e.message||'Falha ao atualizar o relatório antes de gerar o PDF.','bad')}});$('#exportFullBtn').addEventListener('click',async()=>{try{await ensureReportReadyForExport();await exportReport(false)}catch(e){toast(e.message||'Falha ao atualizar o relatório antes da exportação.','bad')}});$('#exportFilteredBtn').addEventListener('click',async()=>{try{await ensureReportReadyForExport();await exportReport(true)}catch(e){toast(e.message||'Falha ao atualizar o relatório antes da exportação.','bad')}});
-    $('#reportBody').addEventListener('click',e=>{const b=e.target.closest('.report-detail-btn');if(b)openReportDetail(b.dataset.reportKey).catch(err=>toast(err.message,'bad'))});$('#reportModalClose').addEventListener('click',()=>$('#reportModal').classList.add('hidden'));$('#reportModal').addEventListener('click',e=>{if(e.target.id==='reportModal')$('#reportModal').classList.add('hidden')});
+    $('#reportPrevBtn').addEventListener('click',()=>{if(state.reportPage>1){state.reportPage--;renderReport()}});$('#reportNextBtn').addEventListener('click',()=>{if(state.reportPage*state.reportPageSize<state.reportFiltered.length){state.reportPage++;renderReport()}});$('#exportPdfVocativoBtn').addEventListener('click',async()=>{try{await ensureReportReadyForExport();if(reportIsOccurrence())generateOccurrencePdf();else openPdfOrganizationModal()}catch(e){toast(e.message||'Falha ao atualizar o relatório antes de gerar o PDF.','bad')}});$('#exportFullBtn').addEventListener('click',async()=>{try{await ensureReportReadyForExport();await exportReport(false)}catch(e){toast(e.message||'Falha ao atualizar o relatório antes da exportação.','bad')}});$('#exportFilteredBtn').addEventListener('click',async()=>{try{await ensureReportReadyForExport();await exportReport(true)}catch(e){toast(e.message||'Falha ao atualizar o relatório antes da exportação.','bad')}});
+    $('#reportBody').addEventListener('click',e=>{const b=e.target.closest('.report-detail-btn');if(b)openReportDetail(b.dataset.reportKey).catch(err=>toast(err.message,'bad'))});
+    const reportHead=$('#page-report .report-table thead');
+    reportHead.addEventListener('click',e=>{const th=e.target.closest('th[data-sort]');if(th)setReportSort(th.dataset.sort)});
+    reportHead.addEventListener('keydown',e=>{const th=e.target.closest('th[data-sort]');if(th&&(e.key==='Enter'||e.key===' ')){e.preventDefault();setReportSort(th.dataset.sort)}});
+    $('#reportModalClose').addEventListener('click',()=>$('#reportModal').classList.add('hidden'));$('#reportModal').addEventListener('click',e=>{if(e.target.id==='reportModal')$('#reportModal').classList.add('hidden')});
+    $('#pdfOrganizationClose').addEventListener('click',()=>$('#pdfOrganizationModal').classList.add('hidden'));
+    $('#pdfOrganizationModal').addEventListener('click',e=>{if(e.target.id==='pdfOrganizationModal'){$('#pdfOrganizationModal').classList.add('hidden');return}const b=e.target.closest('[data-pdf-org]');if(!b)return;$('#pdfOrganizationModal').classList.add('hidden');generateVocativoPdf(b.dataset.pdfOrg)});
 
     $('#reportFile').addEventListener('change',async e=>{
       const file=e.target.files?.[0];if(!file)return;$('#importNotice').className='notice info';$('#importNotice').textContent='Lendo e validando o relatório...';$('#createInventoryBtn').disabled=true;
