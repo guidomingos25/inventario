@@ -2676,9 +2676,11 @@
     async function loadProductivityOptions({keepSelections=true}={}){
       if(!configured||state.profile?.role!=='admin')return;
       const branchSel=$('#productivityBranch');
-      const oldBranch=keepSelections?branchSel.value:'';
+      // A filial escolhida deve ser preservada mesmo quando os filtros
+      // dependentes (inventário/local/conferente) são reiniciados.
+      const oldBranch=branchSel.value;
       productivityBranchOptions();
-      if(keepSelections&&oldBranch!==undefined&&[...branchSel.options].some(o=>o.value===oldBranch))branchSel.value=oldBranch;
+      if(oldBranch!==undefined&&[...branchSel.options].some(o=>o.value===oldBranch))branchSel.value=oldBranch;
       const branchId=branchSel.value||'';
       const allowedIds=(state.branches||[]).map(b=>b.id);
 
