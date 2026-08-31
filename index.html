@@ -156,6 +156,30 @@
     .report-table{overflow-x:hidden}.report-table table{width:100%;min-width:0;table-layout:fixed}.report-table tbody tr:hover{background:#f8fafc}.report-table th,.report-table td{padding:9px 8px;font-size:12px;line-height:1.25;white-space:normal;word-break:break-word;overflow-wrap:anywhere;vertical-align:top}.report-table th{font-size:10px}.report-table th[data-sort]{cursor:pointer;user-select:none;padding-right:18px}.report-table th[data-sort]::after{content:'↕';position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:9px;opacity:.32}.report-table th[data-sort][data-sort-dir="asc"]::after{content:'▲';opacity:1;color:#2563eb}.report-table th[data-sort][data-sort-dir="desc"]::after{content:'▼';opacity:1;color:#2563eb}.report-table th[data-sort]:hover{background:#eef2f7;color:#1f2937}.report-table .nf-cell{font-weight:900;white-space:nowrap}.report-table .report-status{padding:4px 7px;font-size:10px;line-height:1.15;white-space:normal;text-align:center;justify-content:center}.report-table .report-detail-btn{width:100%;min-width:0;min-height:34px;padding:6px 6px;font-size:12px;line-height:1.15;white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:none;display:flex;align-items:center;justify-content:center;text-align:center}.report-table th:nth-child(1),.report-table td:nth-child(1){width:8%}.report-table th:nth-child(2),.report-table td:nth-child(2){width:6%}.report-table th:nth-child(3),.report-table td:nth-child(3){width:6%}.report-table th:nth-child(4),.report-table td:nth-child(4){width:4%}.report-table th:nth-child(5),.report-table td:nth-child(5){width:7%}.report-table th:nth-child(6),.report-table td:nth-child(6){width:10.5%}.report-table th:nth-child(7),.report-table td:nth-child(7){width:7%}.report-table th:nth-child(8),.report-table td:nth-child(8){width:8%}.report-table th:nth-child(9),.report-table td:nth-child(9){width:4%}.report-table th:nth-child(10),.report-table td:nth-child(10){width:4%}.report-table th:nth-child(11),.report-table td:nth-child(11){width:6%}.report-table th:nth-child(12),.report-table td:nth-child(12){width:10%}.report-table th:nth-child(13),.report-table td:nth-child(13){width:6%}.report-table th:nth-child(14),.report-table td:nth-child(14){width:6%}.report-table th:nth-child(15),.report-table td:nth-child(15){width:7.5%}
     .report-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;flex-wrap:wrap}.report-pagination-actions{display:flex;gap:8px;align-items:center}
     .confront-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(250px,.6fr);gap:14px}.confront-drop{border:2px dashed #cbd5e1;border-radius:15px;padding:18px;text-align:center;background:#f8fafc;transition:.15s}.confront-drop.drag{border-color:#60a5fa;background:#eff6ff}.confront-drop input{width:100%;min-height:0;border:0;background:transparent;padding:8px}.confront-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.confront-kpi{border:1px solid #e5e7eb;border-radius:12px;padding:10px;background:#f9fafb}.confront-kpi span{display:block;font-size:9px;text-transform:uppercase;color:#6b7280;font-weight:900;letter-spacing:.35px}.confront-kpi b{display:block;font-size:21px;margin-top:3px}.confront-progress-wrap{margin-top:12px}.confront-status{font-size:12px;color:#4b5563;margin-top:7px;min-height:18px}.confront-results{margin-top:14px}.confront-results table{min-width:1020px}.confront-result-badge{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;font-size:10px;font-weight:900;white-space:nowrap}.confront-result-badge.exact{background:#dcfce7;color:#166534}.confront-result-badge.strong{background:#dbeafe;color:#1d4ed8}.confront-result-badge.partial{background:#fef3c7;color:#92400e}.confront-result-badge.ambiguous{background:#ffedd5;color:#9a3412}.confront-result-badge.missing{background:#fee2e2;color:#991b1b}.confront-file-meta{font-size:12px;color:#4b5563;line-height:1.45}.confront-file-meta b{color:#111827}.confront-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.confront-help{font-size:12px;line-height:1.5;color:#6b7280}.confront-worker-note{border:1px solid #bfdbfe;background:#eff6ff;color:#1e40af;border-radius:12px;padding:10px 12px;font-size:12px;line-height:1.45}.confront-preview-note{font-size:11px;color:#6b7280;margin-top:8px}
+    #confrontModal .modal-card{width:min(1580px,calc(100vw - 22px));max-height:92vh}
+    .confront-filterbar{display:grid;grid-template-columns:minmax(170px,.9fr) minmax(150px,.7fr) minmax(150px,.7fr) auto;gap:9px;align-items:end;margin-top:14px;margin-bottom:10px}
+    .confront-filterbar .field{margin:0}
+    .confront-filterbar input,.confront-filterbar select{min-height:38px;height:38px;padding:6px 9px;font-size:13px}
+    .confront-filterbar .btn{min-height:38px;padding:7px 11px;font-size:12px}
+    #confrontModal .confront-results{overflow-x:auto}
+    #confrontModal .confront-results table{width:100%;min-width:1180px;table-layout:fixed}
+    #confrontModal .confront-results th,#confrontModal .confront-results td{padding:7px 6px;font-size:10.5px;line-height:1.2;word-break:normal;overflow-wrap:anywhere}
+    #confrontModal .confront-results th{font-size:9px}
+    #confrontModal .confront-results th:nth-child(1),#confrontModal .confront-results td:nth-child(1){width:9%}
+    #confrontModal .confront-results th:nth-child(2),#confrontModal .confront-results td:nth-child(2){width:6%}
+    #confrontModal .confront-results th:nth-child(3),#confrontModal .confront-results td:nth-child(3){width:7%}
+    #confrontModal .confront-results th:nth-child(4),#confrontModal .confront-results td:nth-child(4){width:5%}
+    #confrontModal .confront-results th:nth-child(5),#confrontModal .confront-results td:nth-child(5){width:5%}
+    #confrontModal .confront-results th:nth-child(6),#confrontModal .confront-results td:nth-child(6){width:5%}
+    #confrontModal .confront-results th:nth-child(7),#confrontModal .confront-results td:nth-child(7){width:8%}
+    #confrontModal .confront-results th:nth-child(8),#confrontModal .confront-results td:nth-child(8){width:7%}
+    #confrontModal .confront-results th:nth-child(9),#confrontModal .confront-results td:nth-child(9){width:5%}
+    #confrontModal .confront-results th:nth-child(10),#confrontModal .confront-results td:nth-child(10){width:12%}
+    #confrontModal .confront-results th:nth-child(11),#confrontModal .confront-results td:nth-child(11){width:9%}
+    #confrontModal .confront-results th:nth-child(12),#confrontModal .confront-results td:nth-child(12){width:11%}
+    #confrontModal .confront-results th:nth-child(13),#confrontModal .confront-results td:nth-child(13){width:11%}
+    .confront-pagination{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;flex-wrap:wrap}
+    .confront-pagination-actions{display:flex;gap:8px}
     #confrontModal th[data-confront-sort]{cursor:pointer;user-select:none;padding-right:18px}
     #confrontModal th[data-confront-sort]::after{content:'↕';position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:9px;opacity:.30}
     #confrontModal th[data-confront-sort][data-sort-dir="asc"]::after{content:'▲';opacity:1;color:#2563eb}
@@ -305,6 +329,8 @@
 
 
     @media(max-width:700px){
+      .confront-filterbar{grid-template-columns:1fr 1fr}
+      .confront-filterbar .btn{width:100%}
       #confrontModal .confront-results{overflow:visible;border:0;background:transparent}
       #confrontModal .confront-results table{display:block;width:100%;min-width:0;background:transparent}
       #confrontModal .confront-results thead{display:none}
@@ -779,6 +805,12 @@
           <div class="confront-kpi"><span>Sem correspondência</span><b id="cAmbiguous">0</b></div>
           <div class="confront-kpi"><span>Não localizados</span><b id="cMissing">0</b></div>
         </div>
+        <div class="confront-filterbar">
+          <div class="field"><label for="confrontStatusFilter">Status do inventário</label><select id="confrontStatusFilter"><option value="">Todos os status</option></select></div>
+          <div class="field"><label for="confrontNfFilter">NF</label><input id="confrontNfFilter" inputmode="numeric" placeholder="Filtrar NF"></div>
+          <div class="field"><label for="confrontCollectionFilter">Coleta</label><input id="confrontCollectionFilter" inputmode="numeric" placeholder="Filtrar Coleta"></div>
+          <button id="confrontFiltersClear" class="btn" type="button">Limpar filtros</button>
+        </div>
         <div class="table-wrap confront-results">
           <table>
             <thead><tr>
@@ -790,7 +822,6 @@
 <th data-confront-sort="missingCount" role="button" tabindex="0" title="Clique para ordenar">Qtd. faltantes</th>
 <th data-confront-sort="missingText" role="button" tabindex="0" title="Clique para ordenar">Volumes faltantes</th>
 <th data-confront-sort="status" role="button" tabindex="0" title="Clique para ordenar">Resultado</th>
-<th data-confront-sort="method" role="button" tabindex="0" title="Clique para ordenar">Regra</th>
 <th data-confront-sort="matchCount" role="button" tabindex="0" title="Clique para ordenar">Registros</th>
 <th data-confront-sort="client" role="button" tabindex="0" title="Clique para ordenar">Cliente</th>
 <th data-confront-sort="idcte" role="button" tabindex="0" title="Clique para ordenar">ID_CTE</th>
@@ -799,6 +830,13 @@
 </tr></thead>
             <tbody id="confrontBody"></tbody>
           </table>
+        </div>
+        <div class="confront-pagination">
+          <span id="confrontPageInfo" class="login-help">Página 0 de 0</span>
+          <div class="confront-pagination-actions">
+            <button id="confrontPrevBtn" class="btn" type="button">Anterior</button>
+            <button id="confrontNextBtn" class="btn" type="button">Próxima</button>
+          </div>
         </div>
         <div id="confrontPreviewNote" class="confront-preview-note"></div>
       </div>
@@ -834,7 +872,7 @@
     const cfg=window.APP_CONFIG||{};
     const configured=Boolean(cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase);
     const db=configured ? window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true}}) : null;
-    const state={user:null,profile:null,branches:[],currentBranch:null,adminBranches:[],inventory:null,openInventories:[],adminInventoryId:null,globalHistoryRows:[],locations:[],importItems:[],importMeta:null,recent:[],scanner:null,scannerRunning:false,realtimeChannel:null,demoItems:[],demoScans:[],demoUniqueScans:[],demoAttempts:[],reportBranches:[],reportBranchId:null,reportInventories:[],reportInventoryId:null,reportRows:[],reportFiltered:[],reportItems:[],reportScans:[],reportUniqueScans:[],reportAttempts:[],reportProfiles:new Map(),reportLocations:new Map(),reportPage:1,reportPageSize:100,reportSort:{key:null,dir:'asc'},reportDirty:false,reportLoading:false,reportLoadPromise:null,reportLoadedBranchId:null,reportLoadedInventoryId:null,pendingRows:[],pendingFiltered:[],pendingPage:1,pendingPageSize:100,productivityData:null,productivityLoaded:false,productivityLoading:false,productivitySelectedUserId:null,productivitySort:{key:'volumes',dir:'desc'},productivityInventories:[],productivityLocations:[],productivityUsers:[],confrontData:null,confrontFile:null,confrontWorker:null,confrontSort:{key:'inventoryStatus',dir:'asc'},users:[],usersFiltered:[]};
+    const state={user:null,profile:null,branches:[],currentBranch:null,adminBranches:[],inventory:null,openInventories:[],adminInventoryId:null,globalHistoryRows:[],locations:[],importItems:[],importMeta:null,recent:[],scanner:null,scannerRunning:false,realtimeChannel:null,demoItems:[],demoScans:[],demoUniqueScans:[],demoAttempts:[],reportBranches:[],reportBranchId:null,reportInventories:[],reportInventoryId:null,reportRows:[],reportFiltered:[],reportItems:[],reportScans:[],reportUniqueScans:[],reportAttempts:[],reportProfiles:new Map(),reportLocations:new Map(),reportPage:1,reportPageSize:100,reportSort:{key:null,dir:'asc'},reportDirty:false,reportLoading:false,reportLoadPromise:null,reportLoadedBranchId:null,reportLoadedInventoryId:null,pendingRows:[],pendingFiltered:[],pendingPage:1,pendingPageSize:100,productivityData:null,productivityLoaded:false,productivityLoading:false,productivitySelectedUserId:null,productivitySort:{key:'volumes',dir:'desc'},productivityInventories:[],productivityLocations:[],productivityUsers:[],confrontData:null,confrontFile:null,confrontWorker:null,confrontSort:{key:'inventoryStatus',dir:'asc'},confrontView:{status:'',nf:'',collection:'',page:1,pageSize:100},users:[],usersFiltered:[]};
     const $=s=>document.querySelector(s); const $$=s=>[...document.querySelectorAll(s)];
     const digits=v=>String(v??'').replace(/\D/g,'');
     const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -2185,7 +2223,7 @@
     }
     function clearConfrontAnalysis(silent=false){
       if(state.confrontWorker){try{state.confrontWorker.terminate()}catch(_){}state.confrontWorker=null}
-      state.confrontData=null;state.confrontFile=null;
+      state.confrontData=null;state.confrontFile=null;state.confrontView={status:'',nf:'',collection:'',page:1,pageSize:100};
       const f=$('#confrontFile');if(f)f.value='';
       if($('#confrontFileMeta'))$('#confrontFileMeta').textContent='Nenhum arquivo selecionado.';
       if($('#confrontResultArea'))$('#confrontResultArea').classList.add('hidden');
@@ -2232,6 +2270,40 @@
         return String(av??'').localeCompare(String(bv??''),'pt-BR',{numeric:true,sensitivity:'base'})*mult;
       });
     }
+    function confrontFilteredResults(){
+      const all=confrontSortedResults(state.confrontData?.results||[]);
+      const v=state.confrontView||{status:'',nf:'',collection:'',page:1,pageSize:100};
+      const nf=displayNumericId(v.nf||'').toLowerCase(),collection=displayNumericId(v.collection||'').toLowerCase();
+      return all.filter(x=>{
+        if(v.status&&String(x.inventoryStatus)!==String(v.status))return false;
+        if(nf&&!String(x.note||'').toLowerCase().includes(nf))return false;
+        if(collection&&!String(x.collection||'').toLowerCase().includes(collection))return false;
+        return true;
+      });
+    }
+    function confrontStatusOptions(){
+      const sel=$('#confrontStatusFilter');if(!sel)return;
+      const current=state.confrontView?.status||'';
+      const values=[...new Set((state.confrontData?.results||[]).map(r=>r.target?.inventoryStatus).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR'));
+      sel.innerHTML='<option value="">Todos os status</option>'+values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+      if([...sel.options].some(o=>o.value===current))sel.value=current;
+    }
+    function applyConfrontViewFilters({resetPage=true}={}){
+      state.confrontView=state.confrontView||{status:'',nf:'',collection:'',page:1,pageSize:100};
+      state.confrontView.status=$('#confrontStatusFilter')?.value||'';
+      state.confrontView.nf=$('#confrontNfFilter')?.value||'';
+      state.confrontView.collection=$('#confrontCollectionFilter')?.value||'';
+      if(resetPage)state.confrontView.page=1;
+      if(state.confrontData)renderConfrontResults(state.confrontData,{preserveData:true});
+    }
+    function clearConfrontViewFilters(){
+      state.confrontView={status:'',nf:'',collection:'',page:1,pageSize:100};
+      if($('#confrontStatusFilter'))$('#confrontStatusFilter').value='';
+      if($('#confrontNfFilter'))$('#confrontNfFilter').value='';
+      if($('#confrontCollectionFilter'))$('#confrontCollectionFilter').value='';
+      if(state.confrontData)renderConfrontResults(state.confrontData,{preserveData:true});
+    }
+
     function updateConfrontSortHeaders(){
       document.querySelectorAll('#confrontModal th[data-confront-sort]').forEach(th=>{
         th.removeAttribute('data-sort-dir');
@@ -2242,17 +2314,30 @@
       if(!key)return;
       if(state.confrontSort?.key===key)state.confrontSort.dir=state.confrontSort.dir==='asc'?'desc':'asc';
       else state.confrontSort={key,dir:['totalVolumes','conferredCount','missingCount','matchCount'].includes(key)?'desc':'asc'};
+      state.confrontView=state.confrontView||{status:'',nf:'',collection:'',page:1,pageSize:100};
+      state.confrontView.page=1;
       if(state.confrontData)renderConfrontResults(state.confrontData,{preserveData:true});
     }
 
     function renderConfrontResults(data,{preserveData=false}={}){
-      if(!preserveData)state.confrontData=data;
+      if(!preserveData){
+        state.confrontData=data;
+        state.confrontView={status:'',nf:'',collection:'',page:1,pageSize:100};
+        if($('#confrontNfFilter'))$('#confrontNfFilter').value='';
+        if($('#confrontCollectionFilter'))$('#confrontCollectionFilter').value='';
+      }
       const d=state.confrontData||data||{},s=d.stats||{};
       $('#cAnalyzed').textContent=fmtNum(s.analyzed||0);$('#cLocated').textContent=fmtNum(s.located||0);$('#cStrong').textContent=fmtNum(s.strong||0);$('#cAmbiguous').textContent='0';$('#cMissing').textContent=fmtNum(s.missing||0);
 
-      const sorted=confrontSortedResults(d.results||[]);
-      const preview=sorted.slice(0,100);
-      $('#confrontBody').innerHTML=preview.length?preview.map(v=>{
+      confrontStatusOptions();
+      const rows=confrontFilteredResults();
+      const view=state.confrontView||{page:1,pageSize:100};
+      const pageSize=Math.max(1,Number(view.pageSize||100));
+      const pages=Math.max(1,Math.ceil(rows.length/pageSize));
+      view.page=Math.min(Math.max(1,Number(view.page||1)),pages);
+      const start=(view.page-1)*pageSize,visible=rows.slice(start,start+pageSize);
+
+      $('#confrontBody').innerHTML=visible.length?visible.map(v=>{
         const r=v.raw;
         return `<tr>
           <td data-label="Status da NF"><b>${esc(v.inventoryStatus)}</b></td>
@@ -2263,17 +2348,19 @@
           <td data-label="Qtd. faltantes">${fmtNum(v.missingCount)}</td>
           <td data-label="Volumes faltantes">${esc(v.missingText||'-')}</td>
           <td data-label="Resultado"><span class="confront-result-badge ${confrontBadgeClass(r.status)}">${esc(v.status)}</span></td>
-          <td data-label="Regra">${esc(v.method||'-')}</td>
           <td data-label="Registros">${fmtNum(v.matchCount)}</td>
           <td data-label="Cliente">${esc(v.client||'-')}</td>
           <td data-label="ID_CTE">${esc(v.idcte||'-')}</td>
           <td data-label="Janela Operacional">${esc(v.janela||'-')}</td>
           <td data-label="Vocativo">${esc(v.vocativo||'-')}</td>
         </tr>`;
-      }).join(''):'<tr><td colspan="14" class="empty">Nenhum registro analisado.</td></tr>';
+      }).join(''):'<tr><td colspan="13" class="empty">Nenhum registro corresponde aos filtros.</td></tr>';
 
       updateConfrontSortHeaders();
-      $('#confrontPreviewNote').textContent=(d.results||[]).length>100?`Prévia limitada aos primeiros 100 de ${fmtNum(d.results.length)} registros. A ordenação considera toda a análise e o Excel contém todos os registros.`:`${fmtNum(d.indexedRows||0)} linha(s) útil(eis) do relatório externo foram analisadas.`;
+      $('#confrontPageInfo').textContent=`Página ${rows.length?view.page:0} de ${rows.length?pages:0} • ${fmtNum(rows.length)} registro(s)`;
+      $('#confrontPrevBtn').disabled=!rows.length||view.page<=1;
+      $('#confrontNextBtn').disabled=!rows.length||view.page>=pages;
+      $('#confrontPreviewNote').textContent=`Visualização completa da análise em páginas de ${pageSize} registros. Nenhum resultado é ocultado ou limitado a uma prévia.`;
       $('#confrontResultArea').classList.remove('hidden');$('#confrontExportBtn').disabled=!(d.results||[]).length;
       setConfrontProgress(100,`Análise concluída: ${fmtNum(s.located||0)} localizado(s) por NF + Coleta e ${fmtNum(s.missing||0)} não localizado(s).`);
     }
@@ -2319,7 +2406,6 @@
         'Qtd. volumes faltantes':Number(t.missingCount||0),
         'Volumes faltantes':t.missingText||'',
         'Resultado do confronto':confrontStatusLabel(result.status),
-        'Regra utilizada':result.method||'',
         'Qtd. registros encontrados':Number(result.initialMatchCount||result.matchCount||0),
         'Filial do inventário':t.branchName||'',
         'Inventário':t.inventoryName||'',
@@ -3287,6 +3373,12 @@
     $('#confrontAnalyzeBtn').addEventListener('click',analyzeConfrontFile);
     $('#confrontExportBtn').addEventListener('click',exportConfrontExcel);
     $('#confrontClearBtn').addEventListener('click',()=>clearConfrontAnalysis(false));
+    $('#confrontStatusFilter').addEventListener('change',()=>applyConfrontViewFilters({resetPage:true}));
+    $('#confrontNfFilter').addEventListener('input',()=>applyConfrontViewFilters({resetPage:true}));
+    $('#confrontCollectionFilter').addEventListener('input',()=>applyConfrontViewFilters({resetPage:true}));
+    $('#confrontFiltersClear').addEventListener('click',clearConfrontViewFilters);
+    $('#confrontPrevBtn').addEventListener('click',()=>{if(!state.confrontView)return;state.confrontView.page=Math.max(1,(state.confrontView.page||1)-1);renderConfrontResults(state.confrontData,{preserveData:true})});
+    $('#confrontNextBtn').addEventListener('click',()=>{if(!state.confrontView)return;state.confrontView.page=(state.confrontView.page||1)+1;renderConfrontResults(state.confrontData,{preserveData:true})});
     const confrontHead=$('#confrontModal .confront-results thead');
     confrontHead.addEventListener('click',e=>{const th=e.target.closest('th[data-confront-sort]');if(th)setConfrontSort(th.dataset.confrontSort)});
     confrontHead.addEventListener('keydown',e=>{const th=e.target.closest('th[data-confront-sort]');if(th&&(e.key==='Enter'||e.key===' ')){e.preventDefault();setConfrontSort(th.dataset.confrontSort)}});
