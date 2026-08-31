@@ -156,28 +156,29 @@
     .report-table{overflow-x:hidden}.report-table table{width:100%;min-width:0;table-layout:fixed}.report-table tbody tr:hover{background:#f8fafc}.report-table th,.report-table td{padding:9px 8px;font-size:12px;line-height:1.25;white-space:normal;word-break:break-word;overflow-wrap:anywhere;vertical-align:top}.report-table th{font-size:10px}.report-table th[data-sort]{cursor:pointer;user-select:none;padding-right:18px}.report-table th[data-sort]::after{content:'↕';position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:9px;opacity:.32}.report-table th[data-sort][data-sort-dir="asc"]::after{content:'▲';opacity:1;color:#2563eb}.report-table th[data-sort][data-sort-dir="desc"]::after{content:'▼';opacity:1;color:#2563eb}.report-table th[data-sort]:hover{background:#eef2f7;color:#1f2937}.report-table .nf-cell{font-weight:900;white-space:nowrap}.report-table .report-status{padding:4px 7px;font-size:10px;line-height:1.15;white-space:normal;text-align:center;justify-content:center}.report-table .report-detail-btn{width:100%;min-width:0;min-height:34px;padding:6px 6px;font-size:12px;line-height:1.15;white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:none;display:flex;align-items:center;justify-content:center;text-align:center}.report-table th:nth-child(1),.report-table td:nth-child(1){width:8%}.report-table th:nth-child(2),.report-table td:nth-child(2){width:6%}.report-table th:nth-child(3),.report-table td:nth-child(3){width:6%}.report-table th:nth-child(4),.report-table td:nth-child(4){width:4%}.report-table th:nth-child(5),.report-table td:nth-child(5){width:7%}.report-table th:nth-child(6),.report-table td:nth-child(6){width:10.5%}.report-table th:nth-child(7),.report-table td:nth-child(7){width:7%}.report-table th:nth-child(8),.report-table td:nth-child(8){width:8%}.report-table th:nth-child(9),.report-table td:nth-child(9){width:4%}.report-table th:nth-child(10),.report-table td:nth-child(10){width:4%}.report-table th:nth-child(11),.report-table td:nth-child(11){width:6%}.report-table th:nth-child(12),.report-table td:nth-child(12){width:10%}.report-table th:nth-child(13),.report-table td:nth-child(13){width:6%}.report-table th:nth-child(14),.report-table td:nth-child(14){width:6%}.report-table th:nth-child(15),.report-table td:nth-child(15){width:7.5%}
     .report-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;flex-wrap:wrap}.report-pagination-actions{display:flex;gap:8px;align-items:center}
     .confront-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(250px,.6fr);gap:14px}.confront-drop{border:2px dashed #cbd5e1;border-radius:15px;padding:18px;text-align:center;background:#f8fafc;transition:.15s}.confront-drop.drag{border-color:#60a5fa;background:#eff6ff}.confront-drop input{width:100%;min-height:0;border:0;background:transparent;padding:8px}.confront-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px}.confront-kpi{border:1px solid #e5e7eb;border-radius:12px;padding:10px;background:#f9fafb}.confront-kpi span{display:block;font-size:9px;text-transform:uppercase;color:#6b7280;font-weight:900;letter-spacing:.35px}.confront-kpi b{display:block;font-size:21px;margin-top:3px}.confront-progress-wrap{margin-top:12px}.confront-status{font-size:12px;color:#4b5563;margin-top:7px;min-height:18px}.confront-results{margin-top:14px}.confront-results table{min-width:1020px}.confront-result-badge{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;font-size:10px;font-weight:900;white-space:nowrap}.confront-result-badge.exact{background:#dcfce7;color:#166534}.confront-result-badge.strong{background:#dbeafe;color:#1d4ed8}.confront-result-badge.partial{background:#fef3c7;color:#92400e}.confront-result-badge.ambiguous{background:#ffedd5;color:#9a3412}.confront-result-badge.missing{background:#fee2e2;color:#991b1b}.confront-file-meta{font-size:12px;color:#4b5563;line-height:1.45}.confront-file-meta b{color:#111827}.confront-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.confront-help{font-size:12px;line-height:1.5;color:#6b7280}.confront-worker-note{border:1px solid #bfdbfe;background:#eff6ff;color:#1e40af;border-radius:12px;padding:10px 12px;font-size:12px;line-height:1.45}.confront-preview-note{font-size:11px;color:#6b7280;margin-top:8px}
-    #confrontModal .modal-card{width:min(1580px,calc(100vw - 22px));max-height:92vh}
+    #confrontModal{padding:4px}
+    #confrontModal .modal-card{width:calc(100vw - 8px);max-width:none;max-height:94vh}
     .confront-filterbar{display:grid;grid-template-columns:minmax(170px,.9fr) minmax(150px,.7fr) minmax(150px,.7fr) auto;gap:9px;align-items:end;margin-top:14px;margin-bottom:10px}
     .confront-filterbar .field{margin:0}
     .confront-filterbar input,.confront-filterbar select{min-height:38px;height:38px;padding:6px 9px;font-size:13px}
     .confront-filterbar .btn{min-height:38px;padding:7px 11px;font-size:12px}
-    #confrontModal .confront-results{overflow-x:auto}
-    #confrontModal .confront-results table{width:100%;min-width:1180px;table-layout:fixed}
-    #confrontModal .confront-results th,#confrontModal .confront-results td{padding:7px 6px;font-size:10.5px;line-height:1.2;word-break:normal;overflow-wrap:anywhere}
-    #confrontModal .confront-results th{font-size:9px}
-    #confrontModal .confront-results th:nth-child(1),#confrontModal .confront-results td:nth-child(1){width:9%}
-    #confrontModal .confront-results th:nth-child(2),#confrontModal .confront-results td:nth-child(2){width:6%}
-    #confrontModal .confront-results th:nth-child(3),#confrontModal .confront-results td:nth-child(3){width:7%}
+    #confrontModal .confront-results{overflow-x:hidden}
+    #confrontModal .confront-results table{width:100%;min-width:0;table-layout:fixed}
+    #confrontModal .confront-results th,#confrontModal .confront-results td{padding:7px 5px;font-size:10px;line-height:1.18;word-break:normal;overflow-wrap:anywhere}
+    #confrontModal .confront-results th{font-size:8.5px}
+    #confrontModal .confront-results th:nth-child(1),#confrontModal .confront-results td:nth-child(1){width:10%}
+    #confrontModal .confront-results th:nth-child(2),#confrontModal .confront-results td:nth-child(2){width:5.5%}
+    #confrontModal .confront-results th:nth-child(3),#confrontModal .confront-results td:nth-child(3){width:6.5%}
     #confrontModal .confront-results th:nth-child(4),#confrontModal .confront-results td:nth-child(4){width:5%}
     #confrontModal .confront-results th:nth-child(5),#confrontModal .confront-results td:nth-child(5){width:5%}
     #confrontModal .confront-results th:nth-child(6),#confrontModal .confront-results td:nth-child(6){width:5%}
     #confrontModal .confront-results th:nth-child(7),#confrontModal .confront-results td:nth-child(7){width:8%}
-    #confrontModal .confront-results th:nth-child(8),#confrontModal .confront-results td:nth-child(8){width:7%}
-    #confrontModal .confront-results th:nth-child(9),#confrontModal .confront-results td:nth-child(9){width:5%}
-    #confrontModal .confront-results th:nth-child(10),#confrontModal .confront-results td:nth-child(10){width:12%}
-    #confrontModal .confront-results th:nth-child(11),#confrontModal .confront-results td:nth-child(11){width:9%}
-    #confrontModal .confront-results th:nth-child(12),#confrontModal .confront-results td:nth-child(12){width:11%}
-    #confrontModal .confront-results th:nth-child(13),#confrontModal .confront-results td:nth-child(13){width:11%}
+    #confrontModal .confront-results th:nth-child(8),#confrontModal .confront-results td:nth-child(8){width:5%}
+    #confrontModal .confront-results th:nth-child(9),#confrontModal .confront-results td:nth-child(9){width:14%}
+    #confrontModal .confront-results th:nth-child(10),#confrontModal .confront-results td:nth-child(10){width:9%}
+    #confrontModal .confront-results th:nth-child(11),#confrontModal .confront-results td:nth-child(11){width:11%}
+    #confrontModal .confront-results th:nth-child(12),#confrontModal .confront-results td:nth-child(12){width:16%}
+    #confrontModal .confront-results .report-status{font-size:9px;padding:4px 6px;white-space:normal;text-align:center;justify-content:center}
     .confront-pagination{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;flex-wrap:wrap}
     .confront-pagination-actions{display:flex;gap:8px}
     #confrontModal th[data-confront-sort]{cursor:pointer;user-select:none;padding-right:18px}
@@ -821,7 +822,6 @@
 <th data-confront-sort="conferredCount" role="button" tabindex="0" title="Clique para ordenar">Conferidos</th>
 <th data-confront-sort="missingCount" role="button" tabindex="0" title="Clique para ordenar">Qtd. faltantes</th>
 <th data-confront-sort="missingText" role="button" tabindex="0" title="Clique para ordenar">Volumes faltantes</th>
-<th data-confront-sort="status" role="button" tabindex="0" title="Clique para ordenar">Resultado</th>
 <th data-confront-sort="matchCount" role="button" tabindex="0" title="Clique para ordenar">Registros</th>
 <th data-confront-sort="client" role="button" tabindex="0" title="Clique para ordenar">Cliente</th>
 <th data-confront-sort="idcte" role="button" tabindex="0" title="Clique para ordenar">ID_CTE</th>
@@ -2185,6 +2185,8 @@
         rowKey:r.key,
         recordType:r.recordType||'',
         inventoryStatus,
+        inventoryStatusKey:r.status||'',
+        inventoryRecordType:r.recordType||'',
         note:displayNumericId(r.nf||first.note_padded||''),
         collection:displayNumericId(r.oef||first.collection_padded||''),
         totalVolumes:totalVolumes||0,
@@ -2244,6 +2246,8 @@
       return {
         raw:r,
         inventoryStatus:t.inventoryStatus||'-',
+        inventoryStatusKey:t.inventoryStatusKey||'',
+        inventoryRecordType:t.inventoryRecordType||'',
         note:displayNumericId(t.note,'-'),
         collection:displayNumericId(t.collection,'-'),
         totalVolumes:Number(t.totalVolumes||0),
@@ -2340,27 +2344,26 @@
       $('#confrontBody').innerHTML=visible.length?visible.map(v=>{
         const r=v.raw;
         return `<tr>
-          <td data-label="Status da NF"><b>${esc(v.inventoryStatus)}</b></td>
+          <td data-label="Status da NF">${v.inventoryStatusKey?reportStatusBadge(v.inventoryStatusKey,{recordType:v.inventoryRecordType}):`<span class="report-status pending">${esc(v.inventoryStatus)}</span>`}</td>
           <td data-label="NF"><b>${esc(v.note)}</b></td>
           <td data-label="OEF / Coleta">${esc(v.collection)}</td>
           <td data-label="Qtd. volumes">${fmtNum(v.totalVolumes)}</td>
           <td data-label="Conferidos">${fmtNum(v.conferredCount)}</td>
           <td data-label="Qtd. faltantes">${fmtNum(v.missingCount)}</td>
           <td data-label="Volumes faltantes">${esc(v.missingText||'-')}</td>
-          <td data-label="Resultado"><span class="confront-result-badge ${confrontBadgeClass(r.status)}">${esc(v.status)}</span></td>
           <td data-label="Registros">${fmtNum(v.matchCount)}</td>
           <td data-label="Cliente">${esc(v.client||'-')}</td>
           <td data-label="ID_CTE">${esc(v.idcte||'-')}</td>
           <td data-label="Janela Operacional">${esc(v.janela||'-')}</td>
           <td data-label="Vocativo">${esc(v.vocativo||'-')}</td>
         </tr>`;
-      }).join(''):'<tr><td colspan="13" class="empty">Nenhum registro corresponde aos filtros.</td></tr>';
+      }).join(''):'<tr><td colspan="12" class="empty">Nenhum registro corresponde aos filtros.</td></tr>';
 
       updateConfrontSortHeaders();
       $('#confrontPageInfo').textContent=`Página ${rows.length?view.page:0} de ${rows.length?pages:0} • ${fmtNum(rows.length)} registro(s)`;
       $('#confrontPrevBtn').disabled=!rows.length||view.page<=1;
       $('#confrontNextBtn').disabled=!rows.length||view.page>=pages;
-      $('#confrontPreviewNote').textContent=`Visualização completa da análise em páginas de ${pageSize} registros. Nenhum resultado é ocultado ou limitado a uma prévia.`;
+      $('#confrontPreviewNote').textContent=`Visualização completa da análise em páginas de ${pageSize} registros. Os dados do relatório externo aparecem somente quando NF + Coleta correspondem exatamente.`;
       $('#confrontResultArea').classList.remove('hidden');$('#confrontExportBtn').disabled=!(d.results||[]).length;
       setConfrontProgress(100,`Análise concluída: ${fmtNum(s.located||0)} localizado(s) por NF + Coleta e ${fmtNum(s.missing||0)} não localizado(s).`);
     }
@@ -2405,7 +2408,6 @@
         'Volumes conferidos':Number(t.conferredCount||0),
         'Qtd. volumes faltantes':Number(t.missingCount||0),
         'Volumes faltantes':t.missingText||'',
-        'Resultado do confronto':confrontStatusLabel(result.status),
         'Qtd. registros encontrados':Number(result.initialMatchCount||result.matchCount||0),
         'Filial do inventário':t.branchName||'',
         'Inventário':t.inventoryName||'',
