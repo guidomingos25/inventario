@@ -1843,7 +1843,10 @@
             summaryEndY=end;
           }
         }
-        let y=(summaries.length>60)?summaryEndY+8:summaryEndY+8;
+        // O resumo BP / Qtd Notas / Vocativo fica sempre em página(s) exclusiva(s).
+        // O detalhamento começa obrigatoriamente em uma nova página.
+        doc.addPage();
+        let y=10;
         const headers=['Dt Check in','Dt Entrada','Dt Resolução','Nota','Numero OEF','Etiqueta Única','Fornecedor','Almoxarifado','ONU','End. WMS','Peso','Volumes','Mercadoria','Status','V. Conferidos','V. Faltantes'];
         // As três datas usam títulos compactos e a largura é calculada pelo conteúdo da data,
         // não pelo tamanho do cabeçalho. Assim o título pode ser reduzido sem cortar a data.
@@ -1877,9 +1880,22 @@
           totalWidth=Object.values(widths).reduce((a,b)=>a+b,0);
         }
         const colStyles={};for(let i=0;i<headers.length;i++)colStyles[i]={cellWidth:widths[i],overflow:wrapCols.has(i)?'linebreak':protectedCols.has(i)?'visible':'ellipsize'};
+        let previousOrganization=null;
         for(const section of sections){
           const gRows=section.rows,sectionTitle=pdfSectionTitle(section,organization);
           const weight=gRows.reduce((sum,r)=>sum+pdfNumber(pdfRaw(r.item,'Peso',r.item?.weight??0)),0);
+
+          // Quando organizado por UF ou Cliente, cada novo grupo principal
+          // começa obrigatoriamente em uma nova página.
+          if(organization==='uf'||organization==='client'){
+            const currentOrganization=section.org;
+            if(previousOrganization!==null&&currentOrganization!==previousOrganization){
+              doc.addPage();
+              y=10;
+            }
+            previousOrganization=currentOrganization;
+          }
+
           if(y>pageH-25){doc.addPage();y=10}
           doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(0);
           doc.text(`${sectionTitle} - Peso: ${weight.toFixed(2)} KG - Notas: ${gRows.length}`,pageW/2,y,{align:'center'});y+=3.8;
