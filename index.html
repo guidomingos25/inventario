@@ -2350,7 +2350,34 @@
     }
     function managedAdminInventory(){return (state.openInventories||[]).find(i=>String(i.id)===String(state.adminInventoryId))||state.inventory||state.openInventories?.[0]||null}
     function globalScopeText(){if(state.profile?.all_branches)return 'Administrador Global: a consulta pesquisa todas as filiais do sistema.';const names=(state.branches||[]).map(b=>b.name).filter(Boolean);return 'Administrador de Filial: a consulta pesquisa somente as filiais permitidas ao seu usuário'+(names.length?': '+names.join(', '):'.')}
-    function globalRawHtml(raw){if(!raw||typeof raw!=='object')return '';const entries=Object.entries(raw).filter(([k,v])=>k!=='__inventory_source_headers'&&v!==null&&v!==undefined&&String(v).trim()!=='');if(!entries.length)return '';return `<div class="global-raw-grid">${entries.map(([k,v])=>`<div class="global-raw-item"><span>${esc(k)}</span><b>${esc(typeof v==='object'?JSON.stringify(v):v)}</b></div>`).join('')}</div>`}
+    function globalRawDateHeader(name){
+      const h=String(name??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+      if(excelDateHeader(name))return true;
+      // Campos do relatório que também representam data, embora o nome não comece por Data/Dt.
+      return h==='ultimo inventario filial'||h==='janela de emissao';
+    }
+    function globalRawDisplayValue(header,value){
+      if(typeof value==='object')return JSON.stringify(value);
+      if(!globalRawDateHeader(header))return value;
+
+      let normalized=value;
+      const raw=String(value??'').trim();
+      // Datas vindas do Excel podem estar salvas no JSON como serial numérico em texto
+      // (ex.: 46265 ou 46216.46736).
+      if(/^[-+]?\d+(?:[.,]\d+)?$/.test(raw)){
+        const n=Number(raw.replace(',','.'));
+        if(Number.isFinite(n)&&n>1&&n<100000)normalized=n;
+      }
+
+      const parsed=parseExcelExportDate(normalized,header);
+      if(!parsed?.date||Number.isNaN(parsed.date.getTime()))return value;
+
+      const d=parsed.date;
+      const date=`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).padStart(4,'0')}`;
+      if(!parsed.hasTime)return date;
+      return `${date} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+    }
+    function globalRawHtml(raw){if(!raw||typeof raw!=='object')return '';const entries=Object.entries(raw).filter(([k,v])=>k!=='__inventory_source_headers'&&v!==null&&v!==undefined&&String(v).trim()!=='');if(!entries.length)return '';return `<div class="global-raw-grid">${entries.map(([k,v])=>`<div class="global-raw-item"><span>${esc(k)}</span><b>${esc(globalRawDisplayValue(k,v))}</b></div>`).join('')}</div>`}
     function globalEventContext(r){
       if(r.event_type==='base')return 'Base do inventário';
       if(r.event_type==='scan_unique')return r.inventory_type==='occurrence'?'Inventário de Ocorrências • Etiqueta Única':'Leitura por Etiqueta Única';
