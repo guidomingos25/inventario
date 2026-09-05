@@ -168,6 +168,7 @@
     .scan-geo small{margin:0}
     .scan-geo-btn{min-height:30px!important;padding:5px 9px!important;border-radius:8px!important;font-size:10px!important;font-weight:900!important}
     .global-geo-box{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:3px}
+    .geo-accuracy{font-size:10.5px;color:#6b7280;font-weight:700;line-height:1.3}
     .report-fresh{font-size:12px;color:var(--warn);font-weight:800}.report-fresh.hidden{display:none!important}
     .toast-wrap{position:fixed;right:16px;bottom:16px;z-index:50;display:flex;flex-direction:column;gap:8px;max-width:min(420px,calc(100vw - 32px))}
     .toast{background:#111827;color:white;border-radius:13px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:13px}
@@ -547,16 +548,16 @@
         </section>
 
         <section id="page-global-search" class="page">
-          <div class="section-head"><div><h1>Consulta global</h1><p class="subtitle">Consulte todo o histórico conhecido de uma coleta ou nota fiscal nos inventários e leituras do sistema.</p></div></div>
+          <div class="section-head"><div><h1>Consulta global</h1><p class="subtitle">Consulte todo o histórico conhecido de uma coleta, nota fiscal ou Etiqueta Única nos inventários e leituras do sistema.</p></div></div>
           <div class="card" style="margin-bottom:16px">
             <div class="global-search-bar">
-              <div class="field"><label for="globalSearchMode">Buscar por</label><select id="globalSearchMode"><option value="collection">Número da coleta / OEF</option><option value="note">Número da nota fiscal</option></select></div>
-              <div class="field"><label for="globalSearchInput">Número</label><input id="globalSearchInput" inputmode="numeric" placeholder="Digite a coleta ou NF"></div>
+              <div class="field"><label for="globalSearchMode">Buscar por</label><select id="globalSearchMode"><option value="collection">Número da coleta / OEF</option><option value="note">Número da nota fiscal</option><option value="unique">Número da Etiqueta Única</option></select></div>
+              <div class="field"><label for="globalSearchInput">Número</label><input id="globalSearchInput" inputmode="numeric" placeholder="Digite a coleta, NF ou Etiqueta Única"></div>
               <button id="globalSearchBtn" class="btn primary" type="button">Consultar histórico</button><button id="globalSearchClearBtn" class="btn ghost" type="button">Limpar</button>
             </div><div id="globalSearchScope" class="login-help" style="margin-top:10px"></div>
           </div>
           <div id="globalSearchLoading" class="notice info hidden">Consultando histórico em todos os inventários permitidos...</div>
-          <div id="globalSearchInitial" class="card empty">Informe uma coleta ou nota fiscal para consultar o histórico.</div>
+          <div id="globalSearchInitial" class="card empty">Informe uma coleta, nota fiscal ou Etiqueta Única para consultar o histórico.</div>
           <div id="globalSearchResults" class="hidden">
             <div class="grid kpis global-summary">
               <div class="card report-kpi"><div class="kpi-label">Inventários</div><div id="gInventories" class="kpi-value">0</div><div class="kpi-foot">Onde houve registro</div></div>
@@ -1112,13 +1113,19 @@
       const quality=geoAccuracyLabel(acc);
       return `${lat.toFixed(6)}, ${lon.toFixed(6)}${Number.isFinite(acc)&&acc>0?` • precisão ±${Math.round(acc)} m${quality?` • ${quality}`:''}`:''}`;
     }
+    function geoAccuracyText(obj){
+      const acc=Number(obj?.geo_accuracy_m??obj?.accuracy??0);
+      return Number.isFinite(acc)&&acc>0?`Precisão registrada: raio aprox. ${Math.round(acc)} m`:'';
+    }
     function scanGeoHtml(obj){
       if(!hasScanGeo(obj))return '';
-      return `<div class="scan-geo"><button class="btn ghost scan-geo-btn" type="button" data-geo-nav data-lat="${Number(obj.latitude)}" data-lon="${Number(obj.longitude)}">📍 Ir para localização</button></div>`;
+      const accuracy=geoAccuracyText(obj);
+      return `<div class="scan-geo">${accuracy?`<span class="geo-accuracy">${esc(accuracy)}</span>`:''}<button class="btn ghost scan-geo-btn" type="button" data-geo-nav data-lat="${Number(obj.latitude)}" data-lon="${Number(obj.longitude)}">📍 Ir para localização</button></div>`;
     }
     function globalGeoHtml(obj){
       if(!hasScanGeo(obj))return '';
-      return `<div class="global-geo-box"><button class="btn ghost scan-geo-btn" type="button" data-geo-nav data-lat="${Number(obj.latitude)}" data-lon="${Number(obj.longitude)}">📍 Ir para localização</button></div>`;
+      const accuracy=geoAccuracyText(obj);
+      return `<div class="global-geo-box">${accuracy?`<span class="geo-accuracy">${esc(accuracy)}</span>`:''}<button class="btn ghost scan-geo-btn" type="button" data-geo-nav data-lat="${Number(obj.latitude)}" data-lon="${Number(obj.longitude)}">📍 Ir para localização</button></div>`;
     }
 
     async function registerScan(parsed,locationId){
@@ -2719,7 +2726,7 @@
       $('#gScans').textContent=fmtNum(scans);
       $('#gOccurrences').textContent=fmtNum(occ);
 
-      const mode=$('#globalSearchMode').value==='note'?'NF':'Coleta / OEF',query=$('#globalSearchInput').value.trim();
+      const searchMode=$('#globalSearchMode').value,mode=searchMode==='note'?'NF':searchMode==='unique'?'Etiqueta Única':'Coleta / OEF',query=$('#globalSearchInput').value.trim();
       $('#globalResultText').textContent=`${mode} ${query} • ${fmtNum(groups.length)} registro(s), sendo 1 visão consolidada por inventário.`;
 
       $('#globalInventoryList').innerHTML=groups.map(group=>{
@@ -2838,8 +2845,8 @@
         </div>`;
       }).join('');
     }
-    async function runGlobalSearch(){if(!configured){toast('A consulta global exige Supabase configurado.','warn');return}const query=$('#globalSearchInput').value.trim(),mode=$('#globalSearchMode').value;if(!query){toast('Informe o número da coleta ou da NF.','warn');$('#globalSearchInput').focus();return}const btn=$('#globalSearchBtn'),loading=$('#globalSearchLoading');btn.disabled=true;btn.textContent='Consultando...';loading.classList.remove('hidden');try{const {data,error}=await db.rpc('get_global_inventory_history',{p_query:query,p_mode:mode});if(error)throw error;renderGlobalHistory(data||[])}catch(e){renderGlobalHistory([]);toast(e.message||'Falha ao consultar histórico.','bad')}finally{loading.classList.add('hidden');btn.disabled=false;btn.textContent='Consultar histórico'}}
-    function clearGlobalSearch(){state.globalHistoryRows=[];$('#globalSearchInput').value='';$('#globalSearchResults').classList.add('hidden');$('#globalSearchInitial').classList.remove('hidden');$('#globalSearchInitial').textContent='Informe uma coleta ou nota fiscal para consultar o histórico.'}
+    async function runGlobalSearch(){if(!configured){toast('A consulta global exige Supabase configurado.','warn');return}const query=$('#globalSearchInput').value.trim(),mode=$('#globalSearchMode').value;if(!query){toast('Informe o número da coleta, da NF ou da Etiqueta Única.','warn');$('#globalSearchInput').focus();return}const btn=$('#globalSearchBtn'),loading=$('#globalSearchLoading');btn.disabled=true;btn.textContent='Consultando...';loading.classList.remove('hidden');try{const {data,error}=await db.rpc('get_global_inventory_history',{p_query:query,p_mode:mode});if(error)throw error;renderGlobalHistory(data||[])}catch(e){renderGlobalHistory([]);toast(e.message||'Falha ao consultar histórico.','bad')}finally{loading.classList.add('hidden');btn.disabled=false;btn.textContent='Consultar histórico'}}
+    function clearGlobalSearch(){state.globalHistoryRows=[];$('#globalSearchInput').value='';$('#globalSearchResults').classList.add('hidden');$('#globalSearchInitial').classList.remove('hidden');$('#globalSearchInitial').textContent='Informe uma coleta, nota fiscal ou Etiqueta Única para consultar o histórico.'}
 
     function occurrenceCreationAllowed(){
       if(state.profile?.role!=='admin'||!state.currentBranch)return false;
