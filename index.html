@@ -169,6 +169,16 @@
     .scan-geo-btn{min-height:30px!important;padding:5px 9px!important;border-radius:8px!important;font-size:10px!important;font-weight:900!important}
     .global-geo-box{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:3px}
     .geo-accuracy{font-size:10.5px;color:#6b7280;font-weight:700;line-height:1.3}
+    .global-volume-locations{grid-column:1/-1;margin-top:2px;border-top:1px dashed #dbe1e8;padding-top:7px}
+    .global-volume-locations>summary{cursor:pointer;font-size:11px;font-weight:900;color:#1d4ed8;list-style:none}
+    .global-volume-locations>summary::-webkit-details-marker{display:none}
+    .global-volume-locations>summary::before{content:'▸';display:inline-block;margin-right:5px;transition:transform .15s ease}
+    .global-volume-locations[open]>summary::before{transform:rotate(90deg)}
+    .global-volume-location-list{display:grid;gap:6px;margin-top:8px}
+    .global-volume-location-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border:1px solid #e5e7eb;background:#fff;border-radius:9px;padding:7px 8px}
+    .global-volume-location-row>span{font-size:11px;font-weight:900;color:#374151}
+    .global-volume-location-row>small{font-size:10.5px;color:#9ca3af}
+    .global-volume-location-row .global-geo-box{margin-top:0;margin-left:auto}
     .report-fresh{font-size:12px;color:var(--warn);font-weight:800}.report-fresh.hidden{display:none!important}
     .toast-wrap{position:fixed;right:16px;bottom:16px;z-index:50;display:flex;flex-direction:column;gap:8px;max-width:min(420px,calc(100vw - 32px))}
     .toast{background:#111827;color:white;border-radius:13px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:13px}
@@ -2676,6 +2686,36 @@
       }
       return [...units.values()];
     }
+    function globalLatestScan(scanRows,predicate){
+      return [...(scanRows||[])].filter(predicate).sort((a,b)=>new Date(b.event_time||0)-new Date(a.event_time||0))[0]||null;
+    }
+    function globalNormalVolumeScan(unit,volumeNo,scanRows){
+      const m=unit?.meta||{},v=Number(volumeNo);
+      return globalLatestScan(scanRows,s=>{
+        if(s.event_type!=='scan_nf'||Number(s.volume_no)!==v)return false;
+        if(String(m.nf||'').trim()&&!globalSameText(s.nf,m.nf))return false;
+        if(String(m.series||'').trim()&&!globalSameText(s.series,m.series))return false;
+        if(String(m.cnpj||'').trim()&&!globalSameText(s.cnpj,m.cnpj))return false;
+        if(String(m.collection||'').trim()&&!globalSameText(s.collection,m.collection))return false;
+        return true;
+      });
+    }
+    function globalUniqueVolumeScan(unit,volumeNo,scanRows){
+      const label=String(unit?.meta?.unique_label||'').trim(),v=Number(volumeNo);
+      return globalLatestScan(scanRows,s=>s.event_type==='scan_unique'&&Number(s.volume_no)===v&&globalSameText(s.unique_label,label));
+    }
+    function globalUniqueCompletionScan(unit,scanRows){
+      const label=String(unit?.meta?.unique_label||'').trim();
+      return globalLatestScan(scanRows,s=>s.event_type==='scan_unique'&&s.event_result==='ok'&&globalSameText(s.unique_label,label));
+    }
+    function globalVolumeLocationRow(label,scan){
+      return `<div class="global-volume-location-row"><span>${esc(label)}</span>${hasScanGeo(scan)?globalGeoHtml(scan):'<small>Sem localização GPS registrada</small>'}</div>`;
+    }
+    function globalVolumeLocationsDetails(title,rowsHtml){
+      if(!rowsHtml)return '';
+      return `<details class="global-volume-locations"><summary>📍 ${esc(title)}</summary><div class="global-volume-location-list">${rowsHtml}</div></details>`;
+    }
+
     function globalMissingVolumes(unit){
       const expected=Number(unit.expected||0),out=[];
       if(expected>0)for(let v=1;v<=expected;v++)if(!unit.ok.has(v))out.push(v);
@@ -2732,7 +2772,6 @@
       $('#globalInventoryList').innerHTML=groups.map(group=>{
         const first=group[0]||{},baseRows=group.filter(r=>r.event_type==='base'),scanRows=group.filter(r=>r.event_type==='scan_nf'||r.event_type==='scan_unique');
         const okScans=scanRows.filter(r=>r.event_result==='ok');
-        const latestGeo=[...scanRows].filter(hasScanGeo).sort((a,b)=>new Date(b.event_time)-new Date(a.event_time))[0]||null;
         const status=globalInventoryOverallStatus(group,rows);
         const units=globalBuildUnits(group);
         const expected=units.reduce((n,u)=>n+Number(u.expected||0),0);
@@ -2771,18 +2810,25 @@
               const uqOk=Array.isArray(um.uniqueOk)?um.uniqueOk:[],uqExpected=Number(um.uniqueExpected||0);
               const uqMissing=[];for(let v=1;v<=uqExpected;v++)if(!uqOk.includes(v))uqMissing.push(v);
               const nfExpected=Number(um.nfExpected||0);
+              const uniqueLocationRows=uqOk.map(v=>globalVolumeLocationRow(`Etiqueta Única • Volume ${v}/${uqExpected}`,globalUniqueVolumeScan(u,v,scanRows))).join('');
+              const completionScan=um.uniqueComplete?globalUniqueCompletionScan(u,scanRows):null;
+              const nfLocationRows=um.uniqueComplete?ok.map(v=>globalVolumeLocationRow(`NF • Volume ${v}/${nfExpected}`,completionScan)).join(''):'';
               return `<div>
                 <b>Etiqueta Única ${esc(um.unique_label)}</b>
                 <span><b>Etiqueta ${fmtNum(uqOk.length)}/${fmtNum(uqExpected)}</b><br>Conferido(s): ${uqOk.length?esc(uqOk.join(', ')):'-'}${uqMissing.length?` • Faltante(s): ${esc(uqMissing.join(', '))}`:''}</span>
                 <span>${um.uniqueComplete?`<b>NF ${fmtNum(ok.length)}/${fmtNum(nfExpected)}</b><br>Conferido(s): ${ok.length?esc(ok.join(', ')):'-'}`:`<b>NF aguardando conclusão</b><br>Ao concluir ${fmtNum(uqExpected)}/${fmtNum(uqExpected)} da Etiqueta Única, os ${fmtNum(nfExpected)} volumes da NF serão considerados conferidos.`}</span>
                 <span>${um.uniqueComplete?`<b>${fmtNum(miss.length)}</b> faltante(s) da NF: ${miss.length?esc(miss.join(', ')):'-'}`:`<b>${fmtNum(uqMissing.length)}</b> faltante(s) da Etiqueta Única`}</span>
+                ${globalVolumeLocationsDetails(`Localização dos volumes da Etiqueta Única (${fmtNum(uqOk.length)})`,uniqueLocationRows)}
+                ${um.uniqueComplete?globalVolumeLocationsDetails(`Localização dos volumes da NF (${fmtNum(ok.length)})`,nfLocationRows):''}
               </div>`;
             }
+            const locationRows=ok.map(v=>globalVolumeLocationRow(`Volume ${v}/${Number(u.expected||0)}`,globalNormalVolumeScan(u,v,scanRows))).join('');
             return `<div>
               <b>${esc(u.label)}</b>
               <span><b>${fmtNum(u.expected)}</b> esperado(s)</span>
               <span><b>${fmtNum(ok.length)}</b> conferido(s): ${ok.length?esc(ok.join(', ')):'-'}</span>
               <span><b>${fmtNum(miss.length)}</b> faltante(s): ${miss.length?esc(miss.join(', ')):'-'}</span>
+              ${globalVolumeLocationsDetails(`Localização por volume (${fmtNum(ok.length)})`,locationRows)}
             </div>`;
           }).join('')}
         </div>`:'';
@@ -2838,7 +2884,6 @@
             <div class="detail"><span>Última conferência</span><b>${esc(lastScan?fmtDateTime(lastScan):'-')}</b></div>
             <div class="detail"><span>Registros na base</span><b>${fmtNum(baseRows.length)}</b></div>
             <div class="detail"><span>Volumes conferidos</span><b>${fmtNum(confirmed)}</b></div>
-            ${latestGeo?`<div class="detail"><span>Localização da conferência</span>${globalGeoHtml(latestGeo)}</div>`:''}
           </div>
 
           ${(raw||technical)?`<details><summary>Ver todos os dados disponíveis</summary>${raw}${technical}</details>`:''}
