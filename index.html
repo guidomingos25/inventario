@@ -164,6 +164,11 @@
     .current-confirmation small{color:#4b5563}.current-confirmation small:first-child{color:#1f2937;font-size:12.5px}
     .history-confirmation{margin-top:8px;padding:8px 10px;border-top:1px dashed rgba(15,23,42,.16);background:rgba(248,250,252,.48);border-radius:7px}
     .history-confirmation small{color:#9ca3af;font-size:11.5px;line-height:1.4}.history-confirmation small:first-child{color:#7c8491}.history-confirmation b{color:#6b7280;font-weight:700}
+    .scan-geo{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:5px}
+    .scan-geo small{margin:0}
+    .scan-geo-btn{min-height:30px!important;padding:5px 9px!important;border-radius:8px!important;font-size:10px!important;font-weight:900!important}
+    .global-geo-box{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:3px}
+    .global-geo-box b{font-size:11px!important}
     .report-fresh{font-size:12px;color:var(--warn);font-weight:800}.report-fresh.hidden{display:none!important}
     .toast-wrap{position:fixed;right:16px;bottom:16px;z-index:50;display:flex;flex-direction:column;gap:8px;max-width:min(420px,calc(100vw - 32px))}
     .toast{background:#111827;color:white;border-radius:13px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:13px}
@@ -996,6 +1001,66 @@
       await stopScanner();await loadActiveInventory();await refreshDashboard();renderSettings();
     }
 
+    let geoPermissionWarningShown=false;
+    function scanGeoValue(v){
+      const n=Number(v);return Number.isFinite(n)?n:null;
+    }
+    function hasScanGeo(obj){
+      const lat=scanGeoValue(obj?.latitude),lon=scanGeoValue(obj?.longitude);
+      return lat!==null&&lon!==null&&lat>=-90&&lat<=90&&lon>=-180&&lon<=180;
+    }
+    function captureScanGeolocation(){
+      return new Promise(resolve=>{
+        if(!navigator.geolocation){resolve(null);return}
+        navigator.geolocation.getCurrentPosition(
+          pos=>resolve({
+            latitude:Number(pos.coords.latitude),
+            longitude:Number(pos.coords.longitude),
+            accuracy:Number(pos.coords.accuracy||0)
+          }),
+          err=>{
+            if(err?.code===1&&!geoPermissionWarningShown){
+              geoPermissionWarningShown=true;
+              toast('A conferência foi registrada, mas a localização GPS não foi autorizada neste dispositivo.','warn');
+            }
+            resolve(null);
+          },
+          {enableHighAccuracy:true,timeout:7000,maximumAge:5000}
+        );
+      });
+    }
+    async function saveScanGeolocation(parsed,geo){
+      if(!configured||!state.inventory||!geo||!parsed?.canonicalVolumeKey)return false;
+      try{
+        const {data,error}=await db.rpc('save_scan_geolocation',{
+          p_inventory_id:state.inventory.id,
+          p_scan_type:parsed.type==='unique_label'?'unique_label':'nf',
+          p_canonical_volume_key:parsed.canonicalVolumeKey,
+          p_latitude:geo.latitude,
+          p_longitude:geo.longitude,
+          p_accuracy_m:geo.accuracy
+        });
+        if(error)throw error;
+        return Boolean(data);
+      }catch(e){
+        console.warn('Não foi possível salvar a geolocalização da leitura:',e);
+        return false;
+      }
+    }
+    function geoCoordinatesText(obj){
+      if(!hasScanGeo(obj))return '';
+      const lat=Number(obj.latitude),lon=Number(obj.longitude),acc=Number(obj.geo_accuracy_m??obj.accuracy??0);
+      return `${lat.toFixed(6)}, ${lon.toFixed(6)}${Number.isFinite(acc)&&acc>0?` • precisão ±${Math.round(acc)} m`:''}`;
+    }
+    function scanGeoHtml(obj){
+      if(!hasScanGeo(obj))return '';
+      return `<div class="scan-geo"><small><b>GPS:</b> ${esc(geoCoordinatesText(obj))}</small><button class="btn ghost scan-geo-btn" type="button" data-geo-nav data-lat="${Number(obj.latitude)}" data-lon="${Number(obj.longitude)}">📍 Ir para localização</button></div>`;
+    }
+    function globalGeoHtml(obj){
+      if(!hasScanGeo(obj))return '';
+      return `<div class="global-geo-box"><b>${esc(geoCoordinatesText(obj))}</b><button class="btn ghost scan-geo-btn" type="button" data-geo-nav data-lat="${Number(obj.latitude)}" data-lon="${Number(obj.longitude)}">📍 Ir para localização</button></div>`;
+    }
+
     async function registerScan(parsed,locationId){
       const occurrence=isOccurrenceInventory();
       if(parsed.type==='unique_label'){
@@ -1099,7 +1164,10 @@
       const locationId=$('#locationSelect').value;if(!locationId){toast('Selecione o local da conferência antes de bipar.','warn');$('#locationSelect').focus();return}
       let parsed;try{parsed=parseQr(raw)}catch(e){renderResult({result:'invalid',message:e.message},null);return}
       try{
-        $('#scannerState').textContent='Validando...';const registered=await registerScan(parsed,locationId);const result=await enrichScanResult(registered,parsed);renderResult(result,parsed);addRecent(result,parsed);$('#myScanCount').textContent=state.recent.length+' leituras';
+        const geoPromise=configured?captureScanGeolocation():Promise.resolve(null);
+        $('#scannerState').textContent='Validando...';const registered=await registerScan(parsed,locationId);
+        if(configured&&registered?.result!=='duplicate')geoPromise.then(geo=>saveScanGeolocation(parsed,geo));
+        const result=await enrichScanResult(registered,parsed);renderResult(result,parsed);addRecent(result,parsed);$('#myScanCount').textContent=state.recent.length+' leituras';
         if(result.result==='ok')navigator.vibrate?.(80);else navigator.vibrate?.([100,60,100]);
         if(result.result==='ok'&&result.nf_complete)toast('NF conferida por completo.','ok');
         if(result.result==='ok'&&result.label_complete)toast('Etiqueta Única conferida por completo. Todas as NFs vinculadas foram concluídas.','ok');
@@ -1721,6 +1789,7 @@
         <small><b>Data/Hora:</b> ${esc(fmtDateTime(sc.scanned_at))}</small>
         <small><b>Filial:</b> ${esc(branch?.name||'-')} • <b>Local:</b> ${esc(scanLocationName(sc)||'-')}</small>
         <small><b>Conferente:</b> ${esc(scanUserName(sc)||'-')} • <b>Inventário:</b> ${esc(inv?.name||'-')}</small>
+        ${scanGeoHtml(sc)}
       </div>`;
     }
     function historyHtml(h){
@@ -2591,6 +2660,7 @@
       $('#globalInventoryList').innerHTML=groups.map(group=>{
         const first=group[0]||{},baseRows=group.filter(r=>r.event_type==='base'),scanRows=group.filter(r=>r.event_type==='scan_nf'||r.event_type==='scan_unique');
         const okScans=scanRows.filter(r=>r.event_result==='ok');
+        const latestGeo=[...scanRows].filter(hasScanGeo).sort((a,b)=>new Date(b.event_time)-new Date(a.event_time))[0]||null;
         const status=globalInventoryOverallStatus(group,rows);
         const units=globalBuildUnits(group);
         const expected=units.reduce((n,u)=>n+Number(u.expected||0),0);
@@ -2696,6 +2766,7 @@
             <div class="detail"><span>Última conferência</span><b>${esc(lastScan?fmtDateTime(lastScan):'-')}</b></div>
             <div class="detail"><span>Registros na base</span><b>${fmtNum(baseRows.length)}</b></div>
             <div class="detail"><span>Volumes conferidos</span><b>${fmtNum(confirmed)}</b></div>
+            ${latestGeo?`<div class="detail"><span>Última localização GPS</span>${globalGeoHtml(latestGeo)}</div>`:''}
           </div>
 
           ${(raw||technical)?`<details><summary>Ver todos os dados disponíveis</summary>${raw}${technical}</details>`:''}
@@ -2958,6 +3029,7 @@
     $('#loginForm').addEventListener('submit',async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('button[type="submit"]');if(btn?.disabled)return;const original=btn?.textContent||'Entrar';if(btn){btn.disabled=true;btn.textContent='Entrando...'}try{const ready=await loginSupabase($('#email').value.trim(),$('#password').value);if(ready)await enterApp()}catch(err){toast(err.message||'Falha no login.','bad');showLogin();return}finally{if(btn){btn.disabled=false;btn.textContent=original}}});
     $('#demoChecker').addEventListener('click',async()=>{loginDemo('conferente');await enterApp()});$('#demoAdmin').addEventListener('click',async()=>{loginDemo('admin');await enterApp()});$('#logoutBtn').addEventListener('click',logout);$('#branchChoiceLogout').addEventListener('click',logout);$('#branchChoiceList').addEventListener('click',e=>{const b=e.target.closest('[data-branch-id]');if(b)selectBranch(b.dataset.branchId).catch(err=>toast(err.message,'bad'))});$('#topBranchSelect').addEventListener('change',e=>selectBranch(e.target.value,{enter:false}).catch(err=>toast(err.message,'bad')));
     $$('[data-page]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.page)));
+    document.addEventListener('click',e=>{const b=e.target.closest('[data-geo-nav]');if(!b)return;const lat=Number(b.dataset.lat),lon=Number(b.dataset.lon);if(!Number.isFinite(lat)||!Number.isFinite(lon))return;const destination=encodeURIComponent(`${lat},${lon}`);window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=walking`,'_blank','noopener,noreferrer')});
     $('#openUsersAdminBtn').addEventListener('click',()=>navigate('users'));$('#adminInventorySelect').addEventListener('change',e=>{state.adminInventoryId=e.target.value||null;renderSettings()});$('#globalSearchBtn').addEventListener('click',runGlobalSearch);$('#globalSearchClearBtn').addEventListener('click',clearGlobalSearch);$('#globalSearchInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();runGlobalSearch()}});$('#addBranchBtn').addEventListener('click',addBranch);$('#addLocationBtn').addEventListener('click',addLocation);$('#branchesAdminList').addEventListener('click',e=>{const r=e.target.closest('.branch-rename');if(r)return renameBranch(r.dataset.id);const t=e.target.closest('.branch-toggle');if(t)return toggleBranch(t.dataset.id,t.dataset.active==='1')});$('#locationsList').addEventListener('click',e=>{const r=e.target.closest('.location-rename');if(r)return renameLocation(r.dataset.id);const d=e.target.closest('.location-disable');if(d)return disableLocation(d.dataset.id)});$('#refreshUsersBtn').addEventListener('click',loadUsers);$('#usersReloadBtn').addEventListener('click',loadUsers);$('#usersSearch').addEventListener('input',applyUsersFilters);$('#usersStatusFilter').addEventListener('change',applyUsersFilters);
     $('#createUserForm').addEventListener('submit',e=>{e.preventDefault();createManagedUser()});$('#newUserRole').addEventListener('change',()=>syncAllBranchesVisibility('new'));$('#editUserRole').addEventListener('change',()=>syncAllBranchesVisibility('edit'));$('#editUserForm').addEventListener('submit',e=>{e.preventDefault();saveManagedUser()});$('#deleteUserBtn').addEventListener('click',deleteManagedUser);$('#userEditClose').addEventListener('click',()=>$('#userEditModal').classList.add('hidden'));$('#userEditModal').addEventListener('click',e=>{if(e.target.id==='userEditModal')$('#userEditModal').classList.add('hidden')});$('#usersBody').addEventListener('click',e=>{const edit=e.target.closest('.user-edit-btn');if(edit)return openUserEdit(edit.dataset.userId);const tog=e.target.closest('.user-toggle-btn');if(tog&&!tog.disabled)toggleManagedUser(tog.dataset.userId,tog.dataset.userActive==='true')});
     $('#locationSelect').addEventListener('change',e=>localStorage.setItem('inventory_location_'+String(state.currentBranch?.id||'demo'),e.target.value));$('#scannerInventorySelect').addEventListener('change',e=>selectOpenInventory(e.target.value).catch(err=>toast(err.message,'bad')));$('#startScanBtn').addEventListener('click',startScanner);$('#stopScanBtn').addEventListener('click',stopScanner);
