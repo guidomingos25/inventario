@@ -1002,6 +1002,10 @@
     }
 
     let geoPermissionWarningShown=false;
+    let geoWatchId=null;
+    let geoSamples=[];
+    const GEO_SAMPLE_WINDOW_MS=10000;
+    const GEO_MAX_SAMPLES=30;
     function scanGeoValue(v){
       const n=Number(v);return Number.isFinite(n)?n:null;
     }
@@ -1009,23 +1013,72 @@
       const lat=scanGeoValue(obj?.latitude),lon=scanGeoValue(obj?.longitude);
       return lat!==null&&lon!==null&&lat>=-90&&lat<=90&&lon>=-180&&lon<=180;
     }
-    function captureScanGeolocation(){
+    function geoSampleFromPosition(pos){
+      if(!pos?.coords)return null;
+      const sample={
+        latitude:Number(pos.coords.latitude),
+        longitude:Number(pos.coords.longitude),
+        accuracy:Number(pos.coords.accuracy||0),
+        captured_at:Number(pos.timestamp||Date.now())
+      };
+      return hasScanGeo(sample)?sample:null;
+    }
+    function addGeoSample(sample){
+      if(!sample)return;
+      const cutoff=Date.now()-GEO_SAMPLE_WINDOW_MS;
+      geoSamples=geoSamples.filter(x=>Number(x.captured_at||0)>=cutoff);
+      geoSamples.push(sample);
+      if(geoSamples.length>GEO_MAX_SAMPLES)geoSamples=geoSamples.slice(-GEO_MAX_SAMPLES);
+    }
+    function bestRecentGeolocation(){
+      const cutoff=Date.now()-GEO_SAMPLE_WINDOW_MS;
+      const recent=geoSamples.filter(x=>hasScanGeo(x)&&Number(x.captured_at||0)>=cutoff);
+      if(!recent.length)return null;
+      return recent.slice().sort((a,b)=>{
+        const aa=Number.isFinite(Number(a.accuracy))&&Number(a.accuracy)>0?Number(a.accuracy):999999;
+        const ba=Number.isFinite(Number(b.accuracy))&&Number(b.accuracy)>0?Number(b.accuracy):999999;
+        if(aa!==ba)return aa-ba;
+        return Number(b.captured_at||0)-Number(a.captured_at||0);
+      })[0];
+    }
+    function handleGeoError(err){
+      if(err?.code===1&&!geoPermissionWarningShown){
+        geoPermissionWarningShown=true;
+        toast('A câmera continuará funcionando, mas a localização GPS não foi autorizada neste dispositivo.','warn');
+      }
+    }
+    function startGeoTracking(){
+      if(!configured||geoWatchId!==null||!navigator.geolocation)return;
+      geoSamples=[];
+      try{
+        geoWatchId=navigator.geolocation.watchPosition(
+          pos=>addGeoSample(geoSampleFromPosition(pos)),
+          handleGeoError,
+          {enableHighAccuracy:true,maximumAge:0,timeout:15000}
+        );
+      }catch(e){
+        console.warn('Não foi possível iniciar o GPS contínuo:',e);
+        geoWatchId=null;
+      }
+    }
+    function stopGeoTracking(){
+      if(geoWatchId!==null&&navigator.geolocation){
+        try{navigator.geolocation.clearWatch(geoWatchId)}catch{}
+      }
+      geoWatchId=null;
+      geoSamples=[];
+    }
+    function captureFallbackGeolocation(){
       return new Promise(resolve=>{
         if(!navigator.geolocation){resolve(null);return}
         navigator.geolocation.getCurrentPosition(
-          pos=>resolve({
-            latitude:Number(pos.coords.latitude),
-            longitude:Number(pos.coords.longitude),
-            accuracy:Number(pos.coords.accuracy||0)
-          }),
-          err=>{
-            if(err?.code===1&&!geoPermissionWarningShown){
-              geoPermissionWarningShown=true;
-              toast('A conferência foi registrada, mas a localização GPS não foi autorizada neste dispositivo.','warn');
-            }
-            resolve(null);
+          pos=>{
+            const sample=geoSampleFromPosition(pos);
+            if(sample)addGeoSample(sample);
+            resolve(sample);
           },
-          {enableHighAccuracy:true,timeout:7000,maximumAge:5000}
+          err=>{handleGeoError(err);resolve(null)},
+          {enableHighAccuracy:true,timeout:7000,maximumAge:0}
         );
       });
     }
@@ -1047,10 +1100,18 @@
         return false;
       }
     }
+    function geoAccuracyLabel(acc){
+      const n=Number(acc);
+      if(!Number.isFinite(n)||n<=0)return '';
+      if(n<=10)return 'alta precisão';
+      if(n<=20)return 'precisão média';
+      return 'baixa precisão';
+    }
     function geoCoordinatesText(obj){
       if(!hasScanGeo(obj))return '';
       const lat=Number(obj.latitude),lon=Number(obj.longitude),acc=Number(obj.geo_accuracy_m??obj.accuracy??0);
-      return `${lat.toFixed(6)}, ${lon.toFixed(6)}${Number.isFinite(acc)&&acc>0?` • precisão ±${Math.round(acc)} m`:''}`;
+      const quality=geoAccuracyLabel(acc);
+      return `${lat.toFixed(6)}, ${lon.toFixed(6)}${Number.isFinite(acc)&&acc>0?` • precisão ±${Math.round(acc)} m${quality?` • ${quality}`:''}`:''}`;
     }
     function scanGeoHtml(obj){
       if(!hasScanGeo(obj))return '';
@@ -1164,9 +1225,12 @@
       const locationId=$('#locationSelect').value;if(!locationId){toast('Selecione o local da conferência antes de bipar.','warn');$('#locationSelect').focus();return}
       let parsed;try{parsed=parseQr(raw)}catch(e){renderResult({result:'invalid',message:e.message},null);return}
       try{
-        const geoPromise=configured?captureScanGeolocation():Promise.resolve(null);
+        const geoAtScan=configured?bestRecentGeolocation():null;
         $('#scannerState').textContent='Validando...';const registered=await registerScan(parsed,locationId);
-        if(configured&&registered?.result!=='duplicate')geoPromise.then(geo=>saveScanGeolocation(parsed,geo));
+        if(configured&&registered?.result!=='duplicate'){
+          if(geoAtScan)saveScanGeolocation(parsed,geoAtScan);
+          else captureFallbackGeolocation().then(geo=>saveScanGeolocation(parsed,geo));
+        }
         const result=await enrichScanResult(registered,parsed);renderResult(result,parsed);addRecent(result,parsed);$('#myScanCount').textContent=state.recent.length+' leituras';
         if(result.result==='ok')navigator.vibrate?.(80);else navigator.vibrate?.([100,60,100]);
         if(result.result==='ok'&&result.nf_complete)toast('NF conferida por completo.','ok');
@@ -1338,6 +1402,7 @@
       if(!window.Html5Qrcode){toast('Leitor de câmera não carregou. Use a entrada manual.','bad');return}
       unlockScanAudio();
       if(state.scannerRunning)return;
+      startGeoTracking();
       resetEnhancedCameraUi();
       $('#readerWrap').classList.remove('hidden');
       // IMPORTANTE: usa exatamente o decoder/configuração que já estava comprovadamente lendo os QRs.
@@ -1352,7 +1417,7 @@
         );
         state.scannerRunning=true;
         $('#startScanBtn').disabled=true;$('#stopScanBtn').disabled=false;
-        $('#scannerState').textContent='Câmera ativa • leitura otimizada';
+        $('#scannerState').textContent='Câmera ativa • leitura otimizada • GPS em segundo plano';
         // Recursos extras são aplicados depois da câmera abrir e não alteram o motor de decodificação.
         try{await setupEnhancedCamera()}catch(e){console.debug('Recursos extras da câmera indisponíveis.',e)}
         // Mantém o leitor principal intacto e adiciona um segundo caminho de software somente como fallback.
@@ -1360,12 +1425,13 @@
       }catch(e){
         console.error('Não foi possível iniciar a câmera.',e);
         try{await state.scanner?.clear()}catch{}
-        state.scanner=null;resetEnhancedCameraUi();$('#readerWrap').classList.add('hidden');
+        state.scanner=null;stopGeoTracking();resetEnhancedCameraUi();$('#readerWrap').classList.add('hidden');
         toast('Não foi possível abrir a câmera. Verifique a permissão da câmera no navegador.','bad');
       }
     }
     async function stopScanner(){
       stopReinforcedReader();
+      stopGeoTracking();
       if(enhancedCameraTrack&&enhancedCameraTorch){try{await applyTrackFeature('torch',false)}catch{}}
       if(state.scanner&&state.scannerRunning){try{await state.scanner.stop();await state.scanner.clear()}catch{}}
       state.scanner=null;state.scannerRunning=false;resetEnhancedCameraUi();$('#readerWrap').classList.add('hidden');$('#startScanBtn').disabled=false;$('#stopScanBtn').disabled=true;$('#scannerState').textContent='Câmera parada';
