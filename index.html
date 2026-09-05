@@ -168,7 +168,14 @@
     .scan-geo small{margin:0}
     .scan-geo-btn{min-height:30px!important;padding:5px 9px!important;border-radius:8px!important;font-size:10px!important;font-weight:900!important}
     .global-geo-box{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:3px}
-    .global-geo-box b{font-size:11px!important}
+    .gps-nav-card{width:min(520px,100%);text-align:center}
+    .gps-nav-arrow{width:126px;height:126px;margin:14px auto 8px;border-radius:999px;background:#eff6ff;border:1px solid #bfdbfe;display:grid;place-items:center;font-size:64px;line-height:1;transition:transform .25s ease;transform-origin:center}
+    .gps-nav-distance{font-size:38px;font-weight:1000;letter-spacing:-1px;margin-top:4px}
+    .gps-nav-direction{font-size:14px;font-weight:900;color:#1d4ed8;margin-top:3px}
+    .gps-nav-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;text-align:left}
+    .gps-nav-meta .mini{padding:10px}
+    .gps-nav-status{margin-top:12px;font-size:12px;color:#6b7280;line-height:1.45}
+    @media(max-width:520px){.gps-nav-arrow{width:110px;height:110px;font-size:56px}.gps-nav-distance{font-size:32px}.gps-nav-meta{grid-template-columns:1fr}}
     .report-fresh{font-size:12px;color:var(--warn);font-weight:800}.report-fresh.hidden{display:none!important}
     .toast-wrap{position:fixed;right:16px;bottom:16px;z-index:50;display:flex;flex-direction:column;gap:8px;max-width:min(420px,calc(100vw - 32px))}
     .toast{background:#111827;color:white;border-radius:13px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:13px}
@@ -697,6 +704,23 @@
       <button class="admin-only" data-page="settings"><span>⚙️</span>Admin</button>
     </nav>
   </div>
+  <div id="gpsNavigationModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="gpsNavigationTitle">
+    <div class="modal-card gps-nav-card">
+      <div class="modal-head">
+        <div><h2 id="gpsNavigationTitle">Navegação até o volume</h2><p class="subtitle" style="margin:3px 0 0">Guia por GPS até a posição registrada na conferência.</p></div>
+        <button id="gpsNavigationClose" class="modal-close" type="button" aria-label="Fechar">×</button>
+      </div>
+      <div id="gpsNavArrow" class="gps-nav-arrow">↑</div>
+      <div id="gpsNavDistance" class="gps-nav-distance">-- m</div>
+      <div id="gpsNavDirection" class="gps-nav-direction">Obtendo sua posição...</div>
+      <div class="gps-nav-meta">
+        <div class="mini"><span>Precisão atual</span><b id="gpsNavAccuracy">-</b></div>
+        <div class="mini"><span>Destino</span><b id="gpsNavArrival">Posição da conferência</b></div>
+      </div>
+      <div id="gpsNavStatus" class="gps-nav-status">Mantenha a localização do celular ativada. A distância é atualizada automaticamente enquanto você caminha.</div>
+    </div>
+  </div>
+
   <div id="userEditModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="userEditTitle">
     <div class="modal-card" style="width:min(620px,100%)"><div class="modal-head"><div><h2 id="userEditTitle">Editar usuário</h2><p id="userEditSubtitle" class="subtitle" style="margin:3px 0 0"></p></div><button id="userEditClose" class="modal-close" type="button" aria-label="Fechar">×</button></div>
       <form id="editUserForm">
@@ -1115,11 +1139,11 @@
     }
     function scanGeoHtml(obj){
       if(!hasScanGeo(obj))return '';
-      return `<div class="scan-geo"><small><b>GPS:</b> ${esc(geoCoordinatesText(obj))}</small><button class="btn ghost scan-geo-btn" type="button" data-geo-nav data-lat="${Number(obj.latitude)}" data-lon="${Number(obj.longitude)}">📍 Ir para localização</button></div>`;
+      return `<div class="scan-geo"><button class="btn ghost scan-geo-btn" type="button" data-geo-nav data-lat="${Number(obj.latitude)}" data-lon="${Number(obj.longitude)}">📍 Ir para localização</button></div>`;
     }
     function globalGeoHtml(obj){
       if(!hasScanGeo(obj))return '';
-      return `<div class="global-geo-box"><b>${esc(geoCoordinatesText(obj))}</b><button class="btn ghost scan-geo-btn" type="button" data-geo-nav data-lat="${Number(obj.latitude)}" data-lon="${Number(obj.longitude)}">📍 Ir para localização</button></div>`;
+      return `<div class="global-geo-box"><button class="btn ghost scan-geo-btn" type="button" data-geo-nav data-lat="${Number(obj.latitude)}" data-lon="${Number(obj.longitude)}">📍 Ir para localização</button></div>`;
     }
 
     async function registerScan(parsed,locationId){
@@ -2832,7 +2856,7 @@
             <div class="detail"><span>Última conferência</span><b>${esc(lastScan?fmtDateTime(lastScan):'-')}</b></div>
             <div class="detail"><span>Registros na base</span><b>${fmtNum(baseRows.length)}</b></div>
             <div class="detail"><span>Volumes conferidos</span><b>${fmtNum(confirmed)}</b></div>
-            ${latestGeo?`<div class="detail"><span>Última localização GPS</span>${globalGeoHtml(latestGeo)}</div>`:''}
+            ${latestGeo?`<div class="detail"><span>Localização da conferência</span>${globalGeoHtml(latestGeo)}</div>`:''}
           </div>
 
           ${(raw||technical)?`<details><summary>Ver todos os dados disponíveis</summary>${raw}${technical}</details>`:''}
@@ -3095,7 +3119,71 @@
     $('#loginForm').addEventListener('submit',async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('button[type="submit"]');if(btn?.disabled)return;const original=btn?.textContent||'Entrar';if(btn){btn.disabled=true;btn.textContent='Entrando...'}try{const ready=await loginSupabase($('#email').value.trim(),$('#password').value);if(ready)await enterApp()}catch(err){toast(err.message||'Falha no login.','bad');showLogin();return}finally{if(btn){btn.disabled=false;btn.textContent=original}}});
     $('#demoChecker').addEventListener('click',async()=>{loginDemo('conferente');await enterApp()});$('#demoAdmin').addEventListener('click',async()=>{loginDemo('admin');await enterApp()});$('#logoutBtn').addEventListener('click',logout);$('#branchChoiceLogout').addEventListener('click',logout);$('#branchChoiceList').addEventListener('click',e=>{const b=e.target.closest('[data-branch-id]');if(b)selectBranch(b.dataset.branchId).catch(err=>toast(err.message,'bad'))});$('#topBranchSelect').addEventListener('change',e=>selectBranch(e.target.value,{enter:false}).catch(err=>toast(err.message,'bad')));
     $$('[data-page]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.page)));
-    document.addEventListener('click',e=>{const b=e.target.closest('[data-geo-nav]');if(!b)return;const lat=Number(b.dataset.lat),lon=Number(b.dataset.lon);if(!Number.isFinite(lat)||!Number.isFinite(lon))return;const destination=encodeURIComponent(`${lat},${lon}`);window.open(`https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=walking`,'_blank','noopener,noreferrer')});
+    let gpsNavigationWatchId=null;
+    let gpsNavigationTarget=null;
+    function gpsToRad(v){return Number(v)*Math.PI/180}
+    function gpsToDeg(v){return Number(v)*180/Math.PI}
+    function gpsDistanceMeters(lat1,lon1,lat2,lon2){
+      const R=6371000,dLat=gpsToRad(lat2-lat1),dLon=gpsToRad(lon2-lon1);
+      const a=Math.sin(dLat/2)**2+Math.cos(gpsToRad(lat1))*Math.cos(gpsToRad(lat2))*Math.sin(dLon/2)**2;
+      return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+    }
+    function gpsBearing(lat1,lon1,lat2,lon2){
+      const p1=gpsToRad(lat1),p2=gpsToRad(lat2),dl=gpsToRad(lon2-lon1);
+      const y=Math.sin(dl)*Math.cos(p2);
+      const x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);
+      return (gpsToDeg(Math.atan2(y,x))+360)%360;
+    }
+    function gpsCardinal(b){
+      const dirs=['N','NE','L','SE','S','SO','O','NO'];
+      return dirs[Math.round(Number(b)/45)%8];
+    }
+    function closeGpsNavigation(){
+      if(gpsNavigationWatchId!==null&&navigator.geolocation){
+        try{navigator.geolocation.clearWatch(gpsNavigationWatchId)}catch{}
+      }
+      gpsNavigationWatchId=null;gpsNavigationTarget=null;
+      $('#gpsNavigationModal')?.classList.add('hidden');
+    }
+    function updateGpsNavigation(pos){
+      if(!gpsNavigationTarget||!pos?.coords)return;
+      const lat=Number(pos.coords.latitude),lon=Number(pos.coords.longitude);
+      const d=gpsDistanceMeters(lat,lon,gpsNavigationTarget.latitude,gpsNavigationTarget.longitude);
+      const bearing=gpsBearing(lat,lon,gpsNavigationTarget.latitude,gpsNavigationTarget.longitude);
+      const heading=Number(pos.coords.heading);
+      const hasHeading=Number.isFinite(heading)&&heading>=0;
+      const relative=hasHeading?(bearing-heading+360)%360:bearing;
+      const arrow=$('#gpsNavArrow');if(arrow)arrow.style.transform=`rotate(${relative}deg)`;
+      $('#gpsNavDistance').textContent=d<1000?`${Math.max(0,Math.round(d))} m`:`${(d/1000).toFixed(2).replace('.',',')} km`;
+      $('#gpsNavDirection').textContent=d<=5?'Você chegou à posição registrada':`Siga para ${gpsCardinal(bearing)} • ${Math.round(bearing)}°${hasHeading?'':' em relação ao norte'}`;
+      const acc=Number(pos.coords.accuracy||0);
+      $('#gpsNavAccuracy').textContent=Number.isFinite(acc)&&acc>0?`±${Math.round(acc)} m`:'-';
+      $('#gpsNavArrival').textContent=d<=5?'Muito próximo':'Posição da conferência';
+      $('#gpsNavStatus').textContent=d<=5?'Você está dentro de aproximadamente 5 metros da coordenada registrada.':'A distância é atualizada automaticamente enquanto você caminha. A precisão depende do GPS disponível dentro do armazém.';
+    }
+    function openGpsNavigation(lat,lon){
+      if(!navigator.geolocation){toast('Este dispositivo não disponibiliza geolocalização.','bad');return}
+      closeGpsNavigation();
+      gpsNavigationTarget={latitude:Number(lat),longitude:Number(lon)};
+      if(!hasScanGeo(gpsNavigationTarget)){toast('A localização registrada é inválida.','bad');return}
+      $('#gpsNavDistance').textContent='-- m';
+      $('#gpsNavDirection').textContent='Obtendo sua posição...';
+      $('#gpsNavAccuracy').textContent='-';
+      $('#gpsNavArrival').textContent='Posição da conferência';
+      $('#gpsNavArrow').style.transform='rotate(0deg)';
+      $('#gpsNavigationModal').classList.remove('hidden');
+      gpsNavigationWatchId=navigator.geolocation.watchPosition(
+        updateGpsNavigation,
+        err=>{
+          $('#gpsNavDirection').textContent='Não foi possível obter sua posição atual';
+          $('#gpsNavStatus').textContent=err?.code===1?'Autorize a localização no navegador para usar a navegação.':'Aguarde alguns instantes ou verifique o sinal de localização do aparelho.';
+        },
+        {enableHighAccuracy:true,maximumAge:0,timeout:15000}
+      );
+    }
+    document.addEventListener('click',e=>{const b=e.target.closest('[data-geo-nav]');if(!b)return;const lat=Number(b.dataset.lat),lon=Number(b.dataset.lon);if(!Number.isFinite(lat)||!Number.isFinite(lon))return;openGpsNavigation(lat,lon)});
+    $('#gpsNavigationClose').addEventListener('click',closeGpsNavigation);
+    $('#gpsNavigationModal').addEventListener('click',e=>{if(e.target.id==='gpsNavigationModal')closeGpsNavigation()});
     $('#openUsersAdminBtn').addEventListener('click',()=>navigate('users'));$('#adminInventorySelect').addEventListener('change',e=>{state.adminInventoryId=e.target.value||null;renderSettings()});$('#globalSearchBtn').addEventListener('click',runGlobalSearch);$('#globalSearchClearBtn').addEventListener('click',clearGlobalSearch);$('#globalSearchInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();runGlobalSearch()}});$('#addBranchBtn').addEventListener('click',addBranch);$('#addLocationBtn').addEventListener('click',addLocation);$('#branchesAdminList').addEventListener('click',e=>{const r=e.target.closest('.branch-rename');if(r)return renameBranch(r.dataset.id);const t=e.target.closest('.branch-toggle');if(t)return toggleBranch(t.dataset.id,t.dataset.active==='1')});$('#locationsList').addEventListener('click',e=>{const r=e.target.closest('.location-rename');if(r)return renameLocation(r.dataset.id);const d=e.target.closest('.location-disable');if(d)return disableLocation(d.dataset.id)});$('#refreshUsersBtn').addEventListener('click',loadUsers);$('#usersReloadBtn').addEventListener('click',loadUsers);$('#usersSearch').addEventListener('input',applyUsersFilters);$('#usersStatusFilter').addEventListener('change',applyUsersFilters);
     $('#createUserForm').addEventListener('submit',e=>{e.preventDefault();createManagedUser()});$('#newUserRole').addEventListener('change',()=>syncAllBranchesVisibility('new'));$('#editUserRole').addEventListener('change',()=>syncAllBranchesVisibility('edit'));$('#editUserForm').addEventListener('submit',e=>{e.preventDefault();saveManagedUser()});$('#deleteUserBtn').addEventListener('click',deleteManagedUser);$('#userEditClose').addEventListener('click',()=>$('#userEditModal').classList.add('hidden'));$('#userEditModal').addEventListener('click',e=>{if(e.target.id==='userEditModal')$('#userEditModal').classList.add('hidden')});$('#usersBody').addEventListener('click',e=>{const edit=e.target.closest('.user-edit-btn');if(edit)return openUserEdit(edit.dataset.userId);const tog=e.target.closest('.user-toggle-btn');if(tog&&!tog.disabled)toggleManagedUser(tog.dataset.userId,tog.dataset.userActive==='true')});
     $('#locationSelect').addEventListener('change',e=>localStorage.setItem('inventory_location_'+String(state.currentBranch?.id||'demo'),e.target.value));$('#scannerInventorySelect').addEventListener('change',e=>selectOpenInventory(e.target.value).catch(err=>toast(err.message,'bad')));$('#startScanBtn').addEventListener('click',startScanner);$('#stopScanBtn').addEventListener('click',stopScanner);
