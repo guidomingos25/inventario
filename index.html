@@ -462,6 +462,16 @@
     }
 
 
+    /* GPS da tela de conferência — atualização visual em tempo real */
+    .gps-live{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 11px;font-weight:900;font-size:12px;background:#f3f4f6;color:#4b5563;border:1px solid #e5e7eb;white-space:nowrap}
+    .gps-live::before{content:'';width:8px;height:8px;border-radius:50%;background:#9ca3af;box-shadow:0 0 0 3px rgba(156,163,175,.14)}
+    .gps-live.searching::before{background:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.16)}
+    .gps-live.good{background:#ecfdf3;color:#166534;border-color:#bbf7d0}.gps-live.good::before{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.16)}
+    .gps-live.medium{background:#fffbeb;color:#92400e;border-color:#fde68a}.gps-live.medium::before{background:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.16)}
+    .gps-live.low,.gps-live.error{background:#fef2f2;color:#991b1b;border-color:#fecaca}.gps-live.low::before,.gps-live.error::before{background:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.15)}
+    @media(max-width:520px){.gps-live{padding:5px 8px;font-size:10px}}
+
+
     /* ================================================================
        TEMA ESCURO — SOMENTE CAMADA VISUAL
        Ativado por data-theme="dark" no elemento <html>.
@@ -575,6 +585,10 @@
     html[data-theme="dark"] .pill.type-general{background:#3d2a1b;color:#ffb46f}
     html[data-theme="dark"] .pill.type-rotating{background:#3b3417;color:#f3d66b}
     html[data-theme="dark"] .pill.type-occurrence{background:#303030;color:#d4d4d4}
+    html[data-theme="dark"] .gps-live{background:#303030;color:#d5d5d5;border-color:#494949}
+    html[data-theme="dark"] .gps-live.good{background:#183322;color:#9ae6b4;border-color:#2e5b3d}
+    html[data-theme="dark"] .gps-live.medium{background:#3a2d16;color:#f6cb77;border-color:#675025}
+    html[data-theme="dark"] .gps-live.low,html[data-theme="dark"] .gps-live.error{background:#3a1d1d;color:#ffaaaa;border-color:#673232}
 
     html[data-theme="dark"] .notice.info{background:#33251a;color:#ffbd82;border-color:#5d422e}
     html[data-theme="dark"] .notice.warn{background:#3a2d16;color:#f6cb77;border-color:#675025}
@@ -733,6 +747,7 @@
               <span id="scannerInventoryStatus" class="pill">-</span>
               <select id="scannerInventorySelect" class="inventory-switch hidden" title="Inventário para conferência"></select>
               <span class="connection"><span id="connectionDot" class="connection-dot"></span><span id="connectionText">Online</span></span>
+              <span id="scannerGpsLive" class="gps-live searching" title="Precisão atual da localização usada nas leituras">GPS: buscando...</span>
             </div>
             <div class="location-card">
               <label for="locationSelect">Local da conferência</label>
@@ -1274,7 +1289,7 @@
       const branch=state.branches.find(b=>String(b.id)===String(branchId));if(!branch)throw new Error('Filial não permitida para este usuário.');
       await stopScanner();state.currentBranch=branch;state.inventory=null;state.openInventories=[];state.locations=[];state.reportBranchId=branch.id;state.reportInventoryId=null;state.reportInventories=[];state.reportRows=[];state.reportFiltered=[];state.recent=[];
       renderTopBranchSelect();
-      if(enter){$('#branchSelectView').classList.add('hidden');await enterApp()}else{await loadLocations();await loadActiveInventory();await refreshDashboard();renderSettings();if(state.profile?.role==='admin')await refreshReportContext({branchId:branch.id,resetFilters:true,keepInventory:false})}
+      if(enter){$('#branchSelectView').classList.add('hidden');await enterApp()}else{await loadLocations();await loadActiveInventory();await refreshDashboard();renderSettings();if(state.profile?.role==='admin')await refreshReportContext({branchId:branch.id,resetFilters:true,keepInventory:false});if($('#page-scanner')?.classList.contains('active'))startGeoTracking()}
     }
     async function prepareBranchAccess(){
       const branches=await loadUserBranches();
@@ -1335,7 +1350,7 @@
     async function selectOpenInventory(id){
       const inv=state.openInventories.find(i=>String(i.id)===String(id));if(!inv)return;
       localStorage.setItem('active_inventory_'+String(state.currentBranch?.id||''),String(inv.id));state.recent=[];$('#recentList').innerHTML='<div class="empty card">Nenhuma leitura nesta sessão.</div>';$('#myScanCount').textContent='0 leituras';
-      await stopScanner();await loadActiveInventory();await refreshDashboard();renderSettings();
+      await stopScanner(true);await loadActiveInventory();await refreshDashboard();renderSettings();startGeoTracking();
     }
 
     let geoPermissionWarningShown=false;
@@ -1360,12 +1375,27 @@
       };
       return hasScanGeo(sample)?sample:null;
     }
+    function updateScannerGpsLive(sample,status){
+      const el=$('#scannerGpsLive');if(!el)return;
+      el.className='gps-live';
+      if(status==='unsupported'){el.classList.add('error');el.textContent='GPS indisponível';return}
+      if(status==='denied'){el.classList.add('error');el.textContent='GPS sem permissão';return}
+      if(status==='off'){el.textContent='GPS inativo';return}
+      if(!sample){el.classList.add('searching');el.textContent='GPS: buscando...';return}
+      const acc=Number(sample.accuracy||0);
+      if(Number.isFinite(acc)&&acc>0){
+        if(acc<=10)el.classList.add('good');else if(acc<=20)el.classList.add('medium');else el.classList.add('low');
+        el.textContent=`GPS ±${Math.round(acc)} m`;
+        el.title=`Localização ativa • ${geoAccuracyLabel(acc) || 'precisão disponível'} • atualização ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
+      }else{el.classList.add('searching');el.textContent='GPS ativo'}
+    }
     function addGeoSample(sample){
       if(!sample)return;
       const cutoff=Date.now()-GEO_SAMPLE_WINDOW_MS;
       geoSamples=geoSamples.filter(x=>Number(x.captured_at||0)>=cutoff);
       geoSamples.push(sample);
       if(geoSamples.length>GEO_MAX_SAMPLES)geoSamples=geoSamples.slice(-GEO_MAX_SAMPLES);
+      updateScannerGpsLive(sample);
     }
     function bestRecentGeolocation(){
       const cutoff=Date.now()-GEO_SAMPLE_WINDOW_MS;
@@ -1379,14 +1409,20 @@
       })[0];
     }
     function handleGeoError(err){
-      if(err?.code===1&&!geoPermissionWarningShown){
-        geoPermissionWarningShown=true;
-        toast('A câmera continuará funcionando, mas a localização GPS não foi autorizada neste dispositivo.','warn');
-      }
+      if(err?.code===1){
+        updateScannerGpsLive(null,'denied');
+        if(!geoPermissionWarningShown){
+          geoPermissionWarningShown=true;
+          toast('A conferência continuará funcionando, mas a localização GPS não foi autorizada neste dispositivo.','warn');
+        }
+      }else if(err?.code===2){updateScannerGpsLive(null,'unsupported')}
+      else updateScannerGpsLive(null);
     }
     function startGeoTracking(){
-      if(!configured||geoWatchId!==null||!navigator.geolocation)return;
-      geoSamples=[];
+      if(!configured)return;
+      if(!navigator.geolocation){updateScannerGpsLive(null,'unsupported');return}
+      if(geoWatchId!==null){const best=bestRecentGeolocation();updateScannerGpsLive(best);return}
+      geoSamples=[];updateScannerGpsLive(null);
       try{
         geoWatchId=navigator.geolocation.watchPosition(
           pos=>addGeoSample(geoSampleFromPosition(pos)),
@@ -1395,7 +1431,7 @@
         );
       }catch(e){
         console.warn('Não foi possível iniciar o GPS contínuo:',e);
-        geoWatchId=null;
+        geoWatchId=null;updateScannerGpsLive(null,'unsupported');
       }
     }
     function stopGeoTracking(){
@@ -1404,6 +1440,7 @@
       }
       geoWatchId=null;
       geoSamples=[];
+      updateScannerGpsLive(null,'off');
     }
     function captureFallbackGeolocation(){
       return new Promise(resolve=>{
@@ -1768,13 +1805,13 @@
       }catch(e){
         console.error('Não foi possível iniciar a câmera.',e);
         try{await state.scanner?.clear()}catch{}
-        state.scanner=null;stopGeoTracking();resetEnhancedCameraUi();$('#readerWrap').classList.add('hidden');
+        state.scanner=null;resetEnhancedCameraUi();$('#readerWrap').classList.add('hidden');
         toast('Não foi possível abrir a câmera. Verifique a permissão da câmera no navegador.','bad');
       }
     }
-    async function stopScanner(){
+    async function stopScanner(keepGeo=false){
       stopReinforcedReader();
-      stopGeoTracking();
+      if(!keepGeo)stopGeoTracking();
       if(enhancedCameraTrack&&enhancedCameraTorch){try{await applyTrackFeature('torch',false)}catch{}}
       if(state.scanner&&state.scannerRunning){try{await state.scanner.stop();await state.scanner.clear()}catch{}}
       state.scanner=null;state.scannerRunning=false;resetEnhancedCameraUi();$('#readerWrap').classList.add('hidden');$('#startScanBtn').disabled=false;$('#stopScanBtn').disabled=true;$('#scannerState').textContent='Câmera parada';
@@ -3468,7 +3505,7 @@
       XLSX.writeFile(wb,`produtividade_${$('#productivityStartDate').value}_${$('#productivityEndDate').value}.xlsx`);
     }
 
-    function navigate(page){if((page==='productivity'||page==='report'||page==='admin'||page==='settings'||page==='users')&&state.profile?.role!=='admin')page='scanner';$$('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+page));$$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));if(page!=='scanner')stopScanner();if(page==='dashboard')refreshDashboard();if(page==='productivity')openProductivityPage();if(page==='report'){ensureReportReadyForExport().catch(e=>toast(e.message,'bad'))}if(page==='global-search'){$('#globalSearchScope').textContent=globalScopeText()}if(page==='settings')renderSettings();if(page==='users')loadUsers()}
+    function navigate(page){if((page==='productivity'||page==='report'||page==='admin'||page==='settings'||page==='users')&&state.profile?.role!=='admin')page='scanner';$$('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+page));$$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));if(page!=='scanner')stopScanner();else startGeoTracking();if(page==='dashboard')refreshDashboard();if(page==='productivity')openProductivityPage();if(page==='report'){ensureReportReadyForExport().catch(e=>toast(e.message,'bad'))}if(page==='global-search'){$('#globalSearchScope').textContent=globalScopeText()}if(page==='settings')renderSettings();if(page==='users')loadUsers()}
 
     $('#loginForm').addEventListener('submit',async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('button[type="submit"]');if(btn?.disabled)return;const original=btn?.textContent||'Entrar';if(btn){btn.disabled=true;btn.textContent='Entrando...'}try{const ready=await loginSupabase($('#email').value.trim(),$('#password').value);if(ready)await enterApp()}catch(err){toast(err.message||'Falha no login.','bad');showLogin();return}finally{if(btn){btn.disabled=false;btn.textContent=original}}});
     $('#demoChecker').addEventListener('click',async()=>{loginDemo('conferente');await enterApp()});$('#demoAdmin').addEventListener('click',async()=>{loginDemo('admin');await enterApp()});$('#logoutBtn').addEventListener('click',logout);$('#branchChoiceLogout').addEventListener('click',logout);$('#branchChoiceList').addEventListener('click',e=>{const b=e.target.closest('[data-branch-id]');if(b)selectBranch(b.dataset.branchId).catch(err=>toast(err.message,'bad'))});$('#topBranchSelect').addEventListener('change',e=>selectBranch(e.target.value,{enter:false}).catch(err=>toast(err.message,'bad')));
@@ -3489,7 +3526,7 @@
     });
     $('#openUsersAdminBtn').addEventListener('click',()=>navigate('users'));$('#adminInventorySelect').addEventListener('change',e=>{state.adminInventoryId=e.target.value||null;renderSettings()});$('#globalSearchBtn').addEventListener('click',runGlobalSearch);$('#globalSearchClearBtn').addEventListener('click',clearGlobalSearch);$('#globalSearchInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();runGlobalSearch()}});$('#addBranchBtn').addEventListener('click',addBranch);$('#addLocationBtn').addEventListener('click',addLocation);$('#branchesAdminList').addEventListener('click',e=>{const r=e.target.closest('.branch-rename');if(r)return renameBranch(r.dataset.id);const t=e.target.closest('.branch-toggle');if(t)return toggleBranch(t.dataset.id,t.dataset.active==='1')});$('#locationsList').addEventListener('click',e=>{const r=e.target.closest('.location-rename');if(r)return renameLocation(r.dataset.id);const d=e.target.closest('.location-disable');if(d)return disableLocation(d.dataset.id)});$('#refreshUsersBtn').addEventListener('click',loadUsers);$('#usersReloadBtn').addEventListener('click',loadUsers);$('#usersSearch').addEventListener('input',applyUsersFilters);$('#usersStatusFilter').addEventListener('change',applyUsersFilters);
     $('#createUserForm').addEventListener('submit',e=>{e.preventDefault();createManagedUser()});$('#newUserRole').addEventListener('change',()=>syncAllBranchesVisibility('new'));$('#editUserRole').addEventListener('change',()=>syncAllBranchesVisibility('edit'));$('#editUserForm').addEventListener('submit',e=>{e.preventDefault();saveManagedUser()});$('#deleteUserBtn').addEventListener('click',deleteManagedUser);$('#userEditClose').addEventListener('click',()=>$('#userEditModal').classList.add('hidden'));$('#userEditModal').addEventListener('click',e=>{if(e.target.id==='userEditModal')$('#userEditModal').classList.add('hidden')});$('#usersBody').addEventListener('click',e=>{const edit=e.target.closest('.user-edit-btn');if(edit)return openUserEdit(edit.dataset.userId);const tog=e.target.closest('.user-toggle-btn');if(tog&&!tog.disabled)toggleManagedUser(tog.dataset.userId,tog.dataset.userActive==='true')});
-    $('#locationSelect').addEventListener('change',e=>localStorage.setItem('inventory_location_'+String(state.currentBranch?.id||'demo'),e.target.value));$('#scannerInventorySelect').addEventListener('change',e=>selectOpenInventory(e.target.value).catch(err=>toast(err.message,'bad')));$('#startScanBtn').addEventListener('click',startScanner);$('#stopScanBtn').addEventListener('click',stopScanner);
+    $('#locationSelect').addEventListener('change',e=>localStorage.setItem('inventory_location_'+String(state.currentBranch?.id||'demo'),e.target.value));$('#scannerInventorySelect').addEventListener('change',e=>selectOpenInventory(e.target.value).catch(err=>toast(err.message,'bad')));$('#startScanBtn').addEventListener('click',startScanner);$('#stopScanBtn').addEventListener('click',()=>stopScanner(true));
     $('#cameraZoomOut').addEventListener('click',()=>changeCameraZoom(-1));$('#cameraZoomIn').addEventListener('click',()=>changeCameraZoom(1));$('#cameraTorchBtn').addEventListener('click',toggleCameraTorch);
     $('#scanResult').addEventListener('click',e=>{if(e.target.closest('.scan-result-close'))$('#scanResult').classList.add('hidden')});
     $('#manualSubmit').addEventListener('click',()=>{unlockScanAudio();const v=$('#manualCode').value.trim();if(v){processCode(v);$('#manualCode').value=''}});$('#manualCode').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#manualSubmit').click()}});
