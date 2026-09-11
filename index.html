@@ -376,21 +376,45 @@
     }
     html,body,.app,.main{background:#fff}
     body{color:var(--ink)}
-    .topbar{background:#fff;color:#4b4b4b;border-bottom:1px solid #ececec;box-shadow:0 3px 16px rgba(63,63,63,.08)}
-    .brand{gap:9px}
-    .brand-header-logo{display:block;width:auto;height:34px;max-width:128px;object-fit:contain;flex:0 0 auto}
-    .brand-title{color:#4b4b4b;font-weight:900}
-    .mode-badge,.user-badge{background:#f3f3f3;color:#555}
-    .mode-badge.local{background:#fff0e2;color:#a64b00}
-    .icon-btn{background:#f2f2f2;color:#555;border:1px solid #e5e5e5}
-    .icon-btn:hover{background:#fff0e2;color:#c45b00;border-color:#ffd1a8}
-    .sidebar{background:#fff}
-    .navbtn:hover,.navbtn.active{background:#fff3e8;color:#d85f00}
-    .btn.primary{background:#ef6c00;color:#fff}
+
+    /* Cabeçalho corporativo: presença visual do laranja sem escurecer as páginas. */
+    .topbar{
+      background:linear-gradient(105deg,#f57c00 0%,#ef6c00 58%,#df5f00 100%);
+      color:#fff;
+      border-bottom:1px solid #cf5600;
+      box-shadow:0 5px 18px rgba(196,91,0,.22)
+    }
+    .brand{gap:10px}
+    .brand-header-logo{
+      display:block;width:auto;height:34px;max-width:128px;object-fit:contain;flex:0 0 auto;
+      background:#fff;border-radius:9px;padding:4px 8px;box-shadow:0 2px 8px rgba(99,45,0,.15)
+    }
+    .brand-title{color:#fff;font-weight:900;text-shadow:0 1px 1px rgba(108,42,0,.18)}
+    .mode-badge,.user-badge{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.28)}
+    .mode-badge.local{background:rgba(255,255,255,.24);color:#fff}
+    .branch-top-select{background:#c95400;color:#fff;border-color:rgba(255,255,255,.45)}
+    .branch-top-select:focus{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.22)}
+    .icon-btn{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.30)}
+    .icon-btn:hover{background:#fff;color:#d85f00;border-color:#fff}
+
+    /* Navegação: branco continua predominante, com seleção laranja mais clara. */
+    .sidebar{background:#fff;border-right-color:#f2d7c0}
+    .navbtn{position:relative}
+    .navbtn:hover,.navbtn.active{background:#fff1e4;color:#d85f00}
+    .navbtn.active{box-shadow:inset 4px 0 0 #ef6c00}
+
+    .btn.primary{background:#ef6c00;color:#fff;box-shadow:0 3px 9px rgba(239,108,0,.16)}
     .btn.primary:hover{background:#d85f00}
     input:focus,select:focus{border-color:#f28a2e;box-shadow:0 0 0 3px #ffe8d2}
-    .login-shell{background:linear-gradient(180deg,#ffffff 0%,#fffaf5 100%)}
-    .login-card{border:1px solid #ececec;box-shadow:0 24px 70px rgba(63,63,63,.13)}
+
+    /* Pontos de apoio laranja nas áreas de dados, sem comprometer a leitura. */
+    .grid.kpis>.card,.report-kpi{border-top:3px solid #f28a2e}
+    th{background:#fff8f2}
+    .location-card{background:linear-gradient(105deg,#ef6c00,#d85f00);color:#fff;box-shadow:0 6px 16px rgba(196,91,0,.14)}
+    .location-card label{color:#fff4ea}
+
+    .login-shell{background:linear-gradient(150deg,#ffffff 0%,#fff8f1 58%,#ffead6 100%)}
+    .login-card{border:1px solid #f1ddcb;box-shadow:0 24px 70px rgba(112,55,9,.14)}
     .login-brand-logo{height:78px;display:flex;align-items:center;margin:0 0 14px;overflow:hidden}
     .login-brand-logo img{display:block;width:auto;height:70px;max-width:100%;object-fit:contain}
     .notice.info{background:#fff6ed;color:#995000;border-color:#ffd6b2}
@@ -398,8 +422,6 @@
     .pill.type-rotating{background:#fff9db;color:#8a5a00}
     .pill.type-occurrence{background:#f3f3f3;color:#595959}
     .progress>span{background:#ef6c00}
-    .location-card{background:#4b4b4b;color:#fff}
-    .location-card label{color:#ececec}
     .multi-filter[open]>summary{border-color:#f28a2e;box-shadow:0 0 0 3px #ffe8d2}
     .multi-filter-option input{accent-color:#ef6c00}
     .report-table th[data-sort][data-sort-dir="asc"]::after,
@@ -413,7 +435,7 @@
     .global-volume-locations>summary{color:#d85f00}
     .branch-choice-btn:hover{background:#fff5eb;border-color:#f7b477;color:#d85f00}
     .security-box{border-color:#ffd6b2;background:#fff6ed;color:#874300}
-    .mobile-nav button.active{color:#d85f00;background:#fff3e8}
+    .mobile-nav button.active{color:#d85f00;background:#fff0e2;box-shadow:inset 0 3px 0 #ef6c00}
     .global-branch-badge{background:#fff1e3;color:#a64b00}
     .occurrence-match-box{border-color:#ffd6b2;background:#fffaf5}
     .occurrence-match-title{color:#c45b00}
