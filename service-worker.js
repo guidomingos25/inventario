@@ -1,7 +1,7 @@
 /* Inventário DV — Service Worker
    Estratégia conservadora para não interferir no Supabase nem nas regras da aplicação.
 */
-const CACHE_NAME='inventario-dv-shell-v4';
+const CACHE_NAME='inventario-dv-shell-v5';
 const APP_SHELL=[
   './',
   './index.html',
