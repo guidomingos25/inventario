@@ -233,9 +233,18 @@
       .scan-actions{grid-template-columns:1fr}.manual-box{grid-template-columns:1fr}.detail-grid{grid-template-columns:1fr 1fr}.result-card{padding:14px}.login-card{padding:20px}.demo-actions{grid-template-columns:1fr}
       .import-stats{grid-template-columns:1fr}.topbar .brand-badge{width:32px;height:32px}.topbar{min-height:58px}.branch-top-select{max-width:125px;min-width:105px;font-size:10px}.user-badge{display:none}.branch-check-list{grid-template-columns:1fr}.layout{min-height:calc(100vh - 58px)}.report-toolbar{grid-template-columns:1fr}.report-kpis{grid-template-columns:1fr 1fr!important}.productivity-toolbar{grid-template-columns:1fr 1fr}.productivity-kpis{grid-template-columns:1fr 1fr!important}.productivity-breakdown{grid-template-columns:1fr}.productivity-detail-grid{grid-template-columns:1fr 1fr}#page-productivity .productivity-detail-grid .mini{padding:10px 9px}#page-productivity .productivity-detail-grid .mini span{font-size:8.5px;line-height:1.25;letter-spacing:0;white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:none}#page-productivity .productivity-detail-grid .mini b{font-size:20px}.report-actions .btn{flex:1 1 100%}.users-toolbar{grid-template-columns:1fr}.user-actions{flex-direction:column}.user-actions .btn{width:100%}
       #page-scanner .scanner-shell{max-width:560px}
-      #page-scanner .inventory-strip{gap:6px;margin-bottom:7px}
-      #page-scanner .inventory-strip .pill{padding:5px 8px;font-size:10px}
-      #page-scanner .inventory-switch{max-width:100%;min-width:150px;height:30px;min-height:30px;font-size:10px;padding:4px 25px 4px 8px}
+      /* Barra de status da conferência em uma única linha no celular.
+         O nome do inventário é o único item que pode encolher e recebe reticências. */
+      #page-scanner .inventory-strip{display:flex;flex-wrap:nowrap;align-items:center;gap:4px;margin-bottom:7px;width:100%;max-width:100%;overflow:hidden}
+      #page-scanner .inventory-strip .pill{padding:5px 7px;font-size:9px;line-height:1.1;white-space:nowrap;flex:0 0 auto}
+      #page-scanner #scannerInventoryName{flex:1 1 auto;min-width:0;max-width:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      #page-scanner #scannerInventoryType,#page-scanner #scannerInventoryStatus,#page-scanner #scannerGpsLive,#page-scanner .connection{flex:0 0 auto;white-space:nowrap}
+      #page-scanner .connection{gap:0;font-size:0;min-width:9px}
+      #page-scanner .connection-dot{width:9px;height:9px;flex:0 0 9px}
+      #page-scanner .gps-live{padding:5px 7px;font-size:9px;gap:5px}
+      #page-scanner .gps-live::before{width:7px;height:7px;flex:0 0 7px}
+      #page-scanner .inventory-switch{flex:1 1 95px;min-width:0;max-width:115px;height:30px;min-height:30px;font-size:9px;padding:4px 22px 4px 7px}
+      #page-scanner .inventory-strip:has(#scannerInventorySelect:not(.hidden)) #scannerInventoryName{display:none}
       #page-scanner .location-card{padding:8px 10px;margin-bottom:7px;border-radius:12px}
       #page-scanner .location-card label{font-size:10px;margin-bottom:4px}
       #page-scanner .location-card select{min-height:38px;padding:6px 9px;font-size:14px;border-radius:9px}
@@ -469,7 +478,7 @@
     .gps-live.good{background:#ecfdf3;color:#166534;border-color:#bbf7d0}.gps-live.good::before{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.16)}
     .gps-live.medium{background:#fffbeb;color:#92400e;border-color:#fde68a}.gps-live.medium::before{background:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.16)}
     .gps-live.low,.gps-live.error{background:#fef2f2;color:#991b1b;border-color:#fecaca}.gps-live.low::before,.gps-live.error::before{background:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.15)}
-    @media(max-width:520px){.gps-live{padding:5px 8px;font-size:10px}}
+    @media(max-width:520px){.gps-live{padding:5px 7px;font-size:9px}}
 
 
     /* ================================================================
