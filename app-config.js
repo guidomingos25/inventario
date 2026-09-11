@@ -3,5 +3,5 @@
 window.APP_CONFIG = {
   supabaseUrl: "https://drbopogewyndmzivqnrx.supabase.co",
   supabaseAnonKey: "sb_publishable_o97Gvqaij9cJWzL0-q8XIQ_niigc-Sw",
-  appName: "Inventário QR"
+  appName: "Inventário DV"
 };

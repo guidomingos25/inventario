@@ -3,8 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#111827">
-  <title>Inventário QR</title>
+  <meta name="theme-color" content="#ef6c00">
+  <meta name="application-name" content="Inventário DV">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Inventário DV">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+  <title>Inventário DV</title>
   <!-- Versão teste: conferência compacta + volumes faltantes -->
   <style>
     :root{
@@ -347,14 +354,100 @@
       #page-productivity .productivity-detail-grid .mini b{font-size:19px}
     }
 
+  
+
+    /* ================================================================
+       IDENTIDADE VISUAL — INVENTÁRIO DV / DELLA VOLPE
+       Camada somente visual: não altera regras, cálculos ou integrações.
+       ================================================================ */
+    :root{
+      --bg:#ffffff;
+      --panel:#ffffff;
+      --ink:#3f3f3f;
+      --muted:#737373;
+      --line:#e8e8e8;
+      --nav:#ffffff;
+      --nav2:#f7f7f7;
+      --accent:#ef6c00;
+      --accent2:#d85f00;
+      --info:#a64b00;
+      --infobg:#fff6ed;
+      --shadow:0 10px 30px rgba(63,63,63,.08);
+    }
+    html,body,.app,.main{background:#fff}
+    body{color:var(--ink)}
+    .topbar{background:#fff;color:#4b4b4b;border-bottom:1px solid #ececec;box-shadow:0 3px 16px rgba(63,63,63,.08)}
+    .brand{gap:9px}
+    .brand-header-logo{display:block;width:auto;height:34px;max-width:128px;object-fit:contain;flex:0 0 auto}
+    .brand-title{color:#4b4b4b;font-weight:900}
+    .mode-badge,.user-badge{background:#f3f3f3;color:#555}
+    .mode-badge.local{background:#fff0e2;color:#a64b00}
+    .icon-btn{background:#f2f2f2;color:#555;border:1px solid #e5e5e5}
+    .icon-btn:hover{background:#fff0e2;color:#c45b00;border-color:#ffd1a8}
+    .sidebar{background:#fff}
+    .navbtn:hover,.navbtn.active{background:#fff3e8;color:#d85f00}
+    .btn.primary{background:#ef6c00;color:#fff}
+    .btn.primary:hover{background:#d85f00}
+    input:focus,select:focus{border-color:#f28a2e;box-shadow:0 0 0 3px #ffe8d2}
+    .login-shell{background:linear-gradient(180deg,#ffffff 0%,#fffaf5 100%)}
+    .login-card{border:1px solid #ececec;box-shadow:0 24px 70px rgba(63,63,63,.13)}
+    .login-brand-logo{height:78px;display:flex;align-items:center;margin:0 0 14px;overflow:hidden}
+    .login-brand-logo img{display:block;width:auto;height:70px;max-width:100%;object-fit:contain}
+    .notice.info{background:#fff6ed;color:#995000;border-color:#ffd6b2}
+    .pill.type-general{background:#fff1e3;color:#b45309}
+    .pill.type-rotating{background:#fff9db;color:#8a5a00}
+    .pill.type-occurrence{background:#f3f3f3;color:#595959}
+    .progress>span{background:#ef6c00}
+    .location-card{background:#4b4b4b;color:#fff}
+    .location-card label{color:#ececec}
+    .multi-filter[open]>summary{border-color:#f28a2e;box-shadow:0 0 0 3px #ffe8d2}
+    .multi-filter-option input{accent-color:#ef6c00}
+    .report-table th[data-sort][data-sort-dir="asc"]::after,
+    .report-table th[data-sort][data-sort-dir="desc"]::after{color:#ef6c00}
+    .productivity-hour-bar{background:#ef6c00}
+    .productivity-table th[data-prod-sort][data-sort-dir="asc"]::after,
+    .productivity-table th[data-prod-sort][data-sort-dir="desc"]::after{color:#ef6c00}
+    .productivity-selected-note{color:#d85f00}
+    .pdf-org-option:hover{background:#fff5eb;border-color:#f7b477}
+    .pdf-org-icon{background:#fff1e3;color:#d85f00}
+    .global-volume-locations>summary{color:#d85f00}
+    .branch-choice-btn:hover{background:#fff5eb;border-color:#f7b477;color:#d85f00}
+    .security-box{border-color:#ffd6b2;background:#fff6ed;color:#874300}
+    .mobile-nav button.active{color:#d85f00;background:#fff3e8}
+    .global-branch-badge{background:#fff1e3;color:#a64b00}
+    .occurrence-match-box{border-color:#ffd6b2;background:#fffaf5}
+    .occurrence-match-title{color:#c45b00}
+    .occurrence-match{border-color:#ffe3ca}
+    .history-confirmation.occurrence-history{border-top-color:#ffd6b2;background:rgba(255,246,237,.64)}
+    .history-type-badge{background:#fff1e3;color:#a64b00}
+    .global-inventory-detail.occurrence{border-color:#ffd6b2;background:#fffdfa}
+    .pwa-install-btn{width:100%;margin:-8px 0 14px;background:#fff3e8;color:#c45b00;border:1px solid #ffd2aa}
+    .pwa-install-btn:hover{background:#ffe8d2}
+    .pwa-install-top{min-height:36px;border:1px solid #ffd2aa;border-radius:999px;background:#fff3e8;color:#c45b00;padding:6px 10px;font-size:12px;font-weight:900;display:flex;align-items:center;gap:5px;white-space:nowrap}
+    .pwa-install-top:hover{background:#ffe8d2}
+    .pwa-install-top.hidden,.pwa-install-btn.hidden{display:none!important}
+    @media(max-width:900px){
+      .brand-header-logo{height:30px;max-width:105px}
+    }
+    @media(max-width:520px){
+      .brand{gap:5px}
+      .brand-header-logo{height:27px;max-width:78px}
+      .brand-title{font-size:12px;max-width:72px}
+      .pwa-install-top{width:36px;height:36px;min-height:36px;padding:0;justify-content:center;border-radius:10px}
+      .pwa-install-top span{display:none}
+      .login-brand-logo{height:67px;margin-bottom:10px}
+      .login-brand-logo img{height:60px}
+    }
+
   </style>
 </head>
 <body>
   <div id="loginView" class="login-shell">
     <div class="login-card">
-      <div class="login-logo">QR</div>
-      <h1>Inventário QR</h1>
+      <div class="login-brand-logo"><img src="assets/logo-della-volpe.png" alt="Della Volpe"></div>
+      <h1>Inventário DV</h1>
       <p class="subtitle">Conferência de volumes por etiqueta e localização.</p>
+      <button id="installAppLoginBtn" class="btn pwa-install-btn hidden" type="button" aria-label="Instalar Inventário DV">⬇ Instalar aplicativo</button>
       <form id="loginForm">
         <div class="field"><label for="email">Usuário / e-mail</label><input id="email" autocomplete="username" placeholder="conferente01@empresa.local"></div>
         <div class="field"><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" placeholder="••••••••"></div>
@@ -379,11 +472,12 @@
 
   <div id="appView" class="app hidden">
     <header class="topbar">
-      <div class="brand"><div class="brand-badge">QR</div><div class="brand-title">Inventário QR</div></div>
+      <div class="brand"><img class="brand-header-logo" src="assets/logo-della-volpe.png" alt="Della Volpe"><div class="brand-title">Inventário DV</div></div>
       <div class="top-spacer"></div>
       <div id="modeBadge" class="mode-badge"></div>
       <div id="userBadge" class="user-badge"></div>
       <select id="topBranchSelect" class="branch-top-select hidden" title="Filial atual"></select>
+      <button id="installAppTopBtn" class="pwa-install-top hidden" type="button" title="Instalar aplicativo" aria-label="Instalar Inventário DV">⬇<span>Instalar</span></button>
       <button id="logoutBtn" class="icon-btn" title="Sair">↪</button>
     </header>
     <div class="layout">
@@ -3203,6 +3297,51 @@
 
     async function init(){setModeUi();if(configured){try{const {data,error}=await db.auth.getSession();if(error)throw error;if(data.session){state.user=data.session.user;const p=await loadCurrentProfile(state.user.id);if(p?.active){state.profile=p;const ready=await prepareBranchAccess();if(ready)await enterApp();return}if(p&&!p.active)await db.auth.signOut({scope:'local'})}}catch(e){console.warn('Não foi possível restaurar a sessão automaticamente:',e);toast(e.message||'Não foi possível restaurar a sessão.','warn')}}showLogin()}
     init();
+  })();
+  </script>
+
+  <script>
+  (()=>{
+    'use strict';
+    let deferredInstallPrompt=null;
+    const installButtons=()=>[document.getElementById('installAppLoginBtn'),document.getElementById('installAppTopBtn')].filter(Boolean);
+    const setInstallVisible=visible=>installButtons().forEach(btn=>btn.classList.toggle('hidden',!visible));
+
+    window.addEventListener('beforeinstallprompt',event=>{
+      event.preventDefault();
+      deferredInstallPrompt=event;
+      setInstallVisible(true);
+    });
+
+    async function requestInstall(){
+      if(!deferredInstallPrompt)return;
+      const promptEvent=deferredInstallPrompt;
+      deferredInstallPrompt=null;
+      setInstallVisible(false);
+      try{
+        await promptEvent.prompt();
+        await promptEvent.userChoice;
+      }catch(err){
+        console.warn('Não foi possível abrir a instalação da PWA:',err);
+      }
+    }
+
+    document.addEventListener('click',event=>{
+      if(event.target.closest('#installAppLoginBtn,#installAppTopBtn'))requestInstall();
+    });
+
+    window.addEventListener('appinstalled',()=>{
+      deferredInstallPrompt=null;
+      setInstallVisible(false);
+    });
+
+    if('serviceWorker' in navigator){
+      window.addEventListener('load',()=>{
+        navigator.serviceWorker.register('./service-worker.js',{scope:'./'}).catch(err=>{
+          console.warn('Service Worker não registrado:',err);
+        });
+      });
+    }
   })();
   </script>
 </body>
