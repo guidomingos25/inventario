@@ -692,7 +692,53 @@
       .theme-toggle-login .theme-label{display:inline}
     }
 
-  </style>
+  
+
+    /* Filtros de Produtividade e Relatório: mesma largura mínima e mesma responsividade. */
+    .report-toolbar,
+    .productivity-toolbar{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(min(155px,100%),1fr));
+      gap:10px;
+      align-items:end;
+      width:100%;
+      max-width:100%;
+    }
+    .report-toolbar .field,
+    .productivity-toolbar .field{
+      margin:0;
+      min-width:0;
+      width:100%;
+    }
+    .report-toolbar input,
+    .report-toolbar select,
+    .report-toolbar .multi-filter,
+    .productivity-toolbar input,
+    .productivity-toolbar select,
+    .productivity-toolbar .multi-filter{
+      min-width:0;
+      width:100%;
+      max-width:100%;
+    }
+    .report-toolbar .multi-filter>summary,
+    .productivity-toolbar .multi-filter>summary{
+      min-width:0;
+      width:100%;
+      max-width:100%;
+    }
+    @media(max-width:900px){
+      .report-toolbar,
+      .productivity-toolbar{
+        grid-template-columns:repeat(auto-fit,minmax(min(180px,100%),1fr));
+      }
+    }
+    @media(max-width:520px){
+      .report-toolbar,
+      .productivity-toolbar{
+        grid-template-columns:1fr;
+      }
+    }
+</style>
 </head>
 <body>
   <div id="loginView" class="login-shell">
@@ -993,8 +1039,7 @@
             <div><h1>Gerenciamento de usuários</h1><p class="subtitle">Cadastre, edite, desative e exclua usuários sem acessar o painel de Authentication.</p></div>
             <button id="refreshUsersBtn" class="btn" type="button">Atualizar</button>
           </div>
-          <div id="usersBackendNotice" class="security-box" style="margin-bottom:16px">As operações administrativas são validadas novamente no servidor. Administradores de filial visualizam e gerenciam somente usuários pertencentes às suas filiais; administradores globais podem gerenciar todas.</div>
-          <div class="grid two">
+          <div class="grid">
             <div class="card">
               <h2>Novo usuário</h2>
               <p class="login-help">O usuário será criado já confirmado, pronto para entrar com e-mail e senha.</p>
@@ -1007,12 +1052,6 @@
                 <label id="newUserAllBranchesWrap" class="branch-check-item" style="margin-bottom:13px"><input id="newUserAllBranches" type="checkbox"> Administrador com acesso a todas as filiais</label>
                 <button id="createUserBtn" class="btn primary" style="width:100%" type="submit">Cadastrar usuário</button>
               </form>
-            </div>
-            <div class="card">
-              <h2>Segurança adotada</h2>
-              <div class="notice ok" style="margin-top:14px">O acesso administrativo é validado por perfil e filial. <b>Admin Global</b> administra todas as filiais; <b>Admin de Filial</b> administra somente usuários e dados das filiais às quais está vinculado.</div>
-              <p class="login-help">Desativar é a opção recomendada quando um funcionário deixa de usar a aplicação: o acesso é bloqueado, mas o histórico de conferências permanece preservado. A exclusão definitiva só é permitida para usuários sem histórico no inventário.</p>
-              <p class="login-help">Não existe uma segunda senha administrativa salva no HTML. A autorização é validada novamente no servidor a cada operação.</p>
             </div>
           </div>
           <div class="card" style="margin-top:16px">
@@ -1028,8 +1067,7 @@
 
         <section id="page-settings" class="page">
           <h1>Administração</h1><p class="subtitle">Informações do ambiente e inventário.</p>
-          <div class="grid two">
-            <div class="card"><h2>Backend</h2><div id="backendInfo" class="notice info"></div><p class="login-help">A publishable/anon key pode estar no navegador quando as tabelas usam RLS. Nunca use a service_role key no front-end.</p></div>
+          <div class="grid">
             <div class="card"><h2>Inventários da filial</h2><div class="field admin-inventory-select"><label for="adminInventorySelect">Inventário para administrar</label><select id="adminInventorySelect"><option value="">Nenhum inventário aberto</option></select><small class="login-help">A seleção desta área não altera o inventário utilizado na tela de conferência.</small></div><div id="adminInventoryInfo" style="margin-top:12px"></div><div id="adminInventoryNameBox" class="hidden" style="margin-top:14px"><div class="field"><label for="adminInventoryName">Nome do inventário</label><input id="adminInventoryName" maxlength="160" placeholder="Nome do inventário"></div><button id="saveInventoryNameBtn" class="btn" type="button">Salvar nome</button></div><div id="adminInventoryTypeBox" class="hidden" style="margin-top:14px"><div class="field"><label for="adminInventoryType">Classificação do inventário</label><select id="adminInventoryType"><option value="general">Inventário Geral</option><option value="rotating">Inventário Rotativo</option></select></div><button id="saveInventoryTypeBtn" class="btn" type="button">Salvar tipo</button></div><div id="adminInventoryDangerBox" class="hidden" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)"><button id="closeInventoryBtn" class="btn danger" type="button">Encerrar inventário selecionado</button><button id="deleteInventoryBtn" class="btn danger" style="margin-left:8px" type="button">Excluir inventário</button><p class="login-help" style="margin:9px 0 0">Excluir é definitivo: remove a base do inventário, todas as leituras, conferências, duplicidades/tentativas e leituras de Etiqueta Única vinculadas a ele.</p></div></div>
           </div>
           <div class="card" style="margin-top:16px"><div class="section-head"><div><h2>Gerenciamento de usuários</h2><p class="login-help" style="margin:4px 0 0">Cadastre, altere senha, desative ou exclua usuários.</p></div><button id="openUsersAdminBtn" class="btn primary" type="button">Abrir usuários</button></div></div>
@@ -1262,7 +1300,6 @@
     function setModeUi(){
       $('#modeBadge').textContent=configured?'SUPABASE • MULTIUSUÁRIO':'MODO LOCAL • DEMONSTRAÇÃO';$('#modeBadge').classList.toggle('local',!configured);
       $('#loginForm').classList.toggle('hidden',!configured);$('#demoLogin').classList.toggle('hidden',configured);
-      $('#backendInfo').textContent=configured?'Supabase configurado e ativo. URL do projeto: '+cfg.supabaseUrl:'Modo local. Configure supabaseUrl e supabaseAnonKey em app-config.js para habilitar sincronização.';
     }
 
     const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -3306,7 +3343,7 @@
     }
     function applyUsersFilters(){const q=$('#usersSearch').value.trim().toLowerCase(),status=$('#usersStatusFilter').value;state.usersFiltered=state.users.filter(u=>{const active=userIsActive(u);if(q&&!`${u.name||''} ${u.email||''} ${userBranchAccessText(u)}`.toLowerCase().includes(q))return false;if(status==='active'&&!active)return false;if(status==='inactive'&&active)return false;return true});renderUsers()}
     function renderUsers(){const rows=state.usersFiltered||[];$('#usersBody').innerHTML=rows.length?rows.map(u=>{const active=userIsActive(u),self=u.id===state.user?.id;return `<tr><td><b>${esc(u.name||'-')}</b>${self?' <span class="pill">VOCÊ</span>':''}</td><td>${esc(u.email||'-')}</td><td><span class="user-role">${u.role==='admin'?'Administrador':'Conferente'}</span></td><td>${esc(userBranchAccessText(u))}</td><td><span class="user-status ${active?'active':'inactive'}">${active?'Ativo':'Inativo'}</span></td><td>${esc(fmtDateTime(u.created_at))}</td><td>${esc(fmtDateTime(u.last_sign_in_at))}</td><td><div class="user-actions"><button class="btn ghost user-edit-btn" data-user-id="${esc(u.id)}" type="button">Editar</button><button class="btn ${active?'danger':'primary'} user-toggle-btn" data-user-id="${esc(u.id)}" data-user-active="${active?'true':'false'}" type="button" ${self?'disabled title="Você não pode desativar a própria conta"':''}>${active?'Desativar':'Ativar'}</button></div></td></tr>`}).join(''):'<tr><td colspan="8" class="empty">Nenhum usuário encontrado.</td></tr>'}
-    async function loadUsers(){if(state.profile?.role!=='admin')return;$('#usersLoading').classList.remove('hidden');try{await loadBranchManagement();const data=await userAdminInvoke('list');state.users=data.users||[];const scope=state.profile?.all_branches?'todas as filiais':state.branches.map(b=>b.name).join(', ');$('#usersBackendNotice').textContent=state.profile?.all_branches?'Administrador Global: você pode visualizar e gerenciar usuários de todas as filiais.':'Administrador de Filial: você pode visualizar e gerenciar somente usuários totalmente vinculados à(s) sua(s) filial(is): '+scope+'. Usuários globais ou vinculados também a outras filiais ficam protegidos.';renderBranchChecks('newUserBranches',[]);syncAllBranchesVisibility('new');applyUsersFilters()}catch(e){toast(e.message,'bad');$('#usersBody').innerHTML=`<tr><td colspan="8" class="empty">${esc(e.message)}</td></tr>`}finally{$('#usersLoading').classList.add('hidden')}}
+    async function loadUsers(){if(state.profile?.role!=='admin')return;$('#usersLoading').classList.remove('hidden');try{await loadBranchManagement();const data=await userAdminInvoke('list');state.users=data.users||[];renderBranchChecks('newUserBranches',[]);syncAllBranchesVisibility('new');applyUsersFilters()}catch(e){toast(e.message,'bad');$('#usersBody').innerHTML=`<tr><td colspan="8" class="empty">${esc(e.message)}</td></tr>`}finally{$('#usersLoading').classList.add('hidden')}}
     function openUserEdit(id){const u=state.users.find(x=>x.id===id);if(!u)return;$('#editUserId').value=u.id;$('#editUserName').value=u.name||'';$('#editUserEmail').value=u.email||'';$('#editUserRole').value=u.role||'conferente';$('#editUserActive').value=userIsActive(u)?'true':'false';$('#editUserPassword').value='';$('#editUserAllBranches').checked=Boolean(u.all_branches);renderBranchChecks('editUserBranches',u.branch_ids||[]);syncAllBranchesVisibility('edit');$('#userEditSubtitle').textContent=u.email||'';const self=u.id===state.user?.id;$('#editUserRole').disabled=self;$('#editUserActive').disabled=self;$('#editUserAllBranches').disabled=self;$$('#editUserBranches input').forEach(x=>x.disabled=self);$('#deleteUserBtn').disabled=self;$('#deleteUserBtn').title=self?'Você não pode excluir sua própria conta':'';$('#userEditModal').classList.remove('hidden')}
     async function createManagedUser(){const btn=$('#createUserBtn'),name=$('#newUserName').value.trim(),email=$('#newUserEmail').value.trim(),password=$('#newUserPassword').value,role=$('#newUserRole').value,branchIds=selectedBranchIds('newUserBranches'),allBranches=role==='admin'&&$('#newUserAllBranches').checked;if(!name||!email||password.length<8){toast('Informe nome, e-mail e uma senha com pelo menos 8 caracteres.','warn');return}if(!allBranches&&!branchIds.length){toast('Selecione pelo menos uma filial para o usuário.','warn');return}btn.disabled=true;btn.textContent='Cadastrando...';try{const result=await userAdminInvoke('create',{name,email,password,role});await saveUserBranchAccess(result.user_id,role,branchIds,allBranches);$('#createUserForm').reset();$('#newUserRole').value='conferente';renderBranchChecks('newUserBranches',[]);syncAllBranchesVisibility('new');toast('Usuário cadastrado e filial vinculada.','ok');await loadUsers()}catch(e){toast(e.message,'bad')}finally{btn.disabled=false;btn.textContent='Cadastrar usuário'}}
     async function saveManagedUser(){const id=$('#editUserId').value,name=$('#editUserName').value.trim(),email=$('#editUserEmail').value.trim(),role=$('#editUserRole').value,active=$('#editUserActive').value==='true',password=$('#editUserPassword').value,branchIds=selectedBranchIds('editUserBranches'),allBranches=role==='admin'&&$('#editUserAllBranches').checked;const btn=$('#saveUserBtn');if(!name||!email){toast('Nome e e-mail são obrigatórios.','warn');return}if(password&&password.length<8){toast('A nova senha precisa ter pelo menos 8 caracteres.','warn');return}if(!allBranches&&!branchIds.length){toast('Selecione pelo menos uma filial para o usuário.','warn');return}btn.disabled=true;btn.textContent='Salvando...';try{await userAdminInvoke('update',{user_id:id,name,email,role,active,password:password||undefined});await saveUserBranchAccess(id,role,branchIds,allBranches);$('#userEditModal').classList.add('hidden');toast('Usuário e acesso às filiais atualizados.','ok');await loadUsers()}catch(e){toast(e.message,'bad')}finally{btn.disabled=false;btn.textContent='Salvar alterações'}}
