@@ -370,7 +370,7 @@
        Camada somente visual: não altera regras, cálculos ou integrações.
        ================================================================ */
     :root{
-      --bg:#ffffff;
+      --bg:#f6f7f8;
       --panel:#ffffff;
       --ink:#3f3f3f;
       --muted:#737373;
@@ -383,7 +383,7 @@
       --infobg:#fff6ed;
       --shadow:0 10px 30px rgba(63,63,63,.08);
     }
-    html,body,.app,.main{background:#fff}
+    html,body,.app,.main{background:var(--bg)}
     body{color:var(--ink)}
 
     /* Cabeçalho corporativo: presença visual do laranja sem escurecer as páginas. */
@@ -416,11 +416,25 @@
     .btn.primary:hover{background:#d85f00}
     input:focus,select:focus{border-color:#f28a2e;box-shadow:0 0 0 3px #ffe8d2}
 
-    /* Profundidade visual uniforme dos cards em todas as páginas.
-       Mantém o visual limpo, mas separa melhor cada bloco do fundo branco. */
+    /* Fundo estável do tema claro: todas as camadas principais usam exatamente
+       a mesma cor para evitar variações visuais durante rolagem, hover e repintura. */
+    html:not([data-theme="dark"]),
+    html:not([data-theme="dark"]) body,
+    html:not([data-theme="dark"]) .app,
+    html:not([data-theme="dark"]) .layout,
+    html:not([data-theme="dark"]) .main,
+    html:not([data-theme="dark"]) .page{
+      background-color:#f3f4f6;
+    }
     html:not([data-theme="dark"]) .card{
-      border-color:#dedede;
-      box-shadow:0 6px 20px rgba(63,63,63,.09);
+      background:#ffffff;
+      border-color:#d7dadd;
+      box-shadow:0 4px 14px rgba(40,45,55,.08);
+    }
+    html:not([data-theme="dark"]) .admin-list-row{
+      background:#ffffff;
+      border-color:#dfe2e5;
+      box-shadow:0 1px 3px rgba(40,45,55,.04);
     }
 
     /* Pontos de apoio laranja nas áreas de dados, sem comprometer a leitura. */
