@@ -1365,7 +1365,7 @@
     let geoPermissionWarningShown=false;
     let geoWatchId=null;
     let geoSamples=[];
-    const GEO_SAMPLE_WINDOW_MS=10000;
+    const GEO_SAMPLE_WINDOW_MS=2000;
     const GEO_MAX_SAMPLES=30;
     function scanGeoValue(v){
       const n=Number(v);return Number.isFinite(n)?n:null;
