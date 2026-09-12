@@ -416,6 +416,13 @@
     .btn.primary:hover{background:#d85f00}
     input:focus,select:focus{border-color:#f28a2e;box-shadow:0 0 0 3px #ffe8d2}
 
+    /* Profundidade visual uniforme dos cards em todas as páginas.
+       Mantém o visual limpo, mas separa melhor cada bloco do fundo branco. */
+    html:not([data-theme="dark"]) .card{
+      border-color:#dedede;
+      box-shadow:0 6px 20px rgba(63,63,63,.09);
+    }
+
     /* Pontos de apoio laranja nas áreas de dados, sem comprometer a leitura. */
     .grid.kpis>.card,.report-kpi{border-top:3px solid #f28a2e}
     th{background:#fff8f2}
